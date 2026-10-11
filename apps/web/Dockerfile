@@ -52,6 +52,11 @@ COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/public ./apps/web/public
 
+# Ensure upload directory exists and is writable
+RUN mkdir -p /app/apps/web/public/uploads /app/public/uploads && \
+    chown -R nextjs:nodejs /app/apps/web/public /app/public && \
+    chmod -R 777 /app/apps/web/public /app/public
+
 USER nextjs
 
 EXPOSE 3000

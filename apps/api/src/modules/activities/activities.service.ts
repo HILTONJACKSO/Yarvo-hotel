@@ -24,7 +24,8 @@ export class ActivitiesService {
         type: data.type,
         description: data.description,
         price: data.price,
-        image: data.image,
+        image: data.image || (data.images && data.images.length > 0 ? data.images[0] : null),
+        images: data.images || [],
         isActive: data.isActive ?? true
       }
     });
@@ -33,7 +34,15 @@ export class ActivitiesService {
   async update(id: string, data: any) {
     return this.prisma.activity.update({
       where: { id },
-      data
+      data: {
+        name: data.name,
+        type: data.type,
+        description: data.description,
+        price: data.price,
+        image: data.image !== undefined ? data.image : (data.images && data.images.length > 0 ? data.images[0] : undefined),
+        images: data.images !== undefined ? data.images : undefined,
+        isActive: data.isActive
+      }
     });
   }
 

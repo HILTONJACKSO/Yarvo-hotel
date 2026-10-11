@@ -3,19 +3,32 @@ import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
 
+function findFilePath(filename: string): string | null {
+  const candidates = [
+    '/app/apps/web/public/uploads',
+    join(process.cwd(), 'apps/web/public/uploads'),
+    join(process.cwd(), 'public/uploads'),
+    '/app/public/uploads'
+  ];
+
+  for (const dir of candidates) {
+    const fullPath = join(dir, filename);
+    if (existsSync(fullPath)) {
+      return fullPath;
+    }
+  }
+
+  return null;
+}
+
 export async function GET(request: NextRequest, context: { params: Promise<{ filename: string }> }) {
   try {
     const { filename } = await context.params;
-    
-    // Support local dev environment and production standalone Docker
-    const isProduction = process.env.NODE_ENV === 'production';
-    const uploadDir = isProduction 
-      ? join(process.cwd(), 'apps/web/public/uploads') 
-      : join(process.cwd(), 'public/uploads');
+    const decodedFilename = decodeURIComponent(filename);
 
-    const filePath = join(uploadDir, filename);
+    const filePath = findFilePath(decodedFilename) || findFilePath(filename);
 
-    if (!existsSync(filePath)) {
+    if (!filePath) {
       return new NextResponse('File not found', { status: 404 });
     }
 
@@ -23,11 +36,12 @@ export async function GET(request: NextRequest, context: { params: Promise<{ fil
     
     // Guess mime type based on extension
     let contentType = 'application/octet-stream';
-    if (filename.toLowerCase().endsWith('.png')) contentType = 'image/png';
-    else if (filename.toLowerCase().endsWith('.jpg') || filename.toLowerCase().endsWith('.jpeg')) contentType = 'image/jpeg';
-    else if (filename.toLowerCase().endsWith('.gif')) contentType = 'image/gif';
-    else if (filename.toLowerCase().endsWith('.svg')) contentType = 'image/svg+xml';
-    else if (filename.toLowerCase().endsWith('.webp')) contentType = 'image/webp';
+    const lower = filename.toLowerCase();
+    if (lower.endsWith('.png')) contentType = 'image/png';
+    else if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) contentType = 'image/jpeg';
+    else if (lower.endsWith('.gif')) contentType = 'image/gif';
+    else if (lower.endsWith('.svg')) contentType = 'image/svg+xml';
+    else if (lower.endsWith('.webp')) contentType = 'image/webp';
 
     return new NextResponse(fileBuffer, {
       headers: {
@@ -39,4 +53,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ fil
     console.error('Error serving file:', error);
     return new NextResponse('Internal Server Error', { status: 500 });
   }
+}
+
+export async function HEAD(request: NextRequest, context: { params: Promise<{ filename: string }> }) {
+  return GET(request, context);
 }

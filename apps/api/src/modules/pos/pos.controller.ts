@@ -56,13 +56,13 @@ export class PosController {
 
   @Post('menu-items')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
-  createMenuItem(@Body() data: { categoryId: string; name: string; description?: string; price: number; type?: string; inventoryItemId?: string; image?: string; taxIds?: string[] }) {
+  createMenuItem(@Body() data: { categoryId: string; name: string; description?: string; price: number; type?: string; inventoryItemId?: string; image?: string; images?: string[]; taxIds?: string[] }) {
     return this.posService.createMenuItem(data);
   }
 
   @Patch('menu-items/:id')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
-  updateMenuItem(@Param('id') id: string, @Body() data: { categoryId?: string; name?: string; description?: string; price?: number; type?: string; inventoryItemId?: string; image?: string; taxIds?: string[] }, @Req() req: any) {
+  updateMenuItem(@Param('id') id: string, @Body() data: { categoryId?: string; name?: string; description?: string; price?: number; type?: string; inventoryItemId?: string; image?: string; images?: string[]; taxIds?: string[] }, @Req() req: any) {
     return this.posService.updateMenuItem(id, data, req.user.id);
   }
 

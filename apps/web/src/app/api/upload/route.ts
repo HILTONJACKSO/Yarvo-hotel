@@ -1,6 +1,24 @@
 import { NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
+import { existsSync } from 'fs';
+
+function getUploadDir(): string {
+  const candidates = [
+    '/app/apps/web/public/uploads',
+    join(process.cwd(), 'apps/web/public/uploads'),
+    join(process.cwd(), 'public/uploads'),
+    '/app/public/uploads'
+  ];
+
+  for (const dir of candidates) {
+    if (existsSync(dir)) {
+      return dir;
+    }
+  }
+
+  return join(process.cwd(), 'public/uploads');
+}
 
 export async function POST(request: Request) {
   try {
@@ -18,13 +36,13 @@ export async function POST(request: Request) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const filename = uniqueSuffix + '-' + file.name.replace(/\s+/g, '-');
     
-    const uploadDir = join(process.cwd(), 'public/uploads');
+    const uploadDir = getUploadDir();
     
     // Ensure directory exists
     try {
       await mkdir(uploadDir, { recursive: true });
     } catch (e) {
-      console.log('Upload directory might already exist');
+      // Directory might already exist
     }
 
     const path = join(uploadDir, filename);
