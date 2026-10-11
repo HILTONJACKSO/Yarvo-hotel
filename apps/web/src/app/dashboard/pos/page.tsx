@@ -323,6 +323,8 @@ export default function PosPage() {
       if (res.ok) {
         showToast('Order settled successfully', 'success', 'Success');
         setShowSettleModal(false);
+        const finalStatus = (settleOrder.folio?.reservation?.room || settleFolioId) ? 'BILLED_TO_ROOM' : 'PAID';
+        await db.posOrders.update(settleOrder.id, { status: finalStatus, discountAmount: settleDiscountAmount });
         setSettleOrder(null);
         setPayments([]);
         setSettleDiscountPercent(0); setSettleDiscountReason('');

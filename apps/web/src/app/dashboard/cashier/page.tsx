@@ -237,7 +237,7 @@ const TransferModal = ({ isOpen, onClose, onTransferSuccess, API_URL }: any) => 
 export default function CashierPage() {
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const { showToast } = useToast();
-  const orders: any[] = useLiveQuery(() => db.posOrders.toArray())?.filter(o => o.status === 'SERVED' || o.status === 'BILLED_TO_ROOM' || o.status === 'PAID') || [];
+  const orders: any[] = useLiveQuery(() => db.posOrders.toArray())?.filter(o => o.status === 'SERVED' || o.status === 'OPEN') || [];
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [printMode, setPrintMode] = useState<'RECEIPT' | 'INVOICE'>('RECEIPT');
@@ -586,36 +586,48 @@ export default function CashierPage() {
     const handleCheckout = async (orderId: string) => {
     if (isProcessing || !selectedOrder) return;
     
+    const isRoomOrder = Boolean(selectedOrder.folioId || selectedOrder.folio?.reservation?.room || selectedOrder.folio?.id);
     const currentTotal = payments.reduce((sum, p) => sum + p.amount, 0);
     const orderTotal = Number(selectedOrder.totalAmount);
     const finalTotal = Math.max(0, orderTotal - calculatedDiscount);
     
-    // Allow small floating point variance
-    if (Math.abs(finalTotal - currentTotal) > 0.01) {
+    // Allow small floating point variance for non-room walk-in orders
+    if (!isRoomOrder && Math.abs(finalTotal - currentTotal) > 0.01) {
       showToast(`Please settle the full amount of $${finalTotal.toFixed(2)}`, 'error');
       return;
     }
 
     setIsProcessing(true);
     try {
+      const targetFolioId = selectedOrder.folioId || selectedOrder.folio?.id;
+      const nextStatus = isRoomOrder ? 'BILLED_TO_ROOM' : 'PAID';
+
       const order = await db.posOrders.get(orderId);
       if (order) {
-          order.status = 'PAID';
+          order.status = nextStatus;
           order.discountAmount = calculatedDiscount;
           await db.posOrders.put(order);
       }
       
+      const payload: any = { discountAmount: calculatedDiscount };
+      if (isRoomOrder) {
+        payload.folioId = targetFolioId;
+      }
+      if (payments.length > 0) {
+        payload.payments = payments;
+      }
+
       await db.syncQueue.add({
         url: `/api/v1/pos/orders/${orderId}/checkout`,
         method: 'POST',
-        payload: { payments, discountAmount: calculatedDiscount },
+        payload,
         createdAt: Date.now(),
         status: 'PENDING',
         retryCount: 0
       });
       if (navigator.onLine) syncOfflineMutations();
 
-      showToast('Payment processed successfully', 'success', 'Paid');
+      showToast(isRoomOrder ? 'Charged to Room Folio successfully' : 'Payment processed successfully', 'success', 'Paid');
       setSelectedOrder(null);
       fetchOrders();
     } catch (err: any) {
@@ -836,10 +848,14 @@ export default function CashierPage() {
               </button>
               <button 
                 className="btn-pay" 
-                disabled={isProcessing || payments.reduce((sum, p) => sum + p.amount, 0) < finalTotal - 0.01} 
+                disabled={isProcessing || (!Boolean(selectedOrder.folioId || selectedOrder.folio?.reservation?.room || selectedOrder.folio?.id) && payments.reduce((sum, p) => sum + p.amount, 0) < finalTotal - 0.01)} 
                 onClick={() => handleCheckout(selectedOrder.id)}
               >
-                {isProcessing ? 'Processing...' : 'Complete Payment'}
+                {isProcessing 
+                  ? 'Processing...' 
+                  : Boolean(selectedOrder.folioId || selectedOrder.folio?.reservation?.room || selectedOrder.folio?.id)
+                    ? `Charge to Room Folio ($${finalTotal.toFixed(2)})`
+                    : 'Complete Payment'}
               </button>
             </div>
 

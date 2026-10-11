@@ -90,40 +90,58 @@ export default function KitchenPage() {
     }
   };
 
-  const confirmReturn = async (returnId: string) => {
+  const confirmReturn = async (itemId: string, returnId?: string) => {
     try {
       // Find order that has this return
       const allOrders = await db.posOrders.toArray();
       let foundOrder = null;
-      let targetItemId = null;
       for (const order of allOrders) {
-         const item = order.items?.find(i => i.returnRequest?.id === returnId);
+         const item = order.items?.find((i: any) => i.id === itemId || (returnId && i.returnRequest?.id === returnId));
          if (item) {
              foundOrder = order;
-             targetItemId = item.id;
              break;
          }
       }
       
-      if (foundOrder && targetItemId) {
-          foundOrder.items = foundOrder.items.map(i => {
-              if (i.id === targetItemId) {
-                  return { ...i, status: 'RETURN_REQUESTED', returnRequest: { ...i.returnRequest, status: 'PENDING_APPROVAL' } };
+      if (foundOrder) {
+          foundOrder.items = foundOrder.items.map((i: any) => {
+              if (i.id === itemId || (returnId && i.returnRequest?.id === returnId)) {
+                  return { ...i, status: 'RETURN_REQUESTED', returnRequest: { ...(i.returnRequest || {}), status: 'PENDING_APPROVAL' } };
               }
               return i;
           });
           await db.posOrders.put(foundOrder);
       }
 
-      await db.syncQueue.add({
-        url: `/api/v1/pos/order-items/${targetItemId}/confirm-return`,
-        method: 'POST',
-        payload: { kitchenNote },
-        createdAt: Date.now(),
-        status: 'PENDING',
-        retryCount: 0
-      });
-      if (navigator.onLine) syncOfflineMutations();
+      if (navigator.onLine) {
+        try {
+          await fetch(`/api/v1/pos/order-items/${itemId}/confirm-return`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ kitchenNote })
+          });
+        } catch (e) {
+          console.error("Direct confirm-return error, enqueuing:", e);
+          await db.syncQueue.add({
+            url: `/api/v1/pos/order-items/${itemId}/confirm-return`,
+            method: 'POST',
+            payload: { kitchenNote },
+            createdAt: Date.now(),
+            status: 'PENDING',
+            retryCount: 0
+          });
+        }
+      } else {
+        await db.syncQueue.add({
+          url: `/api/v1/pos/order-items/${itemId}/confirm-return`,
+          method: 'POST',
+          payload: { kitchenNote },
+          createdAt: Date.now(),
+          status: 'PENDING',
+          retryCount: 0
+        });
+      }
 
       showToast('Return confirmed and sent to manager', 'success', 'Success');
       setConfirmingReturnId(null);
@@ -205,7 +223,7 @@ export default function KitchenPage() {
                               style={{ padding: '6px', fontSize: '0.9rem' }}
                             />
                             <div style={{ display: 'flex', gap: '8px' }}>
-                              <button onClick={() => confirmReturn(item.returnRequest!.id)} className="btn-success btn-sm flex-1">Confirm</button>
+                              <button onClick={() => confirmReturn(item.id, item.returnRequest?.id)} className="btn-success btn-sm flex-1">Confirm</button>
                               <button onClick={() => setConfirmingReturnId(null)} className="btn-secondary btn-sm">Cancel</button>
                             </div>
                           </>

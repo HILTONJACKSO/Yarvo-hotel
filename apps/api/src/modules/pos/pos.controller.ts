@@ -154,7 +154,7 @@ export class PosController {
   }
 
   @Delete('orders/:id')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'CASHIER')
   deleteOrder(@Param('id') id: string) {
     return this.posService.deleteOrder(id);
   }

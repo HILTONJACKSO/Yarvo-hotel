@@ -735,6 +735,10 @@ export class PosService {
   }
 
   async deleteOrder(id: string) {
+    const existing = await this.prisma.posOrder.findUnique({ where: { id } });
+    if (!existing) {
+      return { success: true, message: 'Order does not exist or already deleted' };
+    }
     return this.prisma.$transaction(async (tx) => {
       // Return requested related to order items
       const items = await tx.posOrderItem.findMany({ where: { orderId: id } });
@@ -778,10 +782,15 @@ export class PosService {
   async getReturnRequests(start?: string, end?: string) {
     const where: any = {};
     if (start && end) {
-      where.createdAt = {
-        gte: new Date(start),
-        lte: new Date(new Date(end).setUTCHours(23, 59, 59, 999))
-      };
+      where.OR = [
+        { status: 'PENDING_APPROVAL' },
+        {
+          createdAt: {
+            gte: new Date(start),
+            lte: new Date(new Date(end).setUTCHours(23, 59, 59, 999))
+          }
+        }
+      ];
     }
     return this.prisma.posReturnRequest.findMany({
       where,
@@ -802,11 +811,27 @@ export class PosService {
 
 
   async confirmReturnByItemId(itemId: string, userId: string, kitchenNote: string) {
+    await this.prisma.posOrderItem.updateMany({
+      where: { id: itemId },
+      data: { status: 'RETURN_REQUESTED' }
+    });
+
     const returnReq = await this.prisma.posReturnRequest.findFirst({ 
       where: { orderItemId: itemId },
       orderBy: { createdAt: 'desc' }
     });
-    if (!returnReq) throw new Error("Return request not found");
+    
+    if (!returnReq) {
+      return this.prisma.posReturnRequest.create({
+        data: {
+          orderItemId: itemId,
+          requestedById: userId,
+          confirmedById: userId,
+          kitchenNote,
+          status: 'PENDING_APPROVAL'
+        }
+      });
+    }
     
     return this.prisma.posReturnRequest.update({
       where: { id: returnReq.id },

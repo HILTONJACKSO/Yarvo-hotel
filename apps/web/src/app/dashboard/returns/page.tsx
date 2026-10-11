@@ -148,7 +148,14 @@ export default function ReturnsPage() {
       </div>
 
       <div className="flex gap-4 mb-6 border-b border-slate-700">
-        <button onClick={() => setActiveTab('RETURNS')} className={`pb-3 px-4 font-bold ${activeTab === 'RETURNS' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'}`}>Returns</button>
+        <button onClick={() => setActiveTab('RETURNS')} className={`pb-3 px-4 font-bold flex items-center gap-2 ${activeTab === 'RETURNS' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'}`}>
+          Returns
+          {returns.filter(r => r.status === 'PENDING_APPROVAL').length > 0 && (
+            <span className="px-2 py-0.5 text-xs bg-rose-500 text-white rounded-full font-bold animate-pulse">
+              {returns.filter(r => r.status === 'PENDING_APPROVAL').length}
+            </span>
+          )}
+        </button>
         <button onClick={() => setActiveTab('DISCOUNTS')} className={`pb-3 px-4 font-bold ${activeTab === 'DISCOUNTS' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'}`}>Discounts</button>
       </div>
 

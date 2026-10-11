@@ -126,8 +126,27 @@ export async function downloadLatestData() {
     if (ptRes.ok) { const d = await ptRes.json(); if (d.data) await db.posTables.bulkPut(d.data); }
     if (pcRes.ok) { const d = await pcRes.json(); if (d.data) await db.posCategories.bulkPut(d.data); }
     if (pmRes.ok) { const d = await pmRes.json(); if (d.data) await db.posMenuItems.bulkPut(d.data); }
-    if (poRes.ok) { const d = await poRes.json(); if (d.data) await db.posOrders.bulkPut(d.data); }
-    if (psRes.ok) { const d = await psRes.json(); if (d.data) await db.posOrders.bulkPut(d.data); }
+    
+    const serverOrders: any[] = [];
+    if (poRes.ok) { const d = await poRes.json(); if (d.data) serverOrders.push(...d.data); }
+    if (psRes.ok) { const d = await psRes.json(); if (d.data) serverOrders.push(...d.data); }
+    
+    if (poRes.ok || psRes.ok) {
+      if (serverOrders.length > 0) {
+        await db.posOrders.bulkPut(serverOrders);
+      }
+      // Reconcile: If local order is marked SERVED/OPEN but server no longer considers it active
+      const serverIds = new Set(serverOrders.map((o: any) => o.id));
+      const localOrders = await db.posOrders.toArray();
+      for (const lo of localOrders) {
+        if ((lo.status === 'SERVED' || lo.status === 'OPEN') && !serverIds.has(lo.id)) {
+          const isPending = await db.syncQueue.where('url').equals(`/api/v1/pos/orders/${lo.id}/checkout`).count();
+          if (isPending === 0) {
+            await db.posOrders.update(lo.id, { status: 'PAID' });
+          }
+        }
+      }
+    }
 
     // 5. Fetch Inventory & Taxes
     const [invRes, taxRes] = await Promise.all([

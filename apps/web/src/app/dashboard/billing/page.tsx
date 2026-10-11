@@ -15,8 +15,12 @@ export default function BillingPage() {
   const { user } = useAuth();
   const { showToast } = useToast();
   const [bills, setBills] = useState<any[]>([]);
-  const [selectedBill, setSelectedBill] = useState<any | null>(null);
+  const [selectedBillId, setSelectedBillId] = useState<string | null>(null);
+  const [selectedBillType, setSelectedBillType] = useState<"FOLIO" | "POS_ORDER" | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Derived selectedBill - eliminates circular object reference re-renders
+  const selectedBill = bills.find(b => b.id === selectedBillId && b.type === selectedBillType) || null;
 
   // Form states for Folio
   const [chargeAmount, setChargeAmount] = useState("");
@@ -43,17 +47,13 @@ export default function BillingPage() {
       const totalRoomsAmount = folios.reduce((sum: number, f: any) => sum + Number(f.balance || 0), 0);
       setTotalPendingRooms(totalRoomsAmount);
 
-      setBills([...folios, ...posOrders].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-      
-      if (selectedBill) {
-        if (selectedBill.type === "FOLIO") {
-           selectFolio(selectedBill.id, false);
-        } else {
-           const updatedPos = posOrders.find((o: any) => o.id === selectedBill.id);
-           if (updatedPos) setSelectedBill(updatedPos);
-           else setSelectedBill(null);
-        }
-      }
+      // Deterministic stable sorting
+      const allBills = [...folios, ...posOrders].sort((a, b) => {
+        const timeDiff = new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+        if (timeDiff !== 0) return timeDiff;
+        return String(a.id).localeCompare(String(b.id));
+      });
+      setBills(allBills);
     } catch (err) {
       console.error(err);
     } finally {
@@ -180,25 +180,28 @@ export default function BillingPage() {
 
   useEffect(() => {
     fetchBills();
-    // Intentionally removed setInterval to avoid offline polling overload
-  }, [selectedBill]);
+  }, []);
 
-  const selectFolio = async (id: string, updateSelection = true) => {
+  const selectFolio = async (id: string) => {
     try {
-      const folio = await db.folios.get(id);
-      if (folio && updateSelection) {
-         setSelectedBill({ ...folio, type: "FOLIO" });
-      }
       if (navigator.onLine) {
-          const res = await fetch(`/api/v1/folios/${id}/statement`);
-          if (res.ok) {
-            const json = await res.json();
-            await db.folios.put(json.data);
-            if (updateSelection) setSelectedBill({ ...json.data, type: "FOLIO" });
-          }
+        const res = await fetch(`/api/v1/folios/${id}/statement`);
+        if (res.ok) {
+          const json = await res.json();
+          await db.folios.put(json.data);
+          setBills(prev => prev.map(b => (b.id === id && b.type === "FOLIO") ? { ...json.data, type: "FOLIO" } : b));
+        }
       }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleSelectBill = (b: any) => {
+    setSelectedBillId(b.id);
+    setSelectedBillType(b.type);
+    if (b.type === "FOLIO") {
+      selectFolio(b.id);
     }
   };
 
@@ -212,7 +215,9 @@ export default function BillingPage() {
       const res = await fetch(`/api/v1/folios/${selectedBill.id}/close`, { method: "POST" });
       if (res.ok) {
         showToast("Folio closed successfully!", "success");
-        setSelectedBill(null);
+        await db.folios.delete(selectedBill.id);
+        setSelectedBillId(null);
+        setSelectedBillType(null);
         fetchBills();
         setIsCloseModalOpen(false);
       } else {
@@ -303,33 +308,49 @@ export default function BillingPage() {
       });
       if (res.ok) {
         showToast("Order checked out successfully!", "success");
-        setSelectedBill(null);
+        await db.posOrders.delete(selectedBill.id);
+        setSelectedBillId(null);
+        setSelectedBillType(null);
         fetchBills();
       } else {
-        const error = await res.json();
-        showToast(`Failed: ${error.message}`, "error");
+        const error = await res.json().catch(() => ({ message: 'Checkout failed' }));
+        if (res.status === 404 || error.message?.includes('not found')) {
+          showToast("Order not found on server. Removing stale order.", "error");
+          await db.posOrders.delete(selectedBill.id);
+          setSelectedBillId(null);
+          setSelectedBillType(null);
+          fetchBills();
+        } else {
+          showToast(`Failed: ${error.message}`, "error");
+        }
       }
-    } catch (err) { console.error(err); }
+    } catch (err: any) {
+      showToast(err.message || "Checkout failed", "error");
+    }
   };
 
   const handleDeletePOS = async () => {
     if (!selectedBill || selectedBill.type !== "POS_ORDER") return;
     if (!confirm("Are you sure you want to delete this POS order? This cannot be undone.")) return;
-    // For safety, let's assume we can change its status to CANCELLED or call a delete endpoint.
-    // If no delete endpoint exists, we can use the generic API or write a server action.
     try {
-      // Trying the delete API if it exists, otherwise we'll have to add one.
       const res = await fetch(`/api/v1/pos/orders/${selectedBill.id}`, { method: 'DELETE' });
-      if (res.ok) {
-        showToast("POS Order deleted.", "success");
-        setSelectedBill(null);
+      if (res.ok || res.status === 404) {
+        await db.posOrders.delete(selectedBill.id);
+        showToast("POS Order deleted successfully.", "success");
+        setSelectedBillId(null);
+        setSelectedBillType(null);
         fetchBills();
       } else {
-        // Fallback: Just update status to CANCELLED? The API might not allow it.
-        showToast("Failed to delete. Please ensure backend delete endpoint exists.", "error");
+        const error = await res.json().catch(() => ({ message: 'Failed to delete' }));
+        showToast(error.message || "Failed to delete order.", "error");
       }
-    } catch (err) {
-       console.error(err);
+    } catch (err: any) {
+      console.error(err);
+      await db.posOrders.delete(selectedBill.id);
+      setSelectedBillId(null);
+      setSelectedBillType(null);
+      showToast("POS Order removed locally.", "success");
+      fetchBills();
     }
   };
 
@@ -371,8 +392,8 @@ export default function BillingPage() {
               bills.map(b => (
                 <div 
                   key={b.id} 
-                  className={`bg-slate-900/60 border rounded-xl p-4 cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${selectedBill?.id === b.id ? 'border-cyan-500 bg-cyan-950/30 shadow-cyan-900/20' : 'border-slate-700/50 hover:border-slate-600'}`}
-                  onClick={() => b.type === 'FOLIO' ? selectFolio(b.id) : setSelectedBill(b)}
+                  className={`bg-slate-900/60 border rounded-xl p-4 cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${(selectedBillId === b.id && selectedBillType === b.type) ? 'border-cyan-500 bg-cyan-950/30 shadow-cyan-900/20' : 'border-slate-700/50 hover:border-slate-600'}`}
+                  onClick={() => handleSelectBill(b)}
                 >
                   {b.type === 'FOLIO' ? (
                     <>
@@ -540,7 +561,7 @@ export default function BillingPage() {
                 </div>
               </div>
               <div className="p-6 border-t border-slate-700 bg-slate-900/50 flex gap-4 justify-end">
-                {isAdmin && (
+                {(isAdmin || isCashierOrManager) && (
                   <button onClick={handleDeletePOS} className="bg-rose-500/10 text-rose-400 border border-rose-500/30 hover:bg-rose-500/20 px-6 py-3 rounded-xl font-bold transition-all flex items-center gap-2 mr-auto">
                     <Trash2 size={18} /> Delete POS Order
                   </button>
