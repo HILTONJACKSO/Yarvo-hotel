@@ -36,43 +36,43 @@ import {
 } from 'lucide-react';
 
 type NavItem = 
-  | { icon: any; label: string; href: string; id: string; type?: never; allowedRoles: string[] }
+  | { icon: any; label: string; href: string; id: string; type?: never; allowedRoles: string[]; requiredFeature?: string }
   | { type: 'divider' };
 
 const NAV_ITEMS: NavItem[] = [
-  { icon: Home, label: 'Dashboard', href: '/dashboard', id: 'nav-dashboard', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager'] },
-  { icon: CalendarCheck, label: 'Reservations', href: '/dashboard/reservations', id: 'nav-reservations', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'front_desk'] },
-  { icon: Users, label: 'Guests', href: '/dashboard/guests', id: 'nav-guests', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'front_desk'] },
-  { icon: Building2, label: 'Companies', href: '/dashboard/companies', id: 'nav-companies', allowedRoles: ['super_admin', 'admin', 'manager', 'front_desk'] },
-  { icon: Users, label: 'Staff', href: '/dashboard/staff', id: 'nav-staff', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'staff_waiter'] },
+  { icon: Home, label: 'Dashboard', href: '/dashboard', id: 'nav-dashboard', allowedRoles: ['admin', 'ceo', 'manager'] },
+  { icon: CalendarCheck, label: 'Reservations', href: '/dashboard/reservations', id: 'nav-reservations', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'front_desk'], requiredFeature: 'FRONT_DESK' },
+  { icon: Users, label: 'Guests', href: '/dashboard/guests', id: 'nav-guests', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'front_desk'], requiredFeature: 'FRONT_DESK' },
+  { icon: Building2, label: 'Companies', href: '/dashboard/companies', id: 'nav-companies', allowedRoles: ['admin', 'manager', 'front_desk'], requiredFeature: 'STAFF_MANAGEMENT' },
+  { icon: Users, label: 'Staff', href: '/dashboard/staff', id: 'nav-staff', allowedRoles: ['admin', 'ceo', 'manager', 'staff_waiter'], requiredFeature: 'STAFF_MANAGEMENT' },
   { type: 'divider' },
-  { icon: BedDouble, label: 'Rooms', href: '/dashboard/rooms', id: 'nav-rooms', allowedRoles: ['super_admin', 'admin', 'ceo'] },
-  { icon: Tags, label: 'Room Types', href: '/dashboard/room-types', id: 'nav-room-types', allowedRoles: ['super_admin', 'admin', 'ceo'] },
-  { icon: ConciergeBell, label: 'Front Desk', href: '/dashboard/front-desk', id: 'nav-frontdesk', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'front_desk', 'housekeeping'] },
-  { icon: Sparkles, label: 'Housekeeping', href: '/dashboard/housekeeping', id: 'nav-housekeeping', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'front_desk', 'housekeeping'] },
-  { icon: Wrench, label: 'Maintenance', href: '/dashboard/maintenance', id: 'nav-maintenance', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'front_desk'] },
+  { icon: BedDouble, label: 'Rooms', href: '/dashboard/rooms', id: 'nav-rooms', allowedRoles: ['admin', 'ceo'], requiredFeature: 'FRONT_DESK' },
+  { icon: Tags, label: 'Room Types', href: '/dashboard/room-types', id: 'nav-room-types', allowedRoles: ['admin', 'ceo'], requiredFeature: 'FRONT_DESK' },
+  { icon: ConciergeBell, label: 'Front Desk', href: '/dashboard/front-desk', id: 'nav-frontdesk', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'front_desk', 'housekeeping'], requiredFeature: 'FRONT_DESK' },
+  { icon: Sparkles, label: 'Housekeeping', href: '/dashboard/housekeeping', id: 'nav-housekeeping', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'front_desk', 'housekeeping'], requiredFeature: 'OPERATIONS' },
+  { icon: Wrench, label: 'Maintenance', href: '/dashboard/maintenance', id: 'nav-maintenance', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'front_desk'], requiredFeature: 'OPERATIONS' },
   { type: 'divider' },
-  { icon: Compass, label: 'Tours, Events & Packages', href: '/dashboard/tours-events', id: 'nav-tours-events', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'front_desk'] },
-  { icon: Ticket, label: 'Tickets', href: '/dashboard/tickets', id: 'nav-tickets', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'cashier', 'front_desk', 'ticketing_staff'] },
-  { icon: CalendarDays, label: 'Events', href: '/dashboard/events', id: 'nav-events', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'cashier', 'front_desk', 'staff_waiter'] },
+  { icon: Compass, label: 'Tours, Events & Packages', href: '/dashboard/tours-events', id: 'nav-tours-events', allowedRoles: ['admin', 'ceo', 'manager', 'front_desk'], requiredFeature: 'EVENTS' },
+  { icon: Ticket, label: 'Tickets', href: '/dashboard/tickets', id: 'nav-tickets', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'cashier', 'front_desk', 'ticketing_staff'], requiredFeature: 'EVENTS' },
+  { icon: CalendarDays, label: 'Events', href: '/dashboard/events', id: 'nav-events', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'cashier', 'front_desk', 'staff_waiter'], requiredFeature: 'EVENTS' },
   { type: 'divider' },
-  { icon: CreditCard, label: 'Billing', href: '/dashboard/billing', id: 'nav-billing', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'accounting', 'cashier', 'front_desk'] },
-  { icon: Receipt, label: 'Expenses', href: '/dashboard/expenses', id: 'nav-expenses', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'accounting', 'cashier'] },
-  { icon: Clock, label: 'Night Audit', href: '/dashboard/night-audit', id: 'nav-night-audit', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'accounting', 'cashier', 'front_desk'] },
-  { icon: Landmark, label: 'Financials', href: '/dashboard/financials', id: 'nav-financials', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'accounting'] },
-  { icon: BarChart3, label: 'Reports', href: '/dashboard/reports', id: 'nav-reports', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'accounting'] },
-  { icon: Activity, label: 'Audit Tracking', href: '/dashboard/audit-logs', id: 'nav-audit-logs', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'accounting'] },
+  { icon: CreditCard, label: 'Billing', href: '/dashboard/billing', id: 'nav-billing', allowedRoles: ['admin', 'ceo', 'manager', 'accounting', 'cashier', 'front_desk'], requiredFeature: 'FINANCE' },
+  { icon: Receipt, label: 'Expenses', href: '/dashboard/expenses', id: 'nav-expenses', allowedRoles: ['admin', 'ceo', 'manager', 'accounting', 'cashier'], requiredFeature: 'FINANCE' },
+  { icon: Clock, label: 'Night Audit', href: '/dashboard/night-audit', id: 'nav-night-audit', allowedRoles: ['admin', 'ceo', 'manager', 'accounting', 'cashier', 'front_desk'], requiredFeature: 'FINANCE' },
+  { icon: Landmark, label: 'Financials', href: '/dashboard/financials', id: 'nav-financials', allowedRoles: ['admin', 'ceo', 'manager', 'accounting'], requiredFeature: 'FINANCE' },
+  { icon: BarChart3, label: 'Reports', href: '/dashboard/reports', id: 'nav-reports', allowedRoles: ['admin', 'ceo', 'manager', 'accounting'], requiredFeature: 'FINANCE' },
+  { icon: Activity, label: 'Audit Tracking', href: '/dashboard/audit-logs', id: 'nav-audit-logs', allowedRoles: ['admin', 'ceo', 'manager', 'accounting'], requiredFeature: 'FINANCE' },
   { type: 'divider' },
-  { icon: Utensils, label: 'Point of Sale', href: '/dashboard/pos', id: 'nav-pos', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'cashier', 'front_desk', 'staff_waiter'] },
-  { icon: ChefHat, label: 'Kitchen KDS', href: '/dashboard/kitchen', id: 'nav-kitchen', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'kitchen_chef', 'cashier'] },
-  { icon: Martini, label: 'Bar Drinks', href: '/dashboard/bar', id: 'nav-bar', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'cashier'] },
-  { icon: Coffee, label: 'Waitstaff', href: '/dashboard/waitstaff', id: 'nav-waitstaff', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'cashier', 'staff_waiter'] },
-  { icon: RotateCcw, label: 'Returns & Discounts', href: '/dashboard/returns', id: 'nav-returns', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'cashier', 'front_desk'] },
-  { icon: Package, label: 'Inventory', href: '/dashboard/inventory', id: 'nav-inventory', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'cashier'] },
+  { icon: Utensils, label: 'Point of Sale', href: '/dashboard/pos', id: 'nav-pos', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'cashier', 'front_desk', 'staff_waiter'], requiredFeature: 'POS' },
+  { icon: ChefHat, label: 'Kitchen KDS', href: '/dashboard/kitchen', id: 'nav-kitchen', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'kitchen_chef', 'cashier'], requiredFeature: 'POS' },
+  { icon: Martini, label: 'Bar Drinks', href: '/dashboard/bar', id: 'nav-bar', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'cashier'], requiredFeature: 'POS' },
+  { icon: Coffee, label: 'Waitstaff', href: '/dashboard/waitstaff', id: 'nav-waitstaff', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'cashier', 'staff_waiter'], requiredFeature: 'POS' },
+  { icon: RotateCcw, label: 'Returns & Discounts', href: '/dashboard/returns', id: 'nav-returns', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'cashier', 'front_desk'], requiredFeature: 'POS' },
+  { icon: Package, label: 'Inventory', href: '/dashboard/inventory', id: 'nav-inventory', allowedRoles: ['admin', 'ceo', 'manager', 'cashier'], requiredFeature: 'INVENTORY' },
   { type: 'divider' },
-  { icon: Wallet, label: 'POS Cashier', href: '/dashboard/cashier', id: 'nav-cashier', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'cashier', 'front_desk'] },
+  { icon: Wallet, label: 'POS Cashier', href: '/dashboard/cashier', id: 'nav-cashier', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'cashier', 'front_desk'], requiredFeature: 'POS' },
   { type: 'divider' },
-  { icon: Settings, label: 'Settings', href: '/dashboard/settings', id: 'nav-settings', allowedRoles: ['super_admin', 'admin', 'ceo'] },
+  { icon: Settings, label: 'Settings', href: '/dashboard/settings', id: 'nav-settings', allowedRoles: ['admin', 'ceo'] },
 ];
 
 
@@ -94,6 +94,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     
     // Check if user is trying to access a restricted path
     if (user && user.roles) {
+      // If user is SUPER_ADMIN, redirect directly to /super-admin
+      if (user.roles.some((r: string) => r.toUpperCase() === 'SUPER_ADMIN')) {
+        router.replace('/super-admin');
+        return;
+      }
+
       // Find the most specific matching route by sorting descending by href length
       const matchableItems = NAV_ITEMS.filter(item => item.type !== 'divider');
       matchableItems.sort((a, b) => (b.href?.length || 0) - (a.href?.length || 0));
@@ -111,6 +117,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           );
           if (firstAllowed && firstAllowed.type !== 'divider' && firstAllowed.href) {
             router.replace(firstAllowed.href);
+          } else if (user.roles.some((r: string) => r.toUpperCase() === 'SUPER_ADMIN')) {
+            router.replace('/super-admin');
           } else {
             router.replace('/login');
           }
@@ -133,7 +141,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => clearInterval(interval);
   }, [user, router]);
 
-  if (isLoading || !user) {
+  if (isLoading || !user || user.roles?.some((r: string) => r.toUpperCase() === 'SUPER_ADMIN')) {
     return <DashboardLoading />;
   }
 
@@ -149,9 +157,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Sidebar */}
       <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : 'sidebar-collapsed'}`}>
         <div className="sidebar-header">
-          <div className="sidebar-logo">
-            <img src="/logo.jpg" alt="Kwalee Logo" style={{ width: '28px', height: '28px', objectFit: 'contain', borderRadius: '50%' }} />
-            {sidebarOpen && <span className="sidebar-brand">KWALEE</span>}
+          <div className="sidebar-logo flex items-center min-w-0">
+            {sidebarOpen ? (
+              <img 
+                src="/yarvo-logo-dark-horizontal.png" 
+                alt="Yarvo Hotel" 
+                onError={(e) => {
+                  e.currentTarget.src = "/yarvo-logo-dark.jpg";
+                }}
+                className="h-9 w-auto max-w-[155px] object-contain"
+              />
+            ) : (
+              <img 
+                src="/favicon-32x32.png" 
+                alt="Yarvo Hotel" 
+                className="w-8 h-8 rounded-lg object-contain shadow-md"
+              />
+            )}
           </div>
           <button
             id="sidebar-toggle"
@@ -178,7 +200,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               item.allowedRoles.includes(role.toLowerCase())
             );
             
-            if (!hasAccess) return null;
+            // Filter based on selected features (SaaS)
+            const hasFeature = !item.requiredFeature || (user.features && user.features.includes(item.requiredFeature));
+            
+            if (!hasAccess || !hasFeature) return null;
 
             const IconComponent = item.icon!;
             return (
@@ -277,7 +302,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         .glass-backdrop {
           position: absolute;
           inset: -20%;
-          background: radial-gradient(circle at 50% 50%, hsl(43, 96%, 56%, 0.05) 0%, transparent 50%);
+          background: radial-gradient(circle at 50% 50%, hsl(221, 83%, 53%, 0.05) 0%, transparent 50%);
           animation: pulse-bg 4s ease-in-out infinite alternate;
         }
 
@@ -304,7 +329,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           width: 60px;
           height: 60px;
           border-radius: 50%;
-          background: hsl(43, 96%, 56%);
+          background: #CA9851;
           filter: blur(30px);
           opacity: 0.3;
           animation: orb-pulse 2s ease-in-out infinite alternate;
@@ -343,7 +368,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           color: hsl(210, 40%, 96%);
           letter-spacing: 0.15em;
           text-transform: uppercase;
-          text-shadow: 0 0 10px hsl(43, 96%, 56%, 0.3);
+          text-shadow: 0 0 10px rgba(202, 152, 81, 0.4);
         }
 
         .loader-dots {
@@ -355,7 +380,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           width: 6px;
           height: 6px;
           border-radius: 50%;
-          background: hsl(43, 96%, 56%);
+          background: #CA9851;
           opacity: 0.4;
           animation: dotFade 1.4s ease-in-out infinite;
         }
@@ -404,15 +429,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         .dashboard-root {
           display: flex;
           min-height: 100vh;
-          background: hsl(224, 39%, 4%);
+          background: #050B14;
         }
 
         /* Sidebar */
         .sidebar {
           display: flex;
           flex-direction: column;
-          background: hsl(222, 35%, 7%);
-          border-right: 1px solid hsl(217, 20%, 14%);
+          background: #070F1E;
+          border-right: 1px solid rgba(202, 152, 81, 0.15);
           transition: width 0.25s ease;
           flex-shrink: 0;
           height: 100vh;
@@ -420,15 +445,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           top: 0;
           overflow: hidden;
         }
-        .sidebar-open { width: 240px; }
-        .sidebar-collapsed { width: 64px; }
+        .sidebar-open { width: 250px; }
+        .sidebar-collapsed { width: 68px; }
 
         .sidebar-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 20px 16px;
-          border-bottom: 1px solid hsl(217, 20%, 12%);
+          padding: 18px 16px;
+          border-bottom: 1px solid rgba(202, 152, 81, 0.12);
           min-height: 64px;
         }
 
@@ -449,11 +474,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
 
         .sidebar-toggle {
-          background: none;
-          border: 1px solid hsl(217, 20%, 18%);
-          border-radius: 6px;
-          padding: 4px 6px;
-          color: hsl(215, 20%, 50%);
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
+          padding: 5px 7px;
+          color: hsl(215, 20%, 60%);
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -461,68 +486,73 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           flex-shrink: 0;
         }
         .sidebar-toggle:hover {
-          background: hsl(217, 20%, 14%);
-          color: hsl(43,96%,56%);
-          border-color: hsl(43,96%,56%,0.4);
+          background: rgba(202, 152, 81, 0.12);
+          color: #DFB776;
+          border-color: rgba(202, 152, 81, 0.4);
         }
 
         .sidebar-nav {
           flex: 1;
           display: flex;
           flex-direction: column;
-          gap: 8px;
-          padding: 12px 8px;
+          gap: 6px;
+          padding: 14px 10px;
           overflow-y: auto;
           scrollbar-width: thin;
-          scrollbar-color: hsl(217, 20%, 18%) transparent;
+          scrollbar-color: rgba(202, 152, 81, 0.2) transparent;
         }
         
         .sidebar-nav::-webkit-scrollbar {
-          width: 6px;
+          width: 5px;
         }
         .sidebar-nav::-webkit-scrollbar-track {
           background: transparent;
         }
         .sidebar-nav::-webkit-scrollbar-thumb {
-          background: hsl(217, 20%, 18%);
+          background: rgba(202, 152, 81, 0.2);
           border-radius: 10px;
         }
         .sidebar-nav::-webkit-scrollbar-thumb:hover {
-          background: hsl(217, 20%, 25%);
+          background: rgba(202, 152, 81, 0.35);
         }
 
         .nav-divider {
           height: 1px;
-          background: hsl(217, 20%, 16%);
-          margin: 8px 12px;
+          background: rgba(255, 255, 255, 0.06);
+          margin: 6px 10px;
           flex-shrink: 0;
         }
 
         .nav-item {
           display: flex;
           align-items: center;
-          gap: 10px;
-          padding: 10px 12px;
-          border-radius: 0;
+          gap: 12px;
+          padding: 10px 14px;
+          border-radius: 12px;
           color: hsl(215, 20%, 65%);
           text-decoration: none;
-          font-size: 0.9rem;
+          font-size: 0.875rem;
           font-weight: 500;
-          letter-spacing: 0.02em;
+          letter-spacing: 0.01em;
           position: relative;
-          transition: all 0.15s;
+          transition: all 0.15s ease;
           white-space: nowrap;
           overflow: hidden;
         }
         .nav-item:hover {
-          background: hsl(217, 20%, 12%);
-          color: hsl(210, 40%, 92%);
+          background: rgba(255, 255, 255, 0.04);
+          color: hsl(210, 40%, 95%);
         }
         .nav-item-active {
-          background: hsl(43,96%,56%,0.12);
-          color: hsl(43,96%,60%);
+          background: linear-gradient(90deg, rgba(202, 152, 81, 0.16), rgba(202, 152, 81, 0.04));
+          color: #DFB776;
+          font-weight: 600;
+          border: 1px solid rgba(202, 152, 81, 0.25);
         }
-        .nav-item-active:hover { background: hsl(43,96%,56%,0.14); }
+        .nav-item-active:hover { 
+          background: linear-gradient(90deg, rgba(202, 152, 81, 0.22), rgba(202, 152, 81, 0.08));
+          color: #E9C78C;
+        }
 
         .nav-icon { font-size: 1rem; flex-shrink: 0; }
         .nav-label { flex: 1; }
@@ -533,23 +563,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           top: 6px;
           bottom: 6px;
           width: 3px;
-          background: hsl(43,96%,56%);
+          background: linear-gradient(to bottom, #DFB776, #CA9851);
           border-radius: 2px 0 0 2px;
+          box-shadow: 0 0 8px rgba(202, 152, 81, 0.6);
         }
 
         .sidebar-footer {
-          padding: 12px 8px;
-          border-top: 1px solid hsl(217, 20%, 12%);
+          padding: 12px 10px;
+          border-top: 1px solid rgba(202, 152, 81, 0.12);
         }
 
         .user-card {
           display: flex;
           align-items: center;
           gap: 10px;
-          padding: 8px;
-          border-radius: 8px;
-          background: hsl(220, 30%, 10%);
-          border: 1px solid hsl(217, 20%, 16%);
+          padding: 8px 10px;
+          border-radius: 12px;
+          background: #0B1D33;
+          border: 1px solid rgba(202, 152, 81, 0.2);
           overflow: hidden;
         }
 
@@ -557,8 +588,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           width: 32px;
           height: 32px;
           border-radius: 8px;
-          background: linear-gradient(135deg, hsl(43,96%,56%), hsl(38,92%,44%));
-          color: hsl(224, 39%, 6%);
+          background: linear-gradient(135deg, #DFB776, #CA9851);
+          color: #070F1E;
           font-size: 0.6875rem;
           font-weight: 800;
           display: flex;
@@ -566,6 +597,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           justify-content: center;
           flex-shrink: 0;
           letter-spacing: 0.02em;
+          box-shadow: 0 0 10px rgba(202, 152, 81, 0.35);
         }
 
         .user-info { flex: 1; min-width: 0; }
@@ -579,9 +611,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
         .user-role {
           font-size: 0.6875rem;
-          color: hsl(215, 20%, 50%);
+          color: #DFB776;
           text-transform: capitalize;
           white-space: nowrap;
+          font-weight: 600;
         }
 
         .logout-btn {
@@ -616,8 +649,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           justify-content: space-between;
           padding: 0 28px;
           height: 64px;
-          border-bottom: 1px solid hsl(217, 20%, 12%);
-          background: hsl(222, 35%, 6%);
+          border-bottom: 1px solid rgba(202, 152, 81, 0.12);
+          background: #070F1E;
           position: sticky;
           top: 0;
           z-index: 10;

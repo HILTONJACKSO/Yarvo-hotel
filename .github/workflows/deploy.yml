@@ -1,0 +1,83 @@
+name: Deploy to Hostinger VPS
+
+on:
+  push:
+    branches:
+      - main   # auto-deploy on push to main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      # ── 1. Checkout code ──────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Set up Node.js ─────────────────────────────────────────────────────
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      # ── 3. Install dependencies (CI mode) ─────────────────────────────────────
+      - name: Install dependencies
+        run: npm ci
+
+      # ── 4. Type-check ─────────────────────────────────────────────────────────
+      - name: Type-check
+        run: npm run typecheck --workspaces --if-present
+
+      # ── 5. Lint ───────────────────────────────────────────────────────────────
+      - name: Lint
+        run: npm run lint --workspaces --if-present
+
+      # ── 6. Deploy to VPS via SSH ──────────────────────────────────────────────
+      - name: Deploy to Hostinger VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            set -e
+
+            echo "==> Pulling latest code..."
+            cd /opt/yarvohotel
+            git pull origin main
+
+            echo "==> Writing production env file..."
+            cat > .env.production << 'ENVEOF'
+            NODE_ENV=production
+            POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+            JWT_ACCESS_SECRET=${{ secrets.JWT_ACCESS_SECRET }}
+            JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
+            COOKIE_SECRET=${{ secrets.COOKIE_SECRET }}
+            REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
+            RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
+            WHATSAPP_ACCESS_TOKEN=${{ secrets.WHATSAPP_ACCESS_TOKEN }}
+            WHATSAPP_PHONE_NUMBER_ID=${{ secrets.WHATSAPP_PHONE_NUMBER_ID }}
+            HOTEL_EMAIL=${{ secrets.HOTEL_EMAIL }}
+            ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}
+            ENVEOF
+
+            echo "==> Rebuilding containers (no downtime with --no-deps)..."
+            docker compose -f docker-compose.prod.yml --env-file .env.production pull --ignore-buildable
+            docker compose -f docker-compose.prod.yml --env-file .env.production build --parallel
+
+            echo "==> Running database migrations..."
+            docker compose -f docker-compose.prod.yml --env-file .env.production run --rm api \
+              node -e "const {PrismaClient}=require('@prisma/client'); new PrismaClient().\$connect().then(()=>process.exit(0))" || true
+
+            echo "==> Restarting services..."
+            docker compose -f docker-compose.prod.yml --env-file .env.production up -d --remove-orphans
+
+            echo "==> Cleaning up old images..."
+            docker image prune -f
+
+            echo "==> Deploy complete ✅"

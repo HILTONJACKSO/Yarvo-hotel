@@ -7,16 +7,19 @@
 :root {
   --font-inter: 'Inter', sans-serif;
 
-  /* Brand colors */
-  --color-brand-gold: hsl(43, 96%, 56%);
-  --color-brand-gold-dark: hsl(38, 92%, 44%);
+  /* Brand colors from official logo */
+  --color-brand-gold: #CA9851;
+  --color-brand-gold-light: #DFB776;
+  --color-brand-gold-dark: #B3823E;
+  --color-brand-navy: #0B1D33;
+  --color-brand-navy-deep: #070F1E;
 
   /* Background scale */
-  --color-bg-deepest: hsl(224, 39%, 4%);
-  --color-bg-deep: hsl(222, 35%, 7%);
-  --color-bg-base: hsl(220, 30%, 10%);
-  --color-bg-elevated: hsl(218, 25%, 14%);
-  --color-bg-hover: hsl(216, 22%, 18%);
+  --color-bg-deepest: #050B14;
+  --color-bg-deep: #070F1E;
+  --color-bg-base: #0B1D33;
+  --color-bg-elevated: #102744;
+  --color-bg-hover: #16345A;
 
   /* Text scale */
   --color-text-primary: hsl(210, 40%, 96%);
@@ -80,7 +83,7 @@ html {
 
 body {
   margin: 0;
-  background-color: hsl(224, 39%, 4%);
+  background-color: #050B14;
   color: hsl(210, 40%, 96%);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;

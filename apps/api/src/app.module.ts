@@ -12,6 +12,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
+import { FeatureGuard } from './common/guards/feature.guard';
 import { RoomTypesModule } from './modules/room-types/room-types.module';
 import { RoomsModule } from './modules/rooms/rooms.module';
 import { GuestsModule } from './modules/guests/guests.module';
@@ -34,6 +35,8 @@ import { StaffModule } from './modules/staff/staff.module';
 import { PublicModule } from './modules/public/public.module';
 import { CompaniesModule } from './modules/companies/companies.module';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
+import { SupportModule } from './modules/support/support.module';
+import { SuperAdminModule } from './modules/super-admin/super-admin.module';
 
 @Module({
   imports: [
@@ -149,6 +152,8 @@ import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
     CompaniesModule,
 
     AuditLogsModule,
+    SupportModule,
+    SuperAdminModule,
   ],
   providers: [
     {
@@ -158,6 +163,10 @@ import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
     {
       provide: APP_GUARD,
       useClass: RolesGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: FeatureGuard,
     },
   ],
 })

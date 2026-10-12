@@ -9,6 +9,7 @@ export interface AuthUser {
   firstName: string;
   lastName: string;
   roles: string[];
+  features?: string[];
 }
 
 interface AuthContextValue {

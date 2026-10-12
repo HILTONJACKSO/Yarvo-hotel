@@ -1,653 +1,613 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { Navbar } from "../components/landing/Navbar";
-import { Footer } from "../components/landing/Footer";
-import { BookingBarInteractive } from "../components/landing/BookingBarInteractive";
 import { 
-  Menu, X, MapPin, Phone, Mail, Instagram, Facebook, 
-  ChevronRight, ChevronLeft, Heart, Star, Calendar, Users, Home as HomeIcon, Check
+  Users, Calendar, ShoppingCart, 
+  Settings, ArrowRight, Hotel, Sparkles, CheckCircle2,
+  BarChart3, LayoutGrid, Smartphone, ShieldCheck, Lock
 } from "lucide-react";
-import Image from "next/image";
-
-// ==========================================
-// 1. CONSTANTS & THEME
-// ==========================================
-const THEME = {
-  colors: {
-    ivory: "#FAF9F4",
-    charcoal: "#1A1A1A",
-    sand: "#E8E1D7",
-    ocean: "#2B4B5C",
-    green: "#4A5D4E",
-  }
-};
-
-const placeholder = (keyword: string, width = 1600, height = 900) => 
-  `https://images.unsplash.com/photo-${keyword}?auto=format&fit=crop&w=${width}&q=80`;
-
-const IMAGES = {
-  hero: "1611892440504-42a792e24d32", 
-  intro: "1582719508461-905c673771fd",
-  beach: "1507525428034-b723cf961d3e", 
-  pool: "1499793983690-e29da59ef1c2", // Fixed broken pool ID
-  bar: "1514362545857-3bc16c4c7d1b",
-  dining: "1544148103-0773bf10d330",
-  events: "1499793983690-e29da59ef1c2", // Hopefully this one works too
-  rooms: {
-    r1: "1582719508461-905c673771fd", 
-    r2: "1631049307264-da0ec9d70304", 
-  },
-  sunset: "1507525428034-b723cf961d3e"
-};
-
-// ==========================================
-// 2. COMPONENTS
-// ==========================================
-
-const Hero = () => {
-  return (
-    <section className="relative min-h-[100svh] w-full flex flex-col justify-center pt-32 pb-32 px-6 md:px-12">
-      <div className="absolute inset-0 z-0">
-        <img 
-          src={placeholder(IMAGES.hero)} 
-          alt="Kwalee Beach Resort" 
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-black/30" />
-      </div>
-
-      <div className="relative z-10 max-w-4xl text-white">
-        <div className="flex items-center space-x-3 mb-6 text-xs md:text-sm tracking-[0.2em] uppercase">
-          <MapPin size={16} />
-          <span>Liberia • West African Coast</span>
-        </div>
-        <h1 className="text-4xl md:text-5xl lg:text-7xl font-serif leading-[1.1] mb-8">
-          WHERE THE OCEAN<br className="hidden md:block" /> MEETS YOUR ESCAPE.
-        </h1>
-        <p className="text-base md:text-lg lg:text-xl font-sans font-light max-w-2xl mb-10 opacity-90 leading-relaxed">
-          Discover the beauty of Kwalee Beach Resort — where the beach, pool, dining, events and coastal atmosphere come together for an unforgettable experience.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-4">
-          <Link href="#book" className="px-8 py-4 bg-white text-[#1F1F1F] uppercase tracking-widest text-sm text-center hover:bg-[#E8E1D7] transition-colors">
-            Book Your Stay
-          </Link>
-          <Link href="#experience" className="px-8 py-4 border border-white text-white uppercase tracking-widest text-sm text-center hover:bg-white hover:text-[#1F1F1F] transition-colors">
-            Explore the Resort
-          </Link>
-        </div>
-      </div>
-    </section>
-  );
-};
-
-
-
-const IntroSection = () => {
-  return (
-    <section id="experience" className="px-6 py-24 md:py-40 max-w-7xl mx-auto flex flex-col items-center">
-
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-12 lg:gap-20 items-center w-full">
-        <div className="order-2 lg:order-1 flex flex-col items-start pt-4">
-          <span className="px-4 py-1.5 rounded-lg border border-gray-200 text-sm font-semibold tracking-wide text-gray-800 mb-8 uppercase shadow-sm">
-            About Us
-          </span>
-          <h3 className="text-4xl md:text-5xl font-sans font-medium text-[#1F1F1F] leading-[1.15] mb-6 tracking-tight">
-            A Place to Slow Down.<br/>Stay Better, Travel Happier.
-          </h3>
-          <p className="text-gray-600 text-base md:text-lg mb-10 leading-relaxed max-w-md">
-            Escape to a coastal destination where days are shaped by the rhythm of the ocean, warm hospitality, good food, refreshing swims and unforgettable moments by the beach.
-          </p>
-          <Link href="#gallery" className="bg-[#F5A623] text-white px-8 py-3.5 rounded-md font-medium hover:bg-[#D08C1D] transition-colors shadow-md">
-            Read More
-          </Link>
-        </div>
-        
-        <div className="order-1 lg:order-2 relative h-[400px] md:h-[500px] lg:h-[600px] w-full mt-10 lg:mt-0">
-          {/* Main Large Horizontal Image */}
-          <div className="absolute top-0 right-0 w-[85%] aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl z-10 group cursor-pointer">
-            <img 
-              src={placeholder(IMAGES.rooms.r1)} 
-              alt="Room" 
-              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-            />
-            <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm px-5 py-3 rounded-xl shadow-lg">
-              <h4 className="font-bold text-lg text-gray-900">Ocean Room</h4>
-              <p className="text-sm text-gray-600 font-medium mt-0.5">Wake up to the sound of waves</p>
-            </div>
-          </div>
-          
-          {/* Second Overlapping Horizontal Image */}
-          <div className="absolute bottom-0 left-0 w-[60%] aspect-video rounded-2xl overflow-hidden shadow-xl z-20 group cursor-pointer border-4 border-white bg-gray-100">
-            <img 
-              src={placeholder(IMAGES.pool)} 
-              alt="Pool" 
-              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-            />
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-};
-
-const FeatureSection = ({ id, label, title, text, image, reverse, cta, ctaHref }: any) => {
-  return (
-    <section id={id} className="py-24 md:py-32 overflow-hidden">
-      <div className={`max-w-7xl mx-auto px-6 md:px-12 flex flex-col ${reverse ? 'lg:flex-row-reverse' : 'lg:flex-row'} gap-16 lg:gap-24 items-center`}>
-        <div className="w-full lg:w-1/2 relative aspect-[4/3] lg:aspect-square">
-          <img src={image} alt={title} className="w-full h-full object-cover rounded-sm shadow-xl" />
-        </div>
-        <div className="w-full lg:w-1/2">
-          <span className="text-xs uppercase tracking-[0.2em] text-[#4A5D4E] block mb-6">{label}</span>
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-serif text-[#1F1F1F] leading-[1.1] mb-8">{title}</h2>
-          <p className="text-lg text-gray-600 font-light leading-relaxed mb-10">{text}</p>
-          {cta && (
-            <Link href={ctaHref || "#"} className="inline-block px-8 py-4 border border-[#1F1F1F] text-[#1F1F1F] uppercase tracking-widest text-sm hover:bg-[#1B2418] hover:text-white transition-colors">
-              {cta}
-            </Link>
-          )}
-        </div>
-      </div>
-    </section>
-  );
-};
-
-const ServicesSection = () => {
-  const rooms = [
-    {
-      name: "Oceanfront Double Tent",
-      location: "Kpakpa Kon, Marshall, Liberia",
-      features: "2 Bed • 2 Bath",
-      price: "$35/night",
-      rating: "4.8",
-      img: placeholder(IMAGES.rooms.r1)
-    },
-    {
-      name: "Family Triple Tent",
-      location: "Kpakpa Kon, Marshall, Liberia",
-      features: "3 Bed • 2 Bath",
-      price: "$45/night",
-      rating: "4.8",
-      img: placeholder(IMAGES.rooms.r2)
-    },
-    {
-      name: "Deluxe Family Suite",
-      location: "Kpakpa Kon, Marshall, Liberia",
-      features: "4 Bed • 3 Bath",
-      price: "$120/night",
-      rating: "4.9",
-      img: placeholder(IMAGES.hero)
-    }
-  ];
-
-  return (
-    <section id="stay" className="py-24 md:py-32 bg-[#FAF9F4] px-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col lg:flex-row justify-between items-end mb-16 gap-8">
-          <div className="max-w-2xl">
-            <span className="px-4 py-1.5 rounded-full border border-gray-300 text-xs font-bold tracking-widest text-gray-800 mb-6 inline-block uppercase bg-white">
-              POPULAR SERVICES
-            </span>
-            <h2 className="text-4xl md:text-5xl lg:text-[64px] font-sans font-bold text-[#1F1F1F] leading-tight tracking-tight">
-              Services Built For<br/>Travelers.
-            </h2>
-          </div>
-          <div className="max-w-sm lg:text-right text-left pb-2">
-            <p className="text-[#6B6F72] text-sm md:text-sm leading-relaxed">
-              Kwalee provides smart tools, secure payments, verified reviews, ensuring smooth, confident, and effortless hotel booking.
-            </p>
-          </div>
-        </div>
-
-        <div className="relative group">
-          {/* Arrow Left */}
-          <button className="absolute -left-6 top-[40%] -translate-y-1/2 z-10 w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-600 hover:text-black transition opacity-0 group-hover:opacity-100 hidden md:flex border border-gray-100 cursor-pointer">
-            <ChevronLeft size={24} />
-          </button>
-          
-          {/* Arrow Right */}
-          <button className="absolute -right-6 top-[40%] -translate-y-1/2 z-10 w-12 h-12 bg-[#F5A623] rounded-full shadow-lg flex items-center justify-center text-white hover:bg-[#D08C1D] transition opacity-0 group-hover:opacity-100 hidden md:flex cursor-pointer">
-            <ChevronRight size={24} />
-          </button>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-            {rooms.map((room, idx) => (
-              <Link href="/stay" key={idx} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 flex flex-col group cursor-pointer transition-shadow hover:shadow-xl">
-                <div className="relative aspect-[4/3] w-full overflow-hidden p-2 pb-0">
-                  <img src={room.img} alt={room.name} className="w-full h-full object-cover rounded-t-xl transition-transform duration-700 group-hover:scale-105" />
-                  <div className="absolute top-6 left-6 bg-white/40 backdrop-blur-md border border-white/20 text-white px-3 py-1 rounded-md text-xs font-semibold flex items-center gap-1 shadow-sm">
-                    {room.rating} <Star size={12} className="fill-[#F5B041] text-[#F5B041]" />
-                  </div>
-                  <div className="absolute top-6 right-6 text-white hover:text-red-500 transition-colors bg-black/20 p-2 rounded-full backdrop-blur-sm">
-                    <Heart size={16} strokeWidth={2} />
-                  </div>
-                </div>
-                <div className="p-6 flex flex-col flex-grow">
-                  <h3 className="font-bold text-lg md:text-xl text-gray-900 mb-1">{room.name}</h3>
-                  <p className="text-[#6B6F72]/80 text-xs mb-6 truncate">{room.location}</p>
-                  
-                  <div className="flex justify-between items-end mt-auto pt-4 border-t border-gray-100">
-                    <div className="flex gap-4 text-[#6B6F72] text-xs font-medium">
-                      {room.features.split(' • ').map((feat, i) => (
-                         <span key={i} className="flex items-center gap-1">{feat}</span>
-                      ))}
-                    </div>
-                    <div className="text-right flex items-baseline gap-1">
-                      <span className="font-bold text-lg text-gray-900 block leading-none">{room.price.split('/')[0]}</span>
-                      <span className="text-xs text-[#6B6F72]/80">/{room.price.split('/')[1]}</span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-};
-
-
-const CoverflowTestimonialsSection = () => {
-  const [activeIndex, setActiveIndex] = useState(2);
-  const [isHovered, setIsHovered] = useState(false);
-  const [testimonialIndex, setTestimonialIndex] = useState(0);
-
-  const slides = [
-    { id: 0, image: placeholder(IMAGES.beach), title: "Ocean Breeze", subtitle: "Relaxation at its best." },
-    { id: 1, image: placeholder(IMAGES.bar), title: "Evening Cocktails", subtitle: "Toast to the sunset." },
-    { id: 2, image: placeholder(IMAGES.dining), title: "Festive Grand\nInterior", subtitle: "Adventure is never far away." },
-    { id: 3, image: placeholder(IMAGES.events), title: "Unforgettable\nEvents", subtitle: "Celebrate your moments." },
-    { id: 4, image: placeholder(IMAGES.hero), title: "Luxury Suites", subtitle: "Stay in comfort." },
-  ];
-
-  const testimonials = [
-    {
-      rating: "4.80",
-      reviews: "2,898 review",
-      text: "Brilliant staff and exceptional customer service. The place is fantastic. Great facilities and atmosphere. Buffet breakfast daily is very generous.",
-      author: "Karar Mahmud",
-      source: "TripAdvisor",
-      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-    },
-    {
-      rating: "5.00",
-      reviews: "1,204 review",
-      text: "An unforgettable experience! The oceanfront tents were amazing and the service was absolutely top-notch. Highly recommended for couples.",
-      author: "Sarah Jenkins",
-      source: "Google Reviews",
-      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-    },
-    {
-      rating: "4.90",
-      reviews: "856 review",
-      text: "The dining experience was out of this world. Fresh seafood and perfectly crafted cocktails. We will definitely be coming back next year.",
-      author: "Michael Chen",
-      source: "Booking.com",
-      avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-    }
-  ];
-
-  useEffect(() => {
-    if (isHovered) return;
-    const timer = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % slides.length);
-    }, 3000);
-    return () => clearInterval(timer);
-  }, [isHovered]);
-
-  const getPositionStyles = (index: number) => {
-    const diff = (index - activeIndex + slides.length) % slides.length;
-    if (diff === 0) {
-      return "z-20 left-[50%] -translate-x-[50%] w-[65%] md:w-[45%] lg:w-[35%] opacity-100 scale-100 shadow-2xl border-[8px] border-white/10 blur-0";
-    } else if (diff === 1 || diff === slides.length - 4) {
-      return "z-10 left-[75%] -translate-x-[50%] w-[35%] md:w-[25%] lg:w-[22%] opacity-80 scale-90 blur-[1px] shadow-lg hidden sm:block";
-    } else if (diff === 2 || diff === slides.length - 3) {
-      return "z-0 left-[95%] -translate-x-[50%] w-[25%] md:w-[20%] opacity-40 scale-75 blur-[2px] hidden sm:block";
-    } else if (diff === 3 || diff === slides.length - 2) {
-      return "z-0 left-[5%] -translate-x-[50%] w-[25%] md:w-[20%] opacity-40 scale-75 blur-[2px] hidden sm:block";
-    } else if (diff === 4 || diff === slides.length - 1) {
-      return "z-10 left-[25%] -translate-x-[50%] w-[35%] md:w-[25%] lg:w-[22%] opacity-80 scale-90 blur-[1px] shadow-lg hidden sm:block";
-    }
-    return "hidden";
-  };
-
-  const currentTestimonial = testimonials[testimonialIndex];
-
-  return (
-    <section className="py-24 bg-[#FAF9F4] px-6 border-t border-gray-100 overflow-hidden">
-      <div className="max-w-7xl mx-auto flex flex-col items-center">
-        
-        {/* Coverflow Gallery */}
-        <div 
-          className="w-full relative flex items-center h-[300px] md:h-[450px] mb-24 max-w-5xl mx-auto"
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-        >
-          {slides.map((slide, idx) => {
-            const diff = (idx - activeIndex + slides.length) % slides.length;
-            const isCenter = diff === 0;
-            return (
-              <div 
-                key={slide.id}
-                onClick={() => setActiveIndex(idx)}
-                className={`absolute aspect-[3/4] rounded-xl overflow-hidden transition-all duration-700 cursor-pointer group ${getPositionStyles(idx)}`}
-              >
-                <img 
-                  src={slide.image} 
-                  className={`w-full h-full object-cover transition-all duration-700 ${isCenter ? 'brightness-75 group-hover:brightness-90' : 'brightness-100'}`} 
-                />
-                {isCenter && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
-                     <h3 className="text-white text-3xl md:text-4xl lg:text-5xl font-bold font-sans drop-shadow-lg leading-tight tracking-tight whitespace-pre-line">{slide.title}</h3>
-                     <p className="text-white/80 text-xs md:text-sm mt-3 drop-shadow-md">{slide.subtitle}</p>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-                {/* Testimonials Redesign */}
-        <div className="max-w-6xl w-full flex flex-col lg:flex-row justify-between gap-16 lg:gap-20 mt-12 bg-white p-10 md:p-16 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
-          {/* Left Side */}
-          <div className="lg:w-[35%] flex flex-col">
-            <span className="text-xs font-bold tracking-[0.2em] uppercase text-[#F5A623] mb-4 block">Testimonials</span>
-            <h2 className="text-3xl md:text-5xl font-serif text-[#1F1F1F] leading-[1.1] mb-6">
-              What Our<br/>Guests Say
-            </h2>
-            <p className="text-[#6B6F72] text-sm leading-relaxed max-w-sm mb-12 font-light">
-              Experience Kwalee Beach Resort through the eyes of those who have stayed with us. We take pride in delivering unforgettable moments and exceptional coastal hospitality.
-            </p>
-            
-            <div className="flex items-center gap-4 mt-auto">
-              <button 
-                onClick={() => setTestimonialIndex((prev) => (prev - 1 + testimonials.length) % testimonials.length)}
-                className="w-12 h-12 rounded-full border border-gray-200 text-gray-600 flex items-center justify-center hover:bg-[#F5A623] hover:text-white hover:border-[#F5A623] transition-all shadow-sm cursor-pointer"
-              >
-                <ChevronLeft size={20} strokeWidth={1.5} />
-              </button>
-              <button 
-                onClick={() => setTestimonialIndex((prev) => (prev + 1) % testimonials.length)}
-                className="w-12 h-12 rounded-full border border-gray-200 text-gray-600 flex items-center justify-center hover:bg-[#F5A623] hover:text-white hover:border-[#F5A623] transition-all shadow-sm cursor-pointer"
-              >
-                <ChevronRight size={20} strokeWidth={1.5} />
-              </button>
-              
-              <div className="flex items-center ml-8 hidden sm:flex">
-                <div className="flex -space-x-3">
-                  <img className="w-10 h-10 rounded-full border-[3px] border-white object-cover shadow-sm" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="Guest"/>
-                  <img className="w-10 h-10 rounded-full border-[3px] border-white object-cover shadow-sm" src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="Guest"/>
-                  <img className="w-10 h-10 rounded-full border-[3px] border-white object-cover shadow-sm" src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="Guest"/>
-                </div>
-                <div className="ml-4 flex flex-col">
-                  <span className="text-sm font-bold text-gray-900 leading-tight">4.8/5</span>
-                  <span className="text-[10px] uppercase tracking-wider text-[#6B6F72]/80 font-bold">from 2,800+ reviews</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Side */}
-          <div className="lg:w-[60%] flex flex-col justify-center relative">
-            <div className="absolute -top-6 -left-6 text-[#F5A623] opacity-10 pointer-events-none">
-              <svg width="80" height="80" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                <path d="M14.017 21L16.41 14.904C16.634 14.303 16.746 13.682 16.746 13.044V3H23V12.784C23 15.65 21.848 18.232 19.544 21H14.017ZM3 21L5.393 14.904C5.617 14.303 5.729 13.682 5.729 13.044V3H12V12.784C12 15.65 10.848 18.232 8.544 21H3Z" />
-              </svg>
-            </div>
-            
-            <div className="relative z-10">
-              <div className="flex items-center gap-1 mb-8">
-                 <Star size={16} className="fill-[#F5A623] text-[#F5A623]" />
-                 <Star size={16} className="fill-[#F5A623] text-[#F5A623]" />
-                 <Star size={16} className="fill-[#F5A623] text-[#F5A623]" />
-                 <Star size={16} className="fill-[#F5A623] text-[#F5A623]" />
-                 <Star size={16} className="fill-[#F5A623] text-[#F5A623]" />
-              </div>
-              
-              <h4 className="text-xl md:text-3xl font-serif text-[#1F1F1F] leading-relaxed mb-10 transition-opacity duration-300 min-h-[120px] italic">
-                "{currentTestimonial.text}"
-              </h4>
-              
-              <div className="flex items-center gap-5 pt-6 border-t border-gray-100">
-                 <img className="w-14 h-14 rounded-full object-cover transition-all duration-300 shadow-sm" src={currentTestimonial.avatar} alt={currentTestimonial.author} />
-                 <div>
-                   <h5 className="font-bold text-base text-gray-900 tracking-wide">{currentTestimonial.author}</h5>
-                   <p className="text-xs text-[#6B6F72]/80 mt-1 uppercase tracking-widest">
-                     Via {currentTestimonial.source}
-                   </p>
-                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-};
-
-const EventsSection = () => {
-  return (
-    <section id="events" className="py-24 md:py-40 bg-[#1B2418] text-white">
-      <div className="max-w-7xl mx-auto px-6 md:px-12 grid grid-cols-1 lg:grid-cols-12 gap-16">
-        
-        <div className="lg:col-span-5 flex flex-col justify-center">
-          <span className="text-xs uppercase tracking-[0.2em] text-[#E8E1D7] block mb-6">Events & Gatherings</span>
-          <h2 className="text-4xl md:text-6xl font-serif leading-[1.1] mb-8">
-            YOUR MOMENT.<br/>YOUR PEOPLE.<br/>YOUR BEACH.
-          </h2>
-          <p className="text-lg font-light leading-relaxed mb-12 opacity-80">
-            From birthdays and private celebrations to corporate gatherings, parties and special occasions, Kwalee Beach Resort provides a memorable coastal setting for events.
-          </p>
-          
-          <ul className="space-y-4 mb-12">
-            {["Birthdays", "Weddings & Celebrations", "Private Parties", "Corporate Events", "Beach Gatherings"].map(item => (
-              <li key={item} className="flex items-center gap-4 text-lg font-serif">
-                <div className="w-1.5 h-1.5 bg-[#E8E1D7] rounded-full" />
-                {item}
-              </li>
-            ))}
-          </ul>
-          
-          <div>
-            <Link href="#inquiry" className="inline-block px-8 py-4 bg-white text-[#1F1F1F] uppercase tracking-widest text-sm hover:bg-[#E8E1D7] transition-colors">
-              Plan Your Event
-            </Link>
-          </div>
-        </div>
-
-        <div className="lg:col-span-7 relative h-[600px] lg:h-auto">
-          <img 
-            src={placeholder(IMAGES.events)} 
-            alt="Events at Kwalee" 
-            className="w-full h-full object-cover"
-          />
-        </div>
-      </div>
-    </section>
-  );
-};
-
-const EventInquiryForm = () => {
-  return (
-    <section id="inquiry" className="py-24 md:py-32 px-6 relative bg-[#FAF9F4]">
-      {/* Decorative background elements */}
-      <div className="absolute top-0 left-0 w-full h-1/2 bg-white"></div>
-      
-      <div className="max-w-4xl mx-auto relative z-10">
-        <div className="bg-white rounded-[2rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-gray-100 p-8 md:p-16">
-          <div className="text-center mb-12">
-            <span className="text-xs font-bold tracking-[0.2em] uppercase text-[#F5A623] mb-4 block">Plan With Us</span>
-            <h2 className="text-3xl md:text-5xl font-serif mb-4 text-[#1F1F1F]">Event Inquiry</h2>
-            <p className="text-[#6B6F72] font-light max-w-lg mx-auto">Tell us about your upcoming event and our dedicated team will get in touch to bring your vision to life.</p>
-          </div>
-          
-          <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-[#6B6F72] mb-2">Full Name</label>
-                <input type="text" className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623] transition-all" placeholder="John Doe" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-[#6B6F72] mb-2">Phone / WhatsApp</label>
-                <input type="text" className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623] transition-all" placeholder="+231..." />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-[#6B6F72] mb-2">Event Type</label>
-                <select className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623] transition-all cursor-pointer">
-                  <option value="" disabled selected>Select an event...</option>
-                  <option>Birthday Celebration</option>
-                  <option>Corporate Retreat</option>
-                  <option>Wedding Ceremony</option>
-                  <option>Private Party</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-[#6B6F72] mb-2">Estimated Guests</label>
-                <input type="number" className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623] transition-all" placeholder="e.g. 50" />
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-widest text-[#6B6F72] mb-2">Preferred Date</label>
-              <input type="date" className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623] transition-all text-[#6B6F72]" />
-            </div>
-            
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-widest text-[#6B6F72] mb-2">Message Details</label>
-              <textarea rows={4} className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623] transition-all resize-none" placeholder="Any special requests, theme ideas, or dietary requirements..."></textarea>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row gap-4 pt-6">
-              <button type="submit" className="flex-1 px-8 py-4 bg-[#1B2418] text-white uppercase tracking-widest text-xs font-bold rounded-xl shadow-lg shadow-black/10 hover:bg-[#F5A623] hover:shadow-[#F5A623]/20 hover:-translate-y-0.5 transition-all duration-300">
-                Send Request
-              </button>
-              <Link href="https://wa.me/23100000000" target="_blank" rel="noopener noreferrer" className="flex-1 px-8 py-4 border border-gray-200 bg-white text-[#1F1F1F] uppercase tracking-widest text-xs font-bold rounded-xl flex items-center justify-center gap-2 hover:border-[#25D366] hover:text-[#25D366] transition-all duration-300">
-                Chat on WhatsApp
-              </Link>
-            </div>
-          </form>
-        </div>
-      </div>
-    </section>
-  );
-};
-
-const GallerySection = () => {
-  return (
-    <section id="gallery" className="py-24 bg-[#FAF9F4] px-6">
-      <div className="max-w-7xl mx-auto">
-        <h2 className="text-3xl md:text-5xl font-serif text-center mb-16">MOMENTS AT KWALEE</h2>
-        <div className="columns-1 sm:columns-2 md:columns-3 gap-6 space-y-6">
-          <img src={placeholder("1507525428034-b723cf961d3e", 600, 800)} className="w-full rounded-sm" alt="Gallery" />
-          <img src={placeholder("1576013462273-d1a460851ec0", 600, 600)} className="w-full rounded-sm" alt="Gallery" />
-          <img src={placeholder("1544148103-0773bf10d330", 600, 900)} className="w-full rounded-sm" alt="Gallery" />
-          <img src={placeholder("1514362545857-3bc16c4c7d1b", 600, 500)} className="w-full rounded-sm" alt="Gallery" />
-          <img src={placeholder("1511795409834-ef04bbd61620", 600, 700)} className="w-full rounded-sm" alt="Gallery" />
-          <img src={placeholder("1582719508461-905c673771fd", 600, 600)} className="w-full rounded-sm" alt="Gallery" />
-        </div>
-      </div>
-    </section>
-  );
-}
-
-const FinalCTA = () => {
-  return (
-    <section className="relative h-[80vh] flex items-center justify-center text-center px-6">
-      <div className="absolute inset-0 z-0">
-        <img 
-          src={placeholder(IMAGES.sunset)} 
-          alt="Sunset at Kwalee" 
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-black/40" />
-      </div>
-      
-      <div className="relative z-10 max-w-2xl text-white">
-        <h2 className="text-5xl md:text-7xl font-serif mb-8 leading-[1.1]">
-          YOUR ESCAPE<br/>STARTS HERE.
-        </h2>
-        <p className="text-xl font-light mb-12 opacity-90">Come for the beach. Stay for the experience.</p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link href="#book" className="px-8 py-4 bg-white text-[#1F1F1F] uppercase tracking-widest text-sm hover:bg-[#E8E1D7] transition-colors">
-            Book Your Stay
-          </Link>
-          <Link href="#inquiry" className="px-8 py-4 border border-white text-white uppercase tracking-widest text-sm hover:bg-white hover:text-[#1F1F1F] transition-colors">
-            Plan An Event
-          </Link>
-        </div>
-      </div>
-    </section>
-  );
-};
+import FeaturesPath from "../components/landing/FeaturesPath";
+import { motion } from 'framer-motion';
 
 export default function LandingPage() {
+  const [scrolled, setScrolled] = useState(false);
+  const [contactForm, setContactForm] = useState({ firstName: '', lastName: '', email: '', propertyName: '', message: '' });
+  const [contactStatus, setContactStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setContactStatus('loading');
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/support/sales-lead`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: `${contactForm.firstName} ${contactForm.lastName}`,
+          email: contactForm.email,
+          propertyName: contactForm.propertyName,
+          message: contactForm.message,
+        })
+      });
+      if (!res.ok) throw new Error('Failed to submit');
+      setContactStatus('success');
+      setContactForm({ firstName: '', lastName: '', email: '', propertyName: '', message: '' });
+    } catch (err) {
+      setContactStatus('error');
+    }
+  };
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
-    <main className="font-sans text-[#1F1F1F] bg-[#FAF9F4] selection:bg-[#E8E1D7] selection:text-[#1F1F1F]">
-      <Navbar />
-      <Hero />
-      <BookingBarInteractive />
-      <IntroSection />
-      
-      <FeatureSection 
-        id="beach"
-        label="The Beach"
-        title="YOUR PLACE BY THE OCEAN."
-        text="Whether you're looking for a quiet afternoon by the water, time with friends or an unforgettable celebration, the beach is at the heart of the Kwalee experience."
-        image={placeholder(IMAGES.beach)}
-        cta="Explore the Beach"
-        ctaHref="/#gallery"
-      />
-      
-      <FeatureSection 
-        id="pool"
-        label="The Pool"
-        title="TAKE A DIP. STAY A LITTLE LONGER."
-        text="Take a refreshing swim, relax beside the water and spend the afternoon doing absolutely nothing. Enjoy poolside service, comfortable loungers, and perfect coastal temperatures."
-        image={placeholder(IMAGES.pool)}
-        reverse={true}
-      />
-      
-      <FeatureSection 
-        id="bar"
-        label="The Bar"
-        title="GOOD DRINKS. GOOD PEOPLE. GOOD TIMES."
-        text="Cold drinks, good company and the perfect setting for sunset. Our coastal bar offers signature cocktails, mocktails, and a curated selection of beverages."
-        image={placeholder(IMAGES.bar)}
-        cta="Discover the Bar"
-        ctaHref="/dining"
-      />
-      
-      <FeatureSection 
-        id="dining"
-        label="Dining"
-        title="TASTE THE COAST."
-        text="Enjoy fresh food and drinks in a relaxed coastal atmosphere. Our restaurant features local and international flavors crafted with care, perfect for a sunset dinner."
-        image={placeholder(IMAGES.dining)}
-        reverse={true}
-        cta="View Dining"
-        ctaHref="/dining"
-      />
-      
-      <ServicesSection />
-        <CoverflowTestimonialsSection />
-      <EventsSection />
-      <EventInquiryForm />
-      <GallerySection />
-      
-      <section className="py-24 bg-white text-center px-6">
-        <span className="text-xs uppercase tracking-[0.2em] text-[#4A5D4E] block mb-12">Social Proof</span>
-        <h2 className="text-3xl md:text-4xl font-serif text-[#1F1F1F] mb-12">WHAT OUR GUESTS SAY</h2>
-        <p className="text-[#6B6F72] italic max-w-2xl mx-auto">"[GUEST REVIEWS COMING SOON]"</p>
-      </section>
-      
-      <FinalCTA />
-      <Footer />
+    <main className="min-h-screen bg-[#050B14] text-gray-200 font-sans selection:bg-[#CA9851]/30 overflow-hidden">
+      {/* Background Effects */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        {/* Grid lines */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:4rem_4rem]" />
+        {/* Glowing orbs */}
+        <div className="absolute top-[-10%] left-[-10%] w-[45%] h-[45%] rounded-full bg-[#0B1D33]/60 blur-[130px]" />
+        <div className="absolute top-[20%] right-[-10%] w-[35%] h-[35%] rounded-full bg-[#CA9851]/12 blur-[140px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-[#0B1D33]/50 blur-[130px]" />
+      </div>
+
+      {/* Glassmorphic Navbar */}
+      <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${scrolled ? "bg-[#070F1E]/85 backdrop-blur-md border-b border-[#CA9851]/15 py-3.5 shadow-lg shadow-black/20" : "bg-transparent py-5"}`}>
+        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-3 group">
+            <img 
+              src="/yarvo-logo-dark-horizontal.png" 
+              alt="Yarvo Hotel - Smarter Hotel Management" 
+              onError={(e) => {
+                e.currentTarget.src = "/yarvo-logo-dark.jpg";
+              }}
+              className="h-10 sm:h-12 w-auto object-contain transition-transform group-hover:scale-105"
+            />
+          </Link>
+          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
+            <Link href="#features-path" className="hover:text-[#DFB776] transition-colors">Features</Link>
+            <Link href="#platform" className="hover:text-[#DFB776] transition-colors">Platform</Link>
+            <Link href="#pricing" className="hover:text-[#DFB776] transition-colors">Pricing</Link>
+            <Link href="#contact" className="hover:text-[#DFB776] transition-colors">Contact</Link>
+          </div>
+          <div className="flex items-center gap-4">
+            <Link href="/login" className="text-sm font-semibold text-gray-300 hover:text-white transition-colors">
+              Log in
+            </Link>
+            <Link href="/signup" className="text-sm font-bold bg-gradient-to-r from-[#DFB776] via-[#CA9851] to-[#B3823E] hover:from-[#E9C78C] hover:to-[#DFB776] text-[#070F1E] px-5 sm:px-6 py-2.5 rounded-full transition-all shadow-[0_0_20px_rgba(202,152,81,0.3)] hover:scale-105">
+              Get Started
+            </Link>
+          </div>
+        </div>
+      </nav>
+
+      <div className="relative z-10 pt-32 pb-20 md:pt-48 md:pb-32 px-6">
+        {/* Hero Section */}
+        <motion.section 
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="max-w-5xl mx-auto text-center relative"
+        >
+          {/* Floating Images (Desktop only) */}
+          <div className="hidden lg:block absolute inset-0 pointer-events-none z-0">
+            {/* Top Left: Room */}
+            <motion.div 
+              animate={{ y: [-15, 15] }} 
+              transition={{ repeat: Infinity, repeatType: "reverse", duration: 4, ease: "easeInOut" }}
+              className="absolute top-[10%] -left-[15%] w-48 h-64 rounded-2xl overflow-hidden border border-[#CA9851]/25 shadow-[0_0_40px_rgba(202,152,81,0.15)] rotate-[-6deg]"
+            >
+              <div className="absolute inset-0 bg-black/20 z-10" />
+              <img src="https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=300&q=80" alt="Luxury Room" className="w-full h-full object-cover" />
+            </motion.div>
+            
+            {/* Bottom Left: Lobby */}
+            <motion.div 
+              animate={{ y: [15, -15] }} 
+              transition={{ repeat: Infinity, repeatType: "reverse", duration: 5, ease: "easeInOut", delay: 1 }}
+              className="absolute bottom-[-10%] left-[0%] w-40 h-40 rounded-2xl overflow-hidden border border-[#CA9851]/25 shadow-[0_0_40px_rgba(202,152,81,0.15)] rotate-[8deg]"
+            >
+              <div className="absolute inset-0 bg-black/20 z-10" />
+              <img src="https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=300&q=80" alt="Hotel Lobby" className="w-full h-full object-cover" />
+            </motion.div>
+
+            {/* Top Right: Restaurant */}
+            <motion.div 
+              animate={{ y: [-20, 20] }} 
+              transition={{ repeat: Infinity, repeatType: "reverse", duration: 4.5, ease: "easeInOut", delay: 0.5 }}
+              className="absolute top-[5%] -right-[10%] w-56 h-48 rounded-2xl overflow-hidden border border-[#CA9851]/25 shadow-[0_0_40px_rgba(202,152,81,0.15)] rotate-[5deg]"
+            >
+              <div className="absolute inset-0 bg-black/20 z-10" />
+              <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=300&q=80" alt="Restaurant" className="w-full h-full object-cover" />
+            </motion.div>
+
+            {/* Bottom Right: Bar / Pool */}
+            <motion.div 
+              animate={{ y: [10, -10] }} 
+              transition={{ repeat: Infinity, repeatType: "reverse", duration: 3.5, ease: "easeInOut", delay: 1.5 }}
+              className="absolute bottom-[-5%] -right-[15%] w-48 h-56 rounded-2xl overflow-hidden border border-[#CA9851]/25 shadow-[0_0_40px_rgba(202,152,81,0.15)] rotate-[-4deg]"
+            >
+              <div className="absolute inset-0 bg-black/20 z-10" />
+              <img src="https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=300&q=80" alt="Resort Pool" className="w-full h-full object-cover" />
+            </motion.div>
+          </div>
+
+          <div className="relative z-10">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#CA9851]/10 border border-[#CA9851]/30 text-xs font-semibold text-[#DFB776] mb-8 backdrop-blur-md shadow-[0_0_20px_rgba(202,152,81,0.15)]">
+              <Sparkles size={14} className="text-[#CA9851]" />
+              <span>Smarter Hotel Management</span>
+            </div>
+            <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-extrabold tracking-tight leading-[1.1] text-white mb-8">
+              Run your property.<br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#E9C78C] via-[#CA9851] to-[#B3823E]">Your exact way.</span>
+            </h1>
+            <p className="text-lg md:text-xl text-gray-400 mb-12 max-w-2xl mx-auto leading-relaxed">
+              Yarvo is a strictly modular Property Management System. Choose only the features you need, build your perfect platform, and scale without boundaries.
+            </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link href="/signup" className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-[#DFB776] via-[#CA9851] to-[#B3823E] hover:from-[#E9C78C] hover:to-[#DFB776] text-[#070F1E] rounded-full font-bold hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 shadow-[0_0_35px_rgba(202,152,81,0.35)]">
+              Start Building Free <ArrowRight size={20} />
+            </Link>
+            <Link href="#contact" className="w-full sm:w-auto px-8 py-4 bg-[#0B1D33]/40 text-white border border-[#CA9851]/30 hover:border-[#CA9851]/70 rounded-full font-bold hover:bg-[#0B1D33]/80 transition-all flex items-center justify-center">
+              Book a Demo
+            </Link>
+          </div>
+          </div>
+        </motion.section>
+
+        {/* Dashboard Preview / Mockup */}
+        <motion.section 
+          initial={{ opacity: 0, y: 80 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, delay: 0.2, type: "spring", stiffness: 50 }}
+          className="max-w-6xl mx-auto mt-20 px-4 sm:px-6 relative perspective-[2000px]"
+        >
+          {/* Ambient Golden Glow Behind Mockup */}
+          <div className="absolute -inset-4 bg-gradient-to-r from-[#DFB776]/15 via-[#CA9851]/25 to-[#B3823E]/15 rounded-[2.5rem] blur-3xl opacity-70 pointer-events-none" />
+
+          {/* Luxury Window Container */}
+          <div className="relative rounded-[2rem] p-2 sm:p-2.5 bg-gradient-to-b from-[#0B1D33]/90 via-[#070F1E]/95 to-[#050B14] border border-[#CA9851]/30 backdrop-blur-2xl shadow-[0_30px_90px_rgba(0,0,0,0.85),0_0_50px_rgba(202,152,81,0.15)] transform rotate-x-[2deg] hover:rotate-x-0 hover:scale-[1.01] transition-all duration-700 overflow-hidden group">
+            
+            {/* Top Browser Chrome Bar */}
+            <div className="flex items-center justify-between px-4 py-3 bg-[#070F1E] border-b border-[#CA9851]/20 rounded-t-[1.6rem]">
+              {/* Traffic Light Dots */}
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-[#EF4444]/80 shadow-[0_0_8px_rgba(239,68,68,0.4)]" />
+                <span className="w-3 h-3 rounded-full bg-[#CA9851]/80 shadow-[0_0_8px_rgba(202,152,81,0.4)]" />
+                <span className="w-3 h-3 rounded-full bg-[#10B981]/80 shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
+              </div>
+
+              {/* Centered URL Bar */}
+              <div className="hidden sm:flex items-center gap-2 px-5 py-1.5 rounded-full bg-[#050B14]/90 border border-[#CA9851]/25 text-xs text-gray-300 font-mono tracking-wide shadow-inner">
+                <Lock size={12} className="text-[#CA9851]" />
+                <span className="text-[#DFB776] font-medium">yarvohotel.app</span>
+                <span className="text-gray-500">/dashboard</span>
+              </div>
+
+              {/* Status Indicator */}
+              <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#10B981]/10 border border-[#10B981]/30 text-[11px] font-semibold text-[#10B981]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" />
+                <span>Live PMS</span>
+              </div>
+            </div>
+
+            {/* Dashboard Display */}
+            <div className="relative overflow-hidden rounded-b-[1.5rem] bg-[#070F1E]">
+              <img 
+                src="/yarvo-dashboard-hero.png" 
+                alt="Yarvo Hotel Luxury Dashboard" 
+                className="w-full h-auto rounded-b-[1.5rem] block transition-all duration-500 group-hover:scale-[1.005]"
+              />
+              {/* Subtle bottom fade for seamless transition */}
+              <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#050B14] via-[#050B14]/40 to-transparent pointer-events-none" />
+            </div>
+          </div>
+        </motion.section>
+
+
+        {/* Modular Features Winding Path */}
+        <FeaturesPath />
+
+        {/* Platform Section */}
+        <motion.section 
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6 }}
+          id="platform" 
+          className="max-w-7xl mx-auto mt-32 border-t border-white/5 pt-32"
+        >
+          <div className="grid md:grid-cols-2 gap-16 items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#CA9851]/10 border border-[#CA9851]/30 text-xs font-semibold text-[#DFB776] mb-8 backdrop-blur-md">
+                <Settings size={14} className="text-[#CA9851]" />
+                <span>The Platform</span>
+              </div>
+              <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
+                One Unified Core.<br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#DFB776] via-[#CA9851] to-[#B3823E]">Infinite Possibilities.</span>
+              </h2>
+              <p className="text-lg text-gray-400 mb-8 leading-relaxed">
+                Unlike legacy systems that duct-tape different software together, Yarvo is built on a single, unified database. Whether a guest buys a drink at the bar, books a spa session, or extends their stay—everything syncs in real-time to their central folio.
+              </p>
+              <ul className="space-y-4">
+                {[
+                  "Real-time bidirectional syncing across all modules",
+                  "Single source of truth for guest profiles",
+                  "Bank-grade encryption and tenant data isolation",
+                  "Open API for custom third-party integrations"
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-3 text-gray-300">
+                    <div className="mt-1 w-5 h-5 rounded-full bg-[#CA9851]/20 flex items-center justify-center flex-shrink-0">
+                      <div className="w-1.5 h-1.5 bg-[#DFB776] rounded-full" />
+                    </div>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="relative">
+               <div className="absolute inset-0 bg-gradient-to-tr from-[#CA9851]/15 to-[#0B1D33]/40 blur-[80px] rounded-full" />
+               <div className="relative bg-[#070F1E] border border-[#CA9851]/20 rounded-3xl p-8 shadow-2xl backdrop-blur-xl">
+                 <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
+                   <div className="flex gap-1.5">
+                     <div className="w-3 h-3 rounded-full bg-red-500/80" />
+                     <div className="w-3 h-3 rounded-full bg-[#CA9851]/80" />
+                     <div className="w-3 h-3 rounded-full bg-green-500/80" />
+                   </div>
+                   <div className="text-xs font-mono text-gray-400">api/v1/guests/sync</div>
+                 </div>
+                 <pre className="text-sm font-mono text-gray-300 overflow-x-auto">
+                   <code dangerouslySetInnerHTML={{__html: `
+<span class="text-[#DFB776]">const</span> <span class="text-blue-400">syncFolio</span> = <span class="text-[#DFB776]">async</span> (charge) => {
+  <span class="text-gray-500">// 1. Process POS charge</span>
+  <span class="text-[#DFB776]">await</span> pos.<span class="text-[#CA9851]">process</span>(charge);
+
+  <span class="text-gray-500">// 2. Instantly route to guest room</span>
+  <span class="text-[#DFB776]">await</span> pms.<span class="text-[#CA9851]">routeToRoom</span>({
+    roomId: charge.roomId,
+    amount: charge.amount,
+    timestamp: <span class="text-[#E9C78C]">Date.now()</span>
+  });
+
+  <span class="text-[#DFB776]">return</span> { <span class="text-green-400">status</span>: <span class="text-[#E9C78C]">"SYNCED_SUCCESSFULLY"</span> };
+};
+                   `}} />
+                 </pre>
+               </div>
+            </div>
+          </div>
+        </motion.section>
+
+        {/* How it Works Section */}
+        <motion.section 
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6 }}
+          className="max-w-7xl mx-auto mt-32 border-t border-white/5 pt-32"
+        >
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Get started in minutes.</h2>
+            <p className="text-lg text-gray-400 max-w-2xl mx-auto">No complex onboarding, no forced 6-month implementations. Go live on your own terms.</p>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-8 relative">
+            {/* Connecting Line for Desktop */}
+            <div className="hidden md:block absolute top-12 left-[16%] right-[16%] h-px bg-gradient-to-r from-transparent via-[#CA9851]/40 to-transparent" />
+            
+            {[
+              { step: "01", title: "Create your property", desc: "Sign up instantly. Enter your property details and room configurations in a simple wizard." },
+              { step: "02", title: "Select your modules", desc: "Toggle exactly which features you need. Skip the bloatware and keep your interface clean." },
+              { step: "03", title: "Go live seamlessly", desc: "Import your legacy reservations, add your staff members, and start accepting bookings." }
+            ].map((item, i) => (
+              <div key={i} className="relative z-10 bg-[#070F1E] border border-white/10 hover:border-[#CA9851]/30 rounded-3xl p-8 text-center transition-all">
+                <div className="w-16 h-16 bg-[#CA9851]/15 border border-[#CA9851]/30 text-[#DFB776] rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-6 shadow-[0_0_20px_rgba(202,152,81,0.2)]">
+                  {item.step}
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-3">{item.title}</h3>
+                <p className="text-gray-400">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </motion.section>
+
+
+        {/* Testimonials Section */}
+        <motion.section 
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6 }}
+          className="max-w-7xl mx-auto mt-32 border-t border-white/5 pt-32"
+        >
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-16 text-center">Don't just take our word for it.</h2>
+          
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              { quote: "Since switching to Yarvo, our front desk efficiency has increased by 40%. The modular approach meant we didn't have to train our staff on features we don't even use.", author: "Sarah Jenkins", role: "GM, The Grand Plaza" },
+              { quote: "Finally, a PMS that feels like it was built in this decade. The real-time POS sync has completely eliminated our night audit discrepancies.", author: "David Chen", role: "Owner, Urban Boutique" },
+              { quote: "We migrated from a legacy system we used for 15 years. The transition was flawless, and the data isolation gives our corporate team incredible peace of mind.", author: "Elena Rodriguez", role: "VP Operations, LuxeStays" }
+            ].map((testimonial, i) => (
+              <div key={i} className="bg-[#070F1E] border border-white/10 hover:border-[#CA9851]/30 rounded-3xl p-8 flex flex-col justify-between transition-all">
+                <div className="mb-8">
+                  <div className="flex gap-1 mb-4 text-[#CA9851]">
+                    {[1,2,3,4,5].map(s => <Sparkles key={s} size={16} className="fill-current" />)}
+                  </div>
+                  <p className="text-gray-300 text-lg leading-relaxed">"{testimonial.quote}"</p>
+                </div>
+                <div>
+                  <h4 className="text-white font-bold">{testimonial.author}</h4>
+                  <span className="text-sm text-gray-500">{testimonial.role}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.section>
+
+        {/* FAQ Section */}
+        <motion.section 
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6 }}
+          className="max-w-4xl mx-auto mt-32 border-t border-white/5 pt-32"
+        >
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-12 text-center">Frequently Asked Questions</h2>
+          <div className="space-y-4">
+            {[
+              { q: "Do I have to pay for the Core PMS if I only want the POS?", a: "No! Yarvo is completely modular. You can use our POS as a standalone product and ignore the rest, or combine them for a unified experience." },
+              { q: "How does the multi-tenancy work?", a: "Every property gets its own securely isolated tenant space in our database. You can manage multiple properties under one master account, but their data never mixes." },
+              { q: "Is there a long-term contract?", a: "Absolutely not. We operate on a transparent month-to-month basis. We believe our software should earn your business every single day." },
+              { q: "Can I migrate my data from Oracle Opera or Mews?", a: "Yes. Our engineering team provides white-glove migration services for all major legacy PMS platforms to ensure zero downtime." }
+            ].map((faq, i) => (
+              <details key={i} className="group bg-[#070F1E] border border-white/10 hover:border-[#CA9851]/30 rounded-2xl transition-all">
+                <summary className="flex justify-between items-center font-medium cursor-pointer list-none p-6 text-lg text-white group-open:text-[#DFB776] transition-colors">
+                  {faq.q}
+                  <span className="transition group-open:rotate-180">
+                    <svg fill="none" height="24" shapeRendering="geometricPrecision" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
+                  </span>
+                </summary>
+                <div className="text-gray-400 px-6 pb-6 leading-relaxed">
+                  {faq.a}
+                </div>
+              </details>
+            ))}
+          </div>
+        </motion.section>
+
+        {/* Pricing Section */}
+        <motion.section 
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6 }}
+          id="pricing" 
+          className="max-w-7xl mx-auto mt-32 border-t border-white/5 pt-32"
+        >
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Transparent Pricing.</h2>
+            <p className="text-lg text-gray-400 max-w-2xl mx-auto">Pay a flat base rate for the core platform, and add modules a la carte. No hidden fees, no per-user licensing.</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* Base Plan */}
+            <div className="bg-[#070F1E] border border-white/10 hover:border-[#CA9851]/30 rounded-3xl p-8 md:p-10 relative overflow-hidden transition-all">
+               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#DFB776] via-[#CA9851] to-[#B3823E]" />
+               <h3 className="text-2xl font-bold text-white mb-2">Platform Base</h3>
+               <p className="text-gray-400 text-sm mb-6">Everything you need to run a modern property.</p>
+               <div className="mb-8 flex items-baseline gap-2">
+                 <span className="text-5xl font-extrabold text-white">$149</span>
+                 <span className="text-gray-500 font-medium">/ property / mo</span>
+               </div>
+               
+               <ul className="space-y-4 mb-10">
+                 {[
+                   "Front Desk & Reservations",
+                   "Dashboard & Reporting",
+                   "Unlimited Users",
+                   "Unlimited Devices",
+                   "24/7 Priority Support"
+                 ].map((item, i) => (
+                   <li key={i} className="flex items-center gap-3 text-sm text-gray-300">
+                     <CheckCircle2 size={18} className="text-[#CA9851] flex-shrink-0" />
+                     {item}
+                   </li>
+                 ))}
+               </ul>
+               <Link href="/signup" className="block w-full py-4 bg-white/5 hover:bg-[#CA9851]/10 border border-white/10 hover:border-[#CA9851]/40 rounded-xl font-bold text-center transition-all hover:text-[#DFB776]">
+                 Start 14-Day Free Trial
+               </Link>
+            </div>
+
+            {/* Modules */}
+            <div className="bg-gradient-to-b from-[#0B1D33]/70 to-[#070F1E] border border-[#CA9851]/30 rounded-3xl p-8 md:p-10 relative overflow-hidden shadow-2xl">
+               <div className="absolute top-0 right-0 w-64 h-64 bg-[#CA9851]/10 blur-[80px] rounded-full" />
+               <div className="relative z-10">
+                 <h3 className="text-2xl font-bold text-white mb-2">Add-on Modules</h3>
+                 <p className="text-gray-400 text-sm mb-6">Customize your OS with specialized tools.</p>
+                 
+                 <div className="space-y-4 mb-10">
+                   {[
+                     { name: "Point of Sale (POS)", price: "$49/mo" },
+                     { name: "Event & Ticketing", price: "$39/mo" },
+                     { name: "Inventory Management", price: "$29/mo" },
+                     { name: "Finance & Accounting", price: "$59/mo" },
+                     { name: "Staff & CRM", price: "$29/mo" }
+                   ].map((module, i) => (
+                     <div key={i} className="flex items-center justify-between pb-4 border-b border-white/5 last:border-0 last:pb-0">
+                       <span className="text-gray-300 font-medium">{module.name}</span>
+                       <span className="text-[#DFB776] font-bold">{module.price}</span>
+                     </div>
+                   ))}
+                 </div>
+                 
+                 <Link href="/signup" className="block w-full py-4 bg-gradient-to-r from-[#DFB776] via-[#CA9851] to-[#B3823E] hover:from-[#E9C78C] hover:to-[#DFB776] text-[#070F1E] rounded-xl font-bold text-center transition-all shadow-[0_0_20px_rgba(202,152,81,0.35)]">
+                   Build Your Plan
+                 </Link>
+               </div>
+            </div>
+          </div>
+        </motion.section>
+
+        {/* Contact Section */}
+        <motion.section 
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6 }}
+          id="contact" 
+          className="max-w-7xl mx-auto mt-32 border-t border-white/5 pt-32 mb-16 px-6"
+        >
+          <div className="grid md:grid-cols-2 gap-16 items-start">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#CA9851]/10 border border-[#CA9851]/30 text-xs font-semibold text-[#DFB776] mb-8 backdrop-blur-md">
+                <Users size={14} className="text-[#CA9851]" />
+                <span>Here for you</span>
+              </div>
+              <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">Support & Sales.</h2>
+              <p className="text-lg text-gray-400 mb-10 leading-relaxed max-w-md">
+                Have questions about custom implementations, data migration, enterprise pricing, or need technical help? Our team is ready to help you architect the perfect solution.
+              </p>
+              
+              <div className="space-y-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-[#CA9851]/10 border border-[#CA9851]/20 rounded-xl flex items-center justify-center text-[#DFB776]">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                  </div>
+                  <div>
+                    <h4 className="text-white font-bold mb-1">Email Us</h4>
+                    <p className="text-gray-400">enterprise@yarvohotel.com</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-[#CA9851]/10 border border-[#CA9851]/20 rounded-xl flex items-center justify-center text-[#DFB776]">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                  </div>
+                  <div>
+                    <h4 className="text-white font-bold mb-1">Call Us</h4>
+                    <p className="text-gray-400">+1 (800) 555-0199</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-[#070F1E] border border-white/10 rounded-3xl p-8 relative overflow-hidden shadow-2xl">
+               <div className="absolute top-0 right-0 w-64 h-64 bg-[#CA9851]/10 blur-[80px] rounded-full pointer-events-none" />
+               <form onSubmit={handleContactSubmit} className="relative z-10 space-y-4">
+                 {contactStatus === 'success' && (
+                   <div className="p-4 bg-green-500/10 border border-green-500/20 text-green-400 rounded-xl mb-4 text-sm flex items-center gap-2">
+                     <CheckCircle2 size={16} /> Thanks! We will be in touch shortly.
+                   </div>
+                 )}
+                 {contactStatus === 'error' && (
+                   <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl mb-4 text-sm">
+                     Something went wrong. Please try again.
+                   </div>
+                 )}
+
+                 <div className="grid grid-cols-2 gap-4">
+                   <div className="space-y-1.5">
+                     <label className="text-sm font-medium text-gray-300">First Name</label>
+                     <input required value={contactForm.firstName} onChange={e => setContactForm({...contactForm, firstName: e.target.value})} type="text" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-[#CA9851] transition-colors" placeholder="John" />
+                   </div>
+                   <div className="space-y-1.5">
+                     <label className="text-sm font-medium text-gray-300">Last Name</label>
+                     <input required value={contactForm.lastName} onChange={e => setContactForm({...contactForm, lastName: e.target.value})} type="text" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-[#CA9851] transition-colors" placeholder="Doe" />
+                   </div>
+                 </div>
+                 
+                 <div className="space-y-1.5">
+                   <label className="text-sm font-medium text-gray-300">Work Email</label>
+                   <input required value={contactForm.email} onChange={e => setContactForm({...contactForm, email: e.target.value})} type="email" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-[#CA9851] transition-colors" placeholder="john@hotel.com" />
+                 </div>
+                 
+                 <div className="space-y-1.5">
+                   <label className="text-sm font-medium text-gray-300">Property Name</label>
+                   <input required value={contactForm.propertyName} onChange={e => setContactForm({...contactForm, propertyName: e.target.value})} type="text" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-[#CA9851] transition-colors" placeholder="The Grand Hotel" />
+                 </div>
+                 
+                 <div className="space-y-1.5">
+                   <label className="text-sm font-medium text-gray-300">Message</label>
+                   <textarea required value={contactForm.message} onChange={e => setContactForm({...contactForm, message: e.target.value})} rows={4} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-[#CA9851] transition-colors resize-none" placeholder="Tell us about your requirements..."></textarea>
+                 </div>
+                 
+                 <button disabled={contactStatus === 'loading'} type="submit" className="w-full py-4 bg-gradient-to-r from-[#DFB776] via-[#CA9851] to-[#B3823E] hover:from-[#E9C78C] hover:to-[#DFB776] disabled:opacity-50 text-[#070F1E] rounded-xl font-bold transition-all shadow-[0_0_20px_rgba(202,152,81,0.3)] mt-2">
+                   {contactStatus === 'loading' ? 'Sending...' : 'Send Message'}
+                 </button>
+               </form>
+            </div>
+          </div>
+        </motion.section>
+
+        {/* Final CTA */}
+        <motion.section 
+          initial={{ opacity: 0, y: 50, scale: 0.95 }}
+          whileInView={{ opacity: 1, y: 0, scale: 1 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.8 }}
+          className="max-w-5xl mx-auto mt-16 mb-24 relative px-6"
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-[#CA9851] to-[#0B1D33] blur-[120px] opacity-20 pointer-events-none" />
+          <div className="relative bg-[#070F1E] border border-[#CA9851]/25 rounded-[3rem] p-12 md:p-24 text-center overflow-hidden shadow-2xl">
+            {/* Inner glow accents */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-1 bg-gradient-to-r from-transparent via-[#CA9851] to-transparent opacity-60" />
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-[#DFB776] to-transparent opacity-30" />
+            
+            <h2 className="text-5xl md:text-6xl font-extrabold text-white mb-6 tracking-tight relative z-10">
+              Ready to <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#E9C78C] via-[#CA9851] to-[#B3823E]">upgrade?</span>
+            </h2>
+            <p className="text-xl text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed relative z-10">
+              Join forward-thinking properties today and experience the most advanced, modular property management OS ever built.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 relative z-10">
+              <Link href="/signup" className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-10 py-5 bg-gradient-to-r from-[#DFB776] via-[#CA9851] to-[#B3823E] hover:from-[#E9C78C] hover:to-[#DFB776] text-[#070F1E] rounded-full font-bold hover:scale-105 transition-all text-lg shadow-[0_0_40px_rgba(202,152,81,0.35)]">
+                Create Your Account <ArrowRight size={20} />
+              </Link>
+              <Link href="#contact" className="w-full sm:w-auto px-10 py-5 bg-[#0B1D33]/40 text-white border border-[#CA9851]/30 hover:border-[#CA9851]/70 rounded-full font-bold hover:bg-[#0B1D33]/70 transition-all text-lg flex justify-center items-center">
+                Talk to Sales
+              </Link>
+            </div>
+            
+            <p className="text-sm text-gray-500 mt-8 relative z-10">
+              Start your 14-day free trial. No credit card required.
+            </p>
+          </div>
+        </motion.section>
+
+      </div>
+
+      {/* Footer */}
+      <footer className="border-t border-[#CA9851]/15 py-12 relative z-10 bg-[#050B14]">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-3">
+            <img 
+              src="/yarvo-logo-dark-horizontal.png" 
+              alt="Yarvo Hotel - Smarter Hotel Management" 
+              onError={(e) => {
+                e.currentTarget.src = "/yarvo-logo-dark.jpg";
+              }}
+              className="h-9 sm:h-10 w-auto object-contain"
+            />
+          </div>
+          <div className="flex gap-6 text-sm text-gray-400">
+            <Link href="#" className="hover:text-[#DFB776] transition-colors">Privacy Policy</Link>
+            <Link href="#" className="hover:text-[#DFB776] transition-colors">Terms of Service</Link>
+            <Link href="#contact" className="hover:text-[#DFB776] transition-colors">Support & Sales</Link>
+          </div>
+          <div className="text-sm text-gray-500">
+            &copy; {new Date().getFullYear()} Yarvo Hotel. Smarter Hotel Management. All rights reserved.
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }

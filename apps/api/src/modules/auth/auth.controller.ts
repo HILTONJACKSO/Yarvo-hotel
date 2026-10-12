@@ -15,6 +15,7 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { RegisterPropertyDto } from './dto/register-property.dto';
 
 // Augment Fastify types to include @fastify/cookie
 type FastifyRequestWithCookies = FastifyRequest & { cookies: Record<string, string | undefined> };
@@ -27,6 +28,14 @@ type FastifyReplyWithCookies = FastifyReply & {
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Public()
+  @Post('register-property')
+  @ApiOperation({ summary: 'Register a new property (tenant) and its admin user' })
+  @ApiResponse({ status: 201, description: 'Property registered successfully' })
+  async registerProperty(@Body() registerDto: RegisterPropertyDto) {
+    return this.authService.registerProperty(registerDto);
+  }
 
   @Public()
   @Post('login')

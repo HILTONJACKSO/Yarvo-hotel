@@ -89,7 +89,7 @@ export default function DashboardPage() {
         <div className="welcome-text">
           <p className="welcome-greeting">Good {greeting || 'day'},</p>
           <h2 className="welcome-name">{user?.firstName} {user?.lastName}</h2>
-          <p className="welcome-sub">Here&apos;s what&apos;s happening at Kwalee today.</p>
+          <p className="welcome-sub">Here&apos;s what&apos;s happening at your property today.</p>
         </div>
         <div className="welcome-badge">
           <span className="role-chip">{user?.roles?.[0]?.replace('_', ' ')}</span>
@@ -113,7 +113,7 @@ export default function DashboardPage() {
           const IconComponent = card.Icon;
           return (
             <div key={card.title} className="stat-card">
-              <div className="stat-icon"><IconComponent size={24} color="hsl(215, 20%, 55%)" /></div>
+              <div className="stat-icon"><IconComponent size={24} className="text-[#CA9851]" /></div>
               <div className="stat-value">{card.value}</div>
               <div className="stat-title">{card.title}</div>
               <div className="stat-desc">{card.desc}</div>
@@ -136,8 +136,8 @@ export default function DashboardPage() {
                   <AreaChart data={revenueData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(142, 76%, 45%)" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="hsl(142, 76%, 45%)" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#CA9851" stopOpacity={0.35}/>
+                        <stop offset="95%" stopColor="#CA9851" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(217, 20%, 18%)" vertical={false} />
@@ -151,11 +151,11 @@ export default function DashboardPage() {
                       domain={[0, 'auto']}
                     />
                     <Tooltip 
-                      contentStyle={{ backgroundColor: 'hsl(222, 35%, 10%)', borderColor: 'hsl(217, 20%, 20%)', borderRadius: '8px', color: 'white' }}
-                      itemStyle={{ color: 'hsl(142, 76%, 50%)' }}
+                      contentStyle={{ backgroundColor: '#070F1E', borderColor: 'rgba(202, 152, 81, 0.3)', borderRadius: '10px', color: 'white' }}
+                      itemStyle={{ color: '#DFB776' }}
                       formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'Revenue']}
                     />
-                    <Area type="monotone" dataKey="revenue" stroke="hsl(142, 76%, 45%)" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+                    <Area type="monotone" dataKey="revenue" stroke="#DFB776" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -209,18 +209,19 @@ export default function DashboardPage() {
           align-items: flex-end;
           justify-content: space-between;
           padding: 28px 32px;
-          background: linear-gradient(135deg, hsl(222,35%,9%) 0%, hsl(224,39%,8%) 100%);
-          border: 1px solid hsl(217, 20%, 14%);
-          border-radius: 16px;
+          background: linear-gradient(135deg, #070F1E 0%, #0B1D33 100%);
+          border: 1px solid rgba(202, 152, 81, 0.22);
+          border-radius: 18px;
           position: relative;
           overflow: hidden;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
         }
         .welcome-banner::before {
           content: '';
           position: absolute;
           top: -60px; right: -60px;
-          width: 200px; height: 200px;
-          background: radial-gradient(circle, hsl(43,96%,56%,0.08), transparent 70%);
+          width: 220px; height: 220px;
+          background: radial-gradient(circle, rgba(202, 152, 81, 0.14), transparent 70%);
           border-radius: 50%;
         }
 
@@ -245,14 +246,14 @@ export default function DashboardPage() {
         .role-chip {
           display: inline-block;
           padding: 6px 14px;
-          background: hsl(43,96%,56%,0.12);
-          border: 1px solid hsl(43,96%,56%,0.25);
+          background: rgba(202, 152, 81, 0.15);
+          border: 1px solid rgba(202, 152, 81, 0.35);
           border-radius: 20px;
-          color: hsl(43,96%,70%);
+          color: #DFB776;
           font-size: 0.75rem;
-          font-weight: 600;
-          text-transform: capitalize;
-          letter-spacing: 0.04em;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
         }
 
         .error-alert {
@@ -274,17 +275,18 @@ export default function DashboardPage() {
 
         .stat-card {
           padding: 24px;
-          background: hsl(222, 35%, 8%);
-          border: 1px solid hsl(217, 20%, 14%);
-          border-radius: 12px;
+          background: #070F1E;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 16px;
           display: flex;
           flex-direction: column;
           gap: 6px;
-          transition: border-color 0.2s, transform 0.2s;
+          transition: all 0.2s ease;
         }
         .stat-card:hover {
-          border-color: hsl(217, 20%, 22%);
+          border-color: rgba(202, 152, 81, 0.35);
           transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
         }
 
         .stat-icon { font-size: 1.5rem; margin-bottom: 4px; }
@@ -313,9 +315,9 @@ export default function DashboardPage() {
         }
 
         .chart-section, .activity-section {
-          background: hsl(222, 35%, 10%);
-          border: 1px solid hsl(217, 20%, 16%);
-          border-radius: 12px;
+          background: #070F1E;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 16px;
           padding: 24px;
           display: flex;
           flex-direction: column;
@@ -357,8 +359,8 @@ export default function DashboardPage() {
           width: 32px;
           height: 32px;
           border-radius: 50%;
-          background: hsl(217, 20%, 16%);
-          color: hsl(43,96%,56%);
+          background: rgba(202, 152, 81, 0.12);
+          color: #DFB776;
           display: flex;
           align-items: center;
           justify-content: center;

@@ -37,14 +37,26 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   experimental: {
     serverActions: {
-      allowedOrigins: ['localhost:3000', 'kwaleebeachresort.com', 'www.kwaleebeachresort.com'],
+      allowedOrigins: [
+        'localhost:3000',
+        ...(process.env.DOMAIN ? [
+          process.env.DOMAIN,
+          `www.${process.env.DOMAIN}`,
+          `api.${process.env.DOMAIN}`,
+        ] : []),
+      ],
     },
   },
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'images.unsplash.com' },
-      { protocol: 'http', hostname: 'localhost' },
-      { protocol: 'https', hostname: 'api.kwaleebeachresort.com' }
+      { protocol: 'http',  hostname: 'localhost' },
+      // Allow API subdomain (any domain set via DOMAIN env var)
+      ...(process.env.DOMAIN ? [
+        { protocol: 'https' as const, hostname: `api.${process.env.DOMAIN}` },
+      ] : [
+        { protocol: 'https' as const, hostname: '*.kwaleebeachresort.com' },
+      ]),
     ]
   },
   output: 'standalone',

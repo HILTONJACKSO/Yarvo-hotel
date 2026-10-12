@@ -29,7 +29,7 @@ async function bootstrap(): Promise<void> {
   app.useLogger(logger);
 
   const config = app.get(ConfigService);
-  const port = config.get<number>('API_PORT', 3001);
+  const port = config.get<number>('API_PORT', 3002);
   const nodeEnv = config.get<string>('NODE_ENV', 'development');
   const corsOrigins = config.get<string>('CORS_ORIGINS', 'http://localhost:3000');
 
