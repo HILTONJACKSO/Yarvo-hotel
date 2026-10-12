@@ -26,22 +26,6 @@
 
 ---
 
-## 🏗️ Architecture
-
-```
-yarvohotel/
-├── apps/
-│   ├── web/          # Next.js 16 frontend (App Router, TypeScript)
-│   └── api/          # NestJS REST API (TypeScript, Prisma ORM)
-├── packages/
-│   ├── database/     # Prisma schema, migrations, seed scripts
-│   └── shared/       # Shared types and utilities
-├── nginx/            # Production reverse-proxy config
-├── docker-compose.yml           # Local development
-└── docker-compose.prod.yml      # Production (VPS)
-```
-
----
 
 ## 🚀 Features
 
@@ -151,24 +135,9 @@ After the first setup, **every push to `main` auto-deploys via GitHub Actions**.
 | `RESEND_API_KEY` | API key from [resend.com](https://resend.com) |
 | `WHATSAPP_ACCESS_TOKEN` | WhatsApp Business access token (optional) |
 
-Copy [`.env.production.example`](.env.production.example) for the full list.
 
 ---
 
-## 📁 Key Files
-
-| File | Purpose |
-|---|---|
-| [`apps/web/src/app/page.tsx`](apps/web/src/app/page.tsx) | Landing page |
-| [`apps/web/src/app/dashboard/`](apps/web/src/app/dashboard/) | Hotel dashboard |
-| [`apps/web/src/app/super-admin/`](apps/web/src/app/super-admin/) | Super Admin control plane |
-| [`apps/api/src/modules/`](apps/api/src/modules/) | NestJS feature modules |
-| [`packages/database/prisma/schema.prisma`](packages/database/prisma/schema.prisma) | Database schema |
-| [`docker-compose.prod.yml`](docker-compose.prod.yml) | Production Docker stack |
-| [`nginx/conf.d/yarvo.conf`](nginx/conf.d/yarvo.conf) | Nginx vhost (HTTPS) |
-| [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) | CI/CD pipeline |
-
----
 
 ## 📄 License
 
