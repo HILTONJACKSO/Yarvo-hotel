@@ -41,6 +41,8 @@ const nextConfig: NextConfig = {
         'localhost:3000',
         '72.61.15.24:3050',
         '72.61.15.24',
+        'yarvohotel.com',
+        'www.yarvohotel.com',
         ...(process.env.DOMAIN ? [
           process.env.DOMAIN,
           `www.${process.env.DOMAIN}`,
