@@ -83,6 +83,11 @@ services:
       HOTEL_EMAIL: ${HOTEL_EMAIL:-}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       PUBLIC_API_KEY: ${PUBLIC_API_KEY}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:3001/api/v1/health/live || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
     ports:
       - "${API_PORT:-3051}:3001"
     volumes:
