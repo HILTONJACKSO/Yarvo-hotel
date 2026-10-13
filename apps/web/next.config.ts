@@ -39,6 +39,8 @@ const nextConfig: NextConfig = {
     serverActions: {
       allowedOrigins: [
         'localhost:3000',
+        '72.61.15.24:3050',
+        '72.61.15.24',
         ...(process.env.DOMAIN ? [
           process.env.DOMAIN,
           `www.${process.env.DOMAIN}`,
