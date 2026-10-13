@@ -6,7 +6,6 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/super-admin/', '/dashboard/', '/api/'],
       },
     ],
     sitemap: 'https://yarvohotel.com/sitemap.xml',

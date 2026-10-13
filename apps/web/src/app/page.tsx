@@ -520,7 +520,7 @@ export default function LandingPage() {
                   <div>
                     <h3 className="text-white font-bold mb-1 text-lg">Email Us</h3>
                     <a href="mailto:support@yarvohotel.com" className="text-gray-400 hover:text-[#DFB776] transition-colors" aria-label="Email Support">
-                      support&#64;yarvohotel.com
+                      support [at] yarvohotel.com
                     </a>
                   </div>
                 </div>
@@ -564,7 +564,7 @@ export default function LandingPage() {
                  
                  <div className="space-y-1.5">
                    <label className="text-sm font-medium text-gray-300">Work Email</label>
-                   <input required value={contactForm.email} onChange={e => setContactForm({...contactForm, email: e.target.value})} type="email" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-[#CA9851] transition-colors" placeholder="you@yourhotel.com" />
+                   <input required value={contactForm.email} onChange={e => setContactForm({...contactForm, email: e.target.value})} type="email" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-[#CA9851] transition-colors" placeholder="name@company.com" />
                  </div>
                  
                  <div className="space-y-1.5">

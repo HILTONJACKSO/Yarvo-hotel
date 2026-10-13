@@ -161,7 +161,7 @@ export default function LoginPage() {
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="w-full bg-[#050B14] border border-white/10 rounded-xl py-3.5 pl-11 pr-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-[#CA9851] focus:ring-1 focus:ring-[#CA9851] transition-all text-sm"
-                    placeholder="admin@yarvohotel.app"
+                    placeholder="Enter your email address"
                   />
                 </div>
               </div>
