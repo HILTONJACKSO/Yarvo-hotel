@@ -6,15 +6,15 @@ const PUBLIC_PATHS = [
   '/', '/login', '/signup', '/booking', '/api/', '/_next/', 
   '/favicon.ico', '/logo.jpg', '/logo.png', '/manifest.webmanifest', 
   '/icon', '/sw.js', '/icon-512.jpg', '/uploads/', '/dining', 
-  '/stay', '/events', '/gallery', '/yarvo-'
+  '/stay', '/events', '/gallery', '/yarvo-', '/sitemap', '/robots.txt', '/llms.txt'
 ];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Always allow static files (images, fonts, scripts, manifests, etc.)
+  // Always allow static files (images, fonts, scripts, manifests, sitemaps, etc.)
   if (
-    pathname.match(/\.(png|jpg|jpeg|gif|webp|svg|ico|woff|woff2|ttf|eot|webmanifest|json)$/i) ||
+    pathname.match(/\.(png|jpg|jpeg|gif|webp|svg|ico|woff|woff2|ttf|eot|webmanifest|json|xml|txt)$/i) ||
     pathname.startsWith('/_next/')
   ) {
     return NextResponse.next();
