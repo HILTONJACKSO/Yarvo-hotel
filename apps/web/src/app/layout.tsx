@@ -22,12 +22,27 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://yarvohotel.com'),
   title: {
-    default: 'Yarvo Hotel | Smarter Hotel Management',
-    template: '%s | Yarvo Hotel',
+    default: 'Yarvo Hotel — Modular Property Management System (PMS)',
+    template: '%s | Yarvo Hotel PMS',
   },
   description:
-    'Yarvo is a strictly modular Property Management System (PMS) built for modern hotels, boutique resorts, and multi-property hospitality operators. Smarter hotel management.',
+    'Modular Property Management System (PMS) built for modern hotels and resorts. Streamline reservations, guests, front desk, and billing with zero bloat.',
+  keywords: [
+    'hotel management system',
+    'property management system',
+    'hotel PMS',
+    'modular hotel software',
+    'hotel reservation software',
+    'front desk management',
+    'hospitality POS',
+    'hotel billing software',
+    'hotel operations'
+  ],
+  alternates: {
+    canonical: 'https://yarvohotel.com',
+  },
   icons: {
     icon: [
       { url: '/favicon.ico' },
@@ -42,27 +57,79 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://yarvohotel.app',
-    siteName: 'Yarvo Hotel',
-    title: 'Yarvo Hotel | Smarter Hotel Management',
+    url: 'https://yarvohotel.com',
+    siteName: 'Yarvo Hotel PMS',
+    title: 'Yarvo Hotel — Modular Property Management System (PMS)',
     description:
-      'The strictly modular Property Management System. Run your property your exact way with unified PMS, POS, and real-time operations.',
+      'Modular Property Management System (PMS) built for modern hotels and resorts. Streamline reservations, guests, front desk, and billing with zero bloat.',
     images: [
       {
         url: '/og-image.jpg',
         width: 1200,
         height: 630,
-        alt: 'Yarvo Hotel - Smarter Hotel Management',
+        alt: 'Yarvo Hotel — Modular Property Management System',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Yarvo Hotel | Smarter Hotel Management',
+    title: 'Yarvo Hotel — Modular Property Management System (PMS)',
     description:
-      'The strictly modular Property Management System. Run your property your exact way.',
+      'Modular Property Management System (PMS) built for modern hotels and resorts. Streamline reservations, guests, front desk, and billing with zero bloat.',
     images: ['/og-image.jpg'],
   },
+};
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'SoftwareApplication',
+      '@id': 'https://yarvohotel.com/#software',
+      name: 'Yarvo Hotel PMS',
+      operatingSystem: 'All (Cloud-native Web Application)',
+      applicationCategory: 'BusinessApplication',
+      url: 'https://yarvohotel.com',
+      description:
+        'A strictly modular Property Management System (PMS) designed for boutique hotels, luxury resorts, and multi-property operators.',
+      offers: {
+        '@type': 'Offer',
+        price: '0.00',
+        priceCurrency: 'USD',
+        description: '14-day free trial, no credit card required',
+      },
+      featureList: [
+        'Modular architecture',
+        'Front desk & reservations management',
+        'Guest CRM & history',
+        'Unified Folio and billing',
+        'Housekeeping & Maintenance tracking',
+        'Integrated POS for restaurant and bar',
+        'Night audit and financial reports',
+      ],
+    },
+    {
+      '@type': 'Organization',
+      '@id': 'https://yarvohotel.com/#organization',
+      name: 'Yarvo Hotel',
+      url: 'https://yarvohotel.com',
+      logo: 'https://yarvohotel.com/yarvo-logo-new.png',
+      contactPoint: {
+        '@type': 'ContactPoint',
+        contactType: 'customer support',
+        url: 'https://yarvohotel.com/#contact',
+      },
+    },
+    {
+      '@type': 'WebSite',
+      '@id': 'https://yarvohotel.com/#website',
+      url: 'https://yarvohotel.com',
+      name: 'Yarvo Hotel',
+      publisher: {
+        '@id': 'https://yarvohotel.com/#organization',
+      },
+    },
+  ],
 };
 
 export default function RootLayout({
@@ -72,6 +139,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={cn("font-sans scroll-smooth", geist.variable, inter.variable, playfair.variable)} suppressHydrationWarning>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body className="antialiased min-h-screen">
         <AuthProvider>
           <ToastProvider>

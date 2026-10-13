@@ -64,6 +64,10 @@ export default function LandingPage() {
             <img 
               src="/yarvo-logo-dark-horizontal.png" 
               alt="Yarvo Hotel - Smarter Hotel Management" 
+              width={200}
+              height={48}
+              loading="eager"
+              decoding="async"
               onError={(e) => {
                 e.currentTarget.src = "/yarvo-logo-dark.jpg";
               }}
@@ -104,7 +108,7 @@ export default function LandingPage() {
               className="absolute top-[10%] -left-[15%] w-48 h-64 rounded-2xl overflow-hidden border border-[#CA9851]/25 shadow-[0_0_40px_rgba(202,152,81,0.15)] rotate-[-6deg]"
             >
               <div className="absolute inset-0 bg-black/20 z-10" />
-              <img src="https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=300&q=80" alt="Luxury Room" className="w-full h-full object-cover" />
+              <img src="https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=300&q=80" alt="Luxury Hotel Suite" width={300} height={200} loading="lazy" decoding="async" className="w-full h-full object-cover" />
             </motion.div>
             
             {/* Bottom Left: Lobby */}
@@ -114,7 +118,7 @@ export default function LandingPage() {
               className="absolute bottom-[-10%] left-[0%] w-40 h-40 rounded-2xl overflow-hidden border border-[#CA9851]/25 shadow-[0_0_40px_rgba(202,152,81,0.15)] rotate-[8deg]"
             >
               <div className="absolute inset-0 bg-black/20 z-10" />
-              <img src="https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=300&q=80" alt="Hotel Lobby" className="w-full h-full object-cover" />
+              <img src="https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=300&q=80" alt="Modern Hotel Lobby Interior" width={300} height={200} loading="lazy" decoding="async" className="w-full h-full object-cover" />
             </motion.div>
 
             {/* Top Right: Restaurant */}
@@ -124,7 +128,7 @@ export default function LandingPage() {
               className="absolute top-[5%] -right-[10%] w-56 h-48 rounded-2xl overflow-hidden border border-[#CA9851]/25 shadow-[0_0_40px_rgba(202,152,81,0.15)] rotate-[5deg]"
             >
               <div className="absolute inset-0 bg-black/20 z-10" />
-              <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=300&q=80" alt="Restaurant" className="w-full h-full object-cover" />
+              <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=300&q=80" alt="Hotel Restaurant and Dining" width={300} height={200} loading="lazy" decoding="async" className="w-full h-full object-cover" />
             </motion.div>
 
             {/* Bottom Right: Bar / Pool */}
@@ -134,7 +138,7 @@ export default function LandingPage() {
               className="absolute bottom-[-5%] -right-[15%] w-48 h-56 rounded-2xl overflow-hidden border border-[#CA9851]/25 shadow-[0_0_40px_rgba(202,152,81,0.15)] rotate-[-4deg]"
             >
               <div className="absolute inset-0 bg-black/20 z-10" />
-              <img src="https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=300&q=80" alt="Resort Pool" className="w-full h-full object-cover" />
+              <img src="https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=300&q=80" alt="Boutique Resort Swimming Pool" width={300} height={200} loading="lazy" decoding="async" className="w-full h-full object-cover" />
             </motion.div>
           </div>
 
@@ -186,7 +190,7 @@ export default function LandingPage() {
               {/* Centered URL Bar */}
               <div className="hidden sm:flex items-center gap-2 px-5 py-1.5 rounded-full bg-[#050B14]/90 border border-[#CA9851]/25 text-xs text-gray-300 font-mono tracking-wide shadow-inner">
                 <Lock size={12} className="text-[#CA9851]" />
-                <span className="text-[#DFB776] font-medium">yarvohotel.app</span>
+                <span className="text-[#DFB776] font-medium">yarvohotel.com</span>
                 <span className="text-gray-500">/dashboard</span>
               </div>
 
@@ -201,7 +205,11 @@ export default function LandingPage() {
             <div className="relative overflow-hidden rounded-b-[1.5rem] bg-[#070F1E]">
               <img 
                 src="/yarvo-dashboard-hero.png" 
-                alt="Yarvo Hotel Luxury Dashboard" 
+                alt="Yarvo Hotel Luxury PMS Dashboard Interface" 
+                width={2036}
+                height={894}
+                loading="eager"
+                decoding="async"
                 className="w-full h-auto rounded-b-[1.5rem] block transition-all duration-500 group-hover:scale-[1.005]"
               />
               {/* Subtle bottom fade for seamless transition */}
@@ -343,7 +351,7 @@ export default function LandingPage() {
                   <p className="text-gray-300 text-lg leading-relaxed">"{testimonial.quote}"</p>
                 </div>
                 <div>
-                  <h4 className="text-white font-bold">{testimonial.author}</h4>
+                  <h3 className="text-white font-bold text-base">{testimonial.author}</h3>
                   <span className="text-sm text-gray-500">{testimonial.role}</span>
                 </div>
               </div>
@@ -362,10 +370,38 @@ export default function LandingPage() {
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-12 text-center">Frequently Asked Questions</h2>
           <div className="space-y-4">
             {[
-              { q: "Do I have to pay for the Core PMS if I only want the POS?", a: "No! Yarvo is completely modular. You can use our POS as a standalone product and ignore the rest, or combine them for a unified experience." },
-              { q: "How does the multi-tenancy work?", a: "Every property gets its own securely isolated tenant space in our database. You can manage multiple properties under one master account, but their data never mixes." },
-              { q: "Is there a long-term contract?", a: "Absolutely not. We operate on a transparent month-to-month basis. We believe our software should earn your business every single day." },
-              { q: "Can I migrate my data from Oracle Opera or Mews?", a: "Yes. Our engineering team provides white-glove migration services for all major legacy PMS platforms to ensure zero downtime." }
+              { 
+                q: "What makes Yarvo a strictly modular Property Management System (PMS)?", 
+                a: "Unlike traditional monolithic hotel management software, Yarvo lets you activate only the modules your property needs. Whether you operate a luxury boutique resort needing front desk, unified folio, and housekeeping, or an independent restaurant requiring a high-volume POS, you never pay for or train staff on bloated features you don't use." 
+              },
+              { 
+                q: "Do I have to pay for the Core PMS if I only want the POS or Event module?", 
+                a: "No! Yarvo is engineered to be 100% modular. You can deploy our hospitality POS or Event Spaces module as an independent standalone product, or combine them with our Core PMS for instant real-time room folio routing." 
+              },
+              { 
+                q: "How does multi-property management and data isolation work?", 
+                a: "Every hotel property is provisioned in its own securely isolated tenant database partition. Multi-property operators and hotel groups can supervise multiple properties, cross-audit revenues, and manage staff roles from a centralized Super Admin control plane with complete data protection." 
+              },
+              { 
+                q: "How does the 14-day free trial work?", 
+                a: "You get full, unrestricted access to the complete Yarvo Hotel PMS platform for 14 days without entering a credit card. You can configure room types, test reservations, simulate guest check-ins, and experiment with staff permissions with zero commitment." 
+              },
+              { 
+                q: "Can I migrate existing reservations and guest profiles from Oracle Opera, Cloudbeds, or Mews?", 
+                a: "Yes. Yarvo includes automated CSV and Excel import utilities for rooms, guest history, rate plans, and existing bookings. Our engineering specialists also provide white-glove assisted migrations with zero operational downtime for your front desk." 
+              },
+              { 
+                q: "Does Yarvo automate night audits and financial reports?", 
+                a: "Yes. Yarvo features an automated end-of-day night audit that balances folios, posts room charges, closes POS registers, and generates comprehensive financial and revenue reports (RevPAR, ADR, Occupancy %) delivered directly to management." 
+              },
+              { 
+                q: "What hardware is required to run Yarvo Hotel PMS?", 
+                a: "Yarvo is a modern, responsive web application that runs smoothly on any device with a standard web browser: desktop PCs, MacBooks, iPads, Android tablets, and smartphones. No bulky on-premise servers or specialized hardware required." 
+              },
+              { 
+                q: "Is there a long-term contract or cancellation penalty?", 
+                a: "None whatsoever. Yarvo operates on a transparent month-to-month subscription. You can upgrade, add modules, or cancel at any time with complete data export access." 
+              }
             ].map((faq, i) => (
               <details key={i} className="group bg-[#070F1E] border border-white/10 hover:border-[#CA9851]/30 rounded-2xl transition-all">
                 <summary className="flex justify-between items-center font-medium cursor-pointer list-none p-6 text-lg text-white group-open:text-[#DFB776] transition-colors">
@@ -482,8 +518,10 @@ export default function LandingPage() {
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
                   </div>
                   <div>
-                    <h4 className="text-white font-bold mb-1">Email Us</h4>
-                    <p className="text-gray-400">enterprise@yarvohotel.com</p>
+                    <h3 className="text-white font-bold mb-1 text-lg">Email Us</h3>
+                    <a href="mailto:support@yarvohotel.com" className="text-gray-400 hover:text-[#DFB776] transition-colors" aria-label="Email Support">
+                      support&#64;yarvohotel.com
+                    </a>
                   </div>
                 </div>
                 
@@ -492,7 +530,7 @@ export default function LandingPage() {
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
                   </div>
                   <div>
-                    <h4 className="text-white font-bold mb-1">Call Us</h4>
+                    <h3 className="text-white font-bold mb-1 text-lg">Call Us</h3>
                     <p className="text-gray-400">+1 (800) 555-0199</p>
                   </div>
                 </div>
@@ -526,7 +564,7 @@ export default function LandingPage() {
                  
                  <div className="space-y-1.5">
                    <label className="text-sm font-medium text-gray-300">Work Email</label>
-                   <input required value={contactForm.email} onChange={e => setContactForm({...contactForm, email: e.target.value})} type="email" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-[#CA9851] transition-colors" placeholder="john@hotel.com" />
+                   <input required value={contactForm.email} onChange={e => setContactForm({...contactForm, email: e.target.value})} type="email" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-[#CA9851] transition-colors" placeholder="you@yourhotel.com" />
                  </div>
                  
                  <div className="space-y-1.5">
@@ -592,16 +630,25 @@ export default function LandingPage() {
             <img 
               src="/yarvo-logo-dark-horizontal.png" 
               alt="Yarvo Hotel - Smarter Hotel Management" 
+              width={180}
+              height={44}
+              loading="lazy"
+              decoding="async"
               onError={(e) => {
                 e.currentTarget.src = "/yarvo-logo-dark.jpg";
               }}
               className="h-9 sm:h-10 w-auto object-contain"
             />
           </div>
-          <div className="flex gap-6 text-sm text-gray-400">
-            <Link href="#" className="hover:text-[#DFB776] transition-colors">Privacy Policy</Link>
-            <Link href="#" className="hover:text-[#DFB776] transition-colors">Terms of Service</Link>
+          <div className="flex flex-wrap items-center gap-6 text-sm text-gray-400">
+            <Link href="#features-path" className="hover:text-[#DFB776] transition-colors">Features</Link>
+            <Link href="#pricing" className="hover:text-[#DFB776] transition-colors">Pricing</Link>
             <Link href="#contact" className="hover:text-[#DFB776] transition-colors">Support & Sales</Link>
+            <span className="text-gray-700">|</span>
+            <a href="https://twitter.com/yarvohotel" target="_blank" rel="noopener noreferrer" className="hover:text-[#DFB776] transition-colors" aria-label="Yarvo Hotel on X (Twitter)">X / Twitter</a>
+            <a href="https://linkedin.com/company/yarvohotel" target="_blank" rel="noopener noreferrer" className="hover:text-[#DFB776] transition-colors" aria-label="Yarvo Hotel on LinkedIn">LinkedIn</a>
+            <a href="https://facebook.com/yarvohotel" target="_blank" rel="noopener noreferrer" className="hover:text-[#DFB776] transition-colors" aria-label="Yarvo Hotel on Facebook">Facebook</a>
+            <a href="https://instagram.com/yarvohotel" target="_blank" rel="noopener noreferrer" className="hover:text-[#DFB776] transition-colors" aria-label="Yarvo Hotel on Instagram">Instagram</a>
           </div>
           <div className="text-sm text-gray-500">
             &copy; {new Date().getFullYear()} Yarvo Hotel. Smarter Hotel Management. All rights reserved.
