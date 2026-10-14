@@ -5,6 +5,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
 import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
 import { useToast } from '@/components/ui/toast-provider';
+import { useCurrency, SUPPORTED_CURRENCIES, getCurrencySymbol, formatCurrency } from '@/lib/currency';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 type Property = {
@@ -18,6 +19,8 @@ type Property = {
   email: string;
   website: string;
   taxId: string;
+  currencyPrimary?: string;
+  currencySecondary?: string;
 };
 
 type RoomType = {
@@ -134,8 +137,7 @@ function GeneralSettings({ showToast }: { showToast: any }) {
     if (!property) return;
     setSaving(true);
     
-    // Create a payload with only the editable fields
-    // This prevents validation errors for system fields like id, createdAt, etc.
+    // Create a payload with editable fields including multi-currency settings
     const payload = {
       name: property.name,
       legalName: property.legalName,
@@ -146,6 +148,8 @@ function GeneralSettings({ showToast }: { showToast: any }) {
       email: property.email,
       website: property.website,
       taxId: property.taxId,
+      currencyPrimary: property.currencyPrimary || 'USD',
+      currencySecondary: property.currencySecondary || 'LRD',
     };
 
     try {
@@ -160,7 +164,18 @@ function GeneralSettings({ showToast }: { showToast: any }) {
       });
       if (navigator.onLine) syncOfflineMutations();
 
-      showToast('Settings saved successfully.', 'success', 'Saved');
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('yarvo-currency-changed', {
+            detail: {
+              currency: property.currencyPrimary || 'USD',
+              currencySecondary: property.currencySecondary || 'LRD',
+            },
+          })
+        );
+      }
+
+      showToast(`Settings saved successfully. Currency set to ${property.currencyPrimary || 'USD'}.`, 'success', 'Saved');
     } catch (err) {
       showToast('An unexpected error occurred.', 'error', 'Error');
     }
@@ -168,6 +183,9 @@ function GeneralSettings({ showToast }: { showToast: any }) {
   };
 
   if (!property) return <div>Loading settings...</div>;
+
+  const currentPrimary = property.currencyPrimary || 'USD';
+  const currentSymbol = getCurrencySymbol(currentPrimary);
 
   return (
     <form className="panel" onSubmit={handleSave}>
@@ -210,6 +228,80 @@ function GeneralSettings({ showToast }: { showToast: any }) {
           <input className="form-input" value={property.taxId || ''} onChange={e => setProperty({...property, taxId: e.target.value})} />
         </div>
       </div>
+
+      <div style={{ marginTop: '32px', marginBottom: '24px', paddingTop: '24px', borderTop: '1px solid hsl(217, 20%, 18%)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1.125rem', color: 'hsl(210, 40%, 96%)' }}>Currency & Regional Pricing</h3>
+            <p style={{ margin: '4px 0 0 0', color: 'hsl(215, 20%, 65%)', fontSize: '0.875rem' }}>
+              Choose your property's operational currency. All room rates, guest folios, POS checkout menus, and financial reports will display in this currency.
+            </p>
+          </div>
+          <div style={{
+            background: 'hsl(222, 35%, 15%)',
+            border: '1px solid hsl(217, 20%, 25%)',
+            borderRadius: '8px',
+            padding: '8px 16px',
+            textAlign: 'right'
+          }}>
+            <span style={{ fontSize: '0.75rem', color: 'hsl(215, 20%, 65%)', display: 'block' }}>Active Symbol</span>
+            <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'hsl(142, 70%, 50%)' }}>{currentSymbol} ({currentPrimary})</span>
+          </div>
+        </div>
+
+        <div className="form-grid">
+          <div className="form-group">
+            <label style={{ fontWeight: 600, color: 'hsl(210, 40%, 96%)' }}>Primary Currency</label>
+            <select
+              className="form-input"
+              value={currentPrimary}
+              onChange={e => setProperty({ ...property, currencyPrimary: e.target.value })}
+              style={{ fontSize: '1rem', cursor: 'pointer' }}
+            >
+              {SUPPORTED_CURRENCIES.map(curr => (
+                <option key={curr.code} value={curr.code}>
+                  {curr.flag} {curr.code} ({curr.symbol}) — {curr.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label style={{ fontWeight: 600, color: 'hsl(210, 40%, 96%)' }}>Secondary Currency (Optional / Dual-Currency)</label>
+            <select
+              className="form-input"
+              value={property.currencySecondary || 'LRD'}
+              onChange={e => setProperty({ ...property, currencySecondary: e.target.value })}
+              style={{ fontSize: '1rem', cursor: 'pointer' }}
+            >
+              <option value="NONE">None (Single Currency)</option>
+              {SUPPORTED_CURRENCIES.map(curr => (
+                <option key={curr.code} value={curr.code}>
+                  {curr.flag} {curr.code} ({curr.symbol}) — {curr.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div style={{
+          marginTop: '16px',
+          padding: '14px 18px',
+          background: 'hsl(222, 35%, 12%)',
+          borderRadius: '8px',
+          border: '1px solid hsl(217, 20%, 20%)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px'
+        }}>
+          <span style={{ fontSize: '1.25rem' }}>💡</span>
+          <div style={{ fontSize: '0.875rem', color: 'hsl(215, 20%, 75%)' }}>
+            <strong style={{ color: 'hsl(210, 40%, 96%)' }}>Live Display Preview: </strong>
+            Room Rate: <span style={{ color: 'hsl(142, 70%, 50%)', fontWeight: 'bold' }}>{currentSymbol}150.00</span> / night &bull; POS Order: <span style={{ color: 'hsl(142, 70%, 50%)', fontWeight: 'bold' }}>{currentSymbol}12.50</span> &bull; Folio Total: <span style={{ color: 'hsl(142, 70%, 50%)', fontWeight: 'bold' }}>{currentSymbol}320.00</span>
+          </div>
+        </div>
+      </div>
+
       <button type="submit" className="btn-primary" disabled={saving}>
         {saving ? 'Saving...' : 'Save Settings'}
       </button>
@@ -218,6 +310,7 @@ function GeneralSettings({ showToast }: { showToast: any }) {
 }
 
 function RoomTypesSettings({ showToast }: { showToast: any }) {
+  const { currency, currencySymbol, format } = useCurrency();
   const [types, setTypes] = useState<RoomType[]>([]);
   const [taxes, setTaxes] = useState<Tax[]>([]);
   const [showModal, setShowModal] = useState(false);
@@ -316,7 +409,7 @@ function RoomTypesSettings({ showToast }: { showToast: any }) {
             <th>Code</th>
             <th>Name</th>
             <th>Capacity</th>
-            <th>Base Rate (USD)</th>
+            <th>Base Rate ({currency})</th>
             <th>Taxes</th>
             <th>Amenities</th>
             <th>Actions</th>
@@ -328,7 +421,7 @@ function RoomTypesSettings({ showToast }: { showToast: any }) {
               <td>{rt.code}</td>
               <td>{rt.name}</td>
               <td>{rt.maxOccupancy} persons</td>
-              <td>${Number(rt.baseRateUsd).toFixed(2)}</td>
+              <td style={{ fontWeight: 600, color: 'hsl(142, 70%, 50%)' }}>{format(rt.baseRateUsd)}</td>
               <td>
                 {(rt as any).taxes && (rt as any).taxes.length > 0 ? (rt as any).taxes.map((t: any) => <span key={t.id} className="amenity-tag" style={{background: 'hsl(217, 30%, 30%)'}}>{t.name}</span>) : '-'}
               </td>
@@ -378,7 +471,7 @@ function RoomTypesSettings({ showToast }: { showToast: any }) {
                   <input className="form-input" type="number" value={maxOccupancy} onChange={e => setMaxOccupancy(Number(e.target.value))} required min="1" />
                 </div>
                 <div className="form-group">
-                  <label>Base Rate (USD)</label>
+                  <label>Base Rate ({currency})</label>
                   <input className="form-input" type="number" step="0.01" value={baseRateUsd} onChange={e => setBaseRateUsd(Number(e.target.value))} required min="0" />
                 </div>
                 <div className="form-group full">
@@ -421,6 +514,7 @@ type Tax = {
 };
 
 function TaxesSettings({ showToast }: { showToast: any }) {
+  const { currencySymbol } = useCurrency();
   const [taxes, setTaxes] = useState<Tax[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editingTax, setEditingTax] = useState<Tax | null>(null);
@@ -437,6 +531,7 @@ function TaxesSettings({ showToast }: { showToast: any }) {
     try {
       const allTaxes = await db.taxes.toArray();
       setTaxes(allTaxes as any[]);
+      if (navigator.onLine) await downloadLatestData();
     } catch(err) { console.error(err); }
   };
 
@@ -529,7 +624,7 @@ function TaxesSettings({ showToast }: { showToast: any }) {
           {taxes.map(tax => (
             <tr key={tax.id}>
               <td>{tax.name}</td>
-              <td>{tax.type === 'PERCENTAGE' ? `${tax.rate}%` : `$${tax.rate}`}</td>
+              <td>{tax.type === 'PERCENTAGE' ? `${tax.rate}%` : `${currencySymbol}${tax.rate}`}</td>
               <td>{tax.type}</td>
               <td>
                 <span className="amenity-tag" style={{ background: tax.isActive ? 'hsl(142, 60%, 20%)' : 'hsl(0, 60%, 20%)', color: tax.isActive ? 'hsl(142, 70%, 70%)' : 'hsl(0, 70%, 70%)' }}>
@@ -569,7 +664,7 @@ function TaxesSettings({ showToast }: { showToast: any }) {
                 <label>Tax Type</label>
                 <select className="form-input" value={type} onChange={e => setType(e.target.value)}>
                   <option value="PERCENTAGE">Percentage (%)</option>
-                  <option value="FLAT_AMOUNT">Flat Amount ($)</option>
+                  <option value="FLAT_AMOUNT">Flat Amount ({currencySymbol})</option>
                 </select>
               </div>
               <div className="form-group" style={{ marginBottom: '24px' }}>

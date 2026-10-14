@@ -7,6 +7,7 @@ import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
 import { useRouter } from 'next/navigation';
 import { Calendar, Clock, MapPin, Users, DollarSign, Search, Plus, CreditCard } from 'lucide-react';
 import { useAuth } from '@/lib/auth-provider';
+import { useCurrency } from '@/lib/currency';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -242,6 +243,7 @@ function CalendarTab({ bookings, spaces, refresh }: { bookings: EventBooking[], 
 // BOOKINGS TAB
 // -----------------------------------------------------------------------------
 function BookingsTab({ bookings, spaces, refresh }: { bookings: EventBooking[], spaces: EventSpace[], refresh: () => void }) {
+  const { format } = useCurrency();
   const [showModal, setShowModal] = useState(false);
   const [editingBooking, setEditingBooking] = useState<EventBooking | null>(null);
 
@@ -289,9 +291,9 @@ function BookingsTab({ bookings, spaces, refresh }: { bookings: EventBooking[], 
                 <span className={`status-badge ${b.status.toLowerCase()}`}>{b.status}</span>
               </td>
               <td>
-                <div style={{ fontWeight: 600 }}>${Number(b.totalAmount).toFixed(2)}</div>
+                <div style={{ fontWeight: 600 }}>{format(Number(b.totalAmount))}</div>
                 <div style={{ fontSize: '0.85rem', color: Number(b.amountPaid) >= Number(b.totalAmount) ? 'hsl(142, 70%, 45%)' : 'hsl(35, 90%, 50%)' }}>
-                  Paid: ${Number(b.amountPaid).toFixed(2)}
+                  Paid: {format(Number(b.amountPaid))}
                 </div>
               </td>
               <td>
@@ -323,6 +325,7 @@ function BookingsTab({ bookings, spaces, refresh }: { bookings: EventBooking[], 
 // SPACES TAB
 // -----------------------------------------------------------------------------
 function SpacesTab({ spaces, refresh }: { spaces: EventSpace[], refresh: () => void }) {
+  const { format } = useCurrency();
   const [showModal, setShowModal] = useState(false);
   const [editingSpace, setEditingSpace] = useState<EventSpace | null>(null);
 
@@ -356,8 +359,8 @@ function SpacesTab({ spaces, refresh }: { spaces: EventSpace[], refresh: () => v
             <tr key={s.id}>
               <td style={{ fontWeight: 600 }}>{s.name}</td>
               <td>{s.capacity} pax</td>
-              <td>${Number(s.pricePerHour).toFixed(2)} / hr</td>
-              <td>${Number(s.pricePerDay).toFixed(2)} / day</td>
+              <td>{format(Number(s.pricePerHour))} / hr</td>
+              <td>{format(Number(s.pricePerDay))} / day</td>
               <td>
                 <span className={`status-badge ${s.isActive ? 'confirmed' : 'cancelled'}`}>
                   {s.isActive ? 'Active' : 'Inactive'}
@@ -393,6 +396,7 @@ function SpacesTab({ spaces, refresh }: { spaces: EventSpace[], refresh: () => v
 
 function BookingModal({ booking, spaces, onClose, onSave }: any) {
   const { user } = useAuth();
+  const { format, currency } = useCurrency();
   const isAdminOrCEO = user?.roles?.includes('ADMIN') || user?.roles?.includes('CEO') || user?.roles?.includes('SUPER_ADMIN');
 
   const [spaceId, setSpaceId] = useState(booking?.spaceId || (spaces[0]?.id || ''));
@@ -486,7 +490,7 @@ function BookingModal({ booking, spaces, onClose, onSave }: any) {
               <div className="form-group full">
                 <label>Event Space</label>
                 <select className="form-select" value={spaceId} onChange={e => setSpaceId(e.target.value)} required>
-                  {spaces.map((s: any) => <option key={s.id} value={s.id}>{s.name} - ${Number(s.pricePerHour).toFixed(2)}/hr</option>)}
+                  {spaces.map((s: any) => <option key={s.id} value={s.id}>{s.name} - {format(Number(s.pricePerHour))}/hr</option>)}
                 </select>
               </div>
               
@@ -526,11 +530,11 @@ function BookingModal({ booking, spaces, onClose, onSave }: any) {
                 </select>
               </div>
               <div className="form-group">
-                <label>Total Amount (USD)</label>
+                <label>Total Amount ({currency})</label>
                 <input className="form-input" type="number" step="0.01" value={totalAmount} onChange={e => setTotalAmount(Number(e.target.value))} required />
               </div>
               <div className="form-group">
-                <label>Amount Paid (USD)</label>
+                <label>Amount Paid ({currency})</label>
                 <input className="form-input" type="number" step="0.01" value={amountPaid} onChange={e => setAmountPaid(Number(e.target.value))} />
               </div>
             </div>
@@ -555,6 +559,7 @@ function BookingModal({ booking, spaces, onClose, onSave }: any) {
 }
 
 function SpaceModal({ space, onClose, onSave }: any) {
+  const { currency } = useCurrency();
   const [name, setName] = useState(space?.name || '');
   const [capacity, setCapacity] = useState(space?.capacity || 50);
   const [pricePerHour, setPricePerHour] = useState(Number(space?.pricePerHour || 100));
@@ -619,11 +624,11 @@ function SpaceModal({ space, onClose, onSave }: any) {
                 </select>
               </div>
               <div className="form-group">
-                <label>Hourly Rate (USD)</label>
+                <label>Hourly Rate ({currency})</label>
                 <input className="form-input" type="number" step="0.01" value={pricePerHour} onChange={e => setPricePerHour(Number(e.target.value))} required />
               </div>
               <div className="form-group">
-                <label>Daily Rate (USD)</label>
+                <label>Daily Rate ({currency})</label>
                 <input className="form-input" type="number" step="0.01" value={pricePerDay} onChange={e => setPricePerDay(Number(e.target.value))} required />
               </div>
             </div>

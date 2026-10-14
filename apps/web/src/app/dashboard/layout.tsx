@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/lib/auth-provider';
+import { useCurrency } from '@/lib/currency';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import DashboardLoading from './loading';
@@ -78,6 +79,7 @@ const NAV_ITEMS: NavItem[] = [
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading, logout } = useAuth();
+  const { currency, currencySymbol } = useCurrency();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [currentPath, setCurrentPath] = useState('/dashboard');
@@ -305,6 +307,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <h1 className="page-title">Dashboard</h1>
           </div>
           <div className="topbar-right">
+            <a
+              href="/dashboard/settings"
+              className="topbar-currency-badge"
+              title="Click to change currency in Settings"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'hsl(222, 35%, 12%)',
+                border: '1px solid hsl(217, 20%, 22%)',
+                borderRadius: '6px',
+                padding: '4px 10px',
+                fontSize: '0.8125rem',
+                fontWeight: 600,
+                color: 'hsl(210, 40%, 96%)',
+                textDecoration: 'none',
+                transition: 'all 0.2s',
+              }}
+            >
+              <span style={{ color: 'hsl(142, 70%, 50%)', fontWeight: 'bold' }}>{currencySymbol}</span>
+              <span>{currency}</span>
+            </a>
             <div className="topbar-badge">
               <span className="status-dot" />
               Live

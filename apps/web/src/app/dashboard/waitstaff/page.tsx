@@ -5,6 +5,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
 import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
 import { useToast } from '@/components/ui/toast-provider';
+import { useCurrency } from '@/lib/currency';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 type PosOrderItem = {
@@ -22,6 +23,7 @@ type PosOrderItem = {
 };
 
 export default function WaitstaffPage() {
+  const { format } = useCurrency();
   const { showToast } = useToast();
   const dbOrders = useLiveQuery(() => db.posOrders.toArray()) || [];
   const items = dbOrders.flatMap(o => (o.items || []).filter(i => i.status === 'READY').map(i => ({ ...i, order: o })));
@@ -193,7 +195,7 @@ export default function WaitstaffPage() {
         </div>
         <div className="stat-card" style={{ background: 'hsl(222, 35%, 15%)', padding: '20px', borderRadius: '8px', border: '1px solid hsl(217, 20%, 25%)' }}>
           <h3 style={{ color: 'hsl(215, 20%, 65%)', fontSize: '0.875rem', margin: '0 0 8px 0' }}>My Revenue Generated</h3>
-          <p style={{ color: 'hsl(43,96%,56%)', fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>${(stats?.totalRevenue || 0).toFixed(2)}</p>
+          <p style={{ color: 'hsl(43,96%,56%)', fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>{format(stats?.totalRevenue || 0)}</p>
         </div>
       </div>
 
@@ -309,13 +311,13 @@ export default function WaitstaffPage() {
               <tr>
                 <td>{printItem.quantity}</td>
                 <td>{printItem.menuItem.name}</td>
-                <td>${(Number(printItem.menuItem.price) * printItem.quantity).toFixed(2)}</td>
+                <td>{format(Number(printItem.menuItem.price) * printItem.quantity)}</td>
               </tr>
             </tbody>
             <tfoot>
               <tr>
                 <td colSpan={2} style={{ textAlign: 'right', fontWeight: 'bold' }}>Total:</td>
-                <td style={{ fontWeight: 'bold' }}>${(Number(printItem.menuItem.price) * printItem.quantity).toFixed(2)}</td>
+                <td style={{ fontWeight: 'bold' }}>{format(Number(printItem.menuItem.price) * printItem.quantity)}</td>
               </tr>
             </tfoot>
           </table>

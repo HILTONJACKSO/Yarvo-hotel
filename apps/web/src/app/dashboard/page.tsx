@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/lib/auth-provider';
+import { useCurrency } from '@/lib/currency';
 import { useState, useEffect } from 'react';
 import { Building2, CheckCircle2, ClipboardList, DollarSign, AlertCircle, Activity as ActivityIcon } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
@@ -18,6 +19,7 @@ type ActivityItem = { id: string; type: string; title: string; description: stri
 
 export default function DashboardPage() {
   const { user, logout } = useAuth();
+  const { format, currencySymbol } = useCurrency();
   const [greeting, setGreeting] = useState('');
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [revenueData, setRevenueData] = useState<ChartData[]>([]);
@@ -107,8 +109,8 @@ export default function DashboardPage() {
         {[
           { title: 'Occupancy Rate', value: loading ? '...' : (metrics?.occupancyRate || '0.0%'), Icon: Building2, desc: 'Live occupancy' },
           { title: 'Check-Ins Today', value: loading ? '...' : (metrics?.checkInsToday || 0), Icon: CheckCircle2, desc: 'Scheduled arrivals' },
-          { title: "Collected Revenue", value: loading ? '...' : `$${metrics?.todaysRevenue || '0.00'}`, Icon: DollarSign, desc: 'Payments received today' },
-          { title: 'Outstanding Revenue', value: loading ? '...' : `$${metrics?.outstandingRevenue || '0.00'}`, Icon: ClipboardList, desc: 'Unpaid folios & corporate accounts' },
+          { title: "Collected Revenue", value: loading ? '...' : format(metrics?.todaysRevenue || '0.00'), Icon: DollarSign, desc: 'Payments received today' },
+          { title: 'Outstanding Revenue', value: loading ? '...' : format(metrics?.outstandingRevenue || '0.00'), Icon: ClipboardList, desc: 'Unpaid folios & corporate accounts' },
         ].map((card) => {
           const IconComponent = card.Icon;
           return (
@@ -147,13 +149,13 @@ export default function DashboardPage() {
                       fontSize={12} 
                       tickLine={false} 
                       axisLine={false} 
-                      tickFormatter={(v) => `$${v}`}
+                      tickFormatter={(v) => `${currencySymbol}${v}`}
                       domain={[0, 'auto']}
                     />
                     <Tooltip 
                       contentStyle={{ backgroundColor: '#070F1E', borderColor: 'rgba(202, 152, 81, 0.3)', borderRadius: '10px', color: 'white' }}
                       itemStyle={{ color: '#DFB776' }}
-                      formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'Revenue']}
+                      formatter={(value: any) => [format(value), 'Revenue']}
                     />
                     <Area type="monotone" dataKey="revenue" stroke="#DFB776" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
                   </AreaChart>

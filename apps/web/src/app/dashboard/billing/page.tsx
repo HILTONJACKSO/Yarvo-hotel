@@ -6,13 +6,17 @@ import { db } from '@/lib/db';
 import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
 import { useToast } from "@/components/ui/toast-provider";
 import { useAuth } from "@/lib/auth-provider";
+import { useCurrency } from "@/lib/currency";
 import { ShoppingCart, Edit, Trash2, Receipt } from "lucide-react";
 
 export default function BillingPage() {
+  const { user } = useAuth();
+  const { format, currencySymbol } = useCurrency();
+  const property = useLiveQuery(() => db.properties.toCollection().first());
+  const hotelName = property?.name || user?.propertyName || 'KWALEE BEACH RESORT';
   const [discountAmount, setDiscountAmount] = useState('');
   const [discountDescription, setDiscountDescription] = useState('');
   const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
-  const { user } = useAuth();
   const { showToast } = useToast();
   const [bills, setBills] = useState<any[]>([]);
   const [selectedBillId, setSelectedBillId] = useState<string | null>(null);
@@ -86,7 +90,7 @@ export default function BillingPage() {
       if (item.type === 'ADJUSTMENT') totalDiscounts += Math.abs(amt);
       if (item.type === 'PAYMENT') totalPayments += Math.abs(amt);
       const isSub = (item.type === 'PAYMENT' || item.type === 'ADJUSTMENT' || amt < 0);
-      const displayAmt = isSub ? `-$${Math.abs(amt).toFixed(2)}` : `$${Math.abs(amt).toFixed(2)}`;
+      const displayAmt = isSub ? `-${format(Math.abs(amt))}` : format(Math.abs(amt));
       itemsHtml += `
         <div class="summary-row" style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px; font-family:monospace; color:#000;">
           <span style="flex:1;">${new Date(item.createdAt).toLocaleDateString()} ${item.description.substring(0, 20)}</span>
@@ -103,7 +107,7 @@ export default function BillingPage() {
       <body style="margin:0; padding:20px; font-family:'Courier New', Courier, monospace; color:#000; background:#fff; max-width: 380px; margin: 0 auto;">
         <div style="text-align:center; margin-bottom:20px;">
           <img src="https://kwaleebeachresort.com/kwalee-logo.png" style="max-width:120px; margin-bottom:10px;" />
-          <div style="font-size:20px; font-weight:bold; margin-bottom:4px; color:#000;">KWALEE BEACH RESORT</div>
+          <div style="font-size:20px; font-weight:bold; margin-bottom:4px; color:#000;">${hotelName}</div>
           <div style="font-size:12px; color:#000;">www.kwaleebeachresort.com</div>
           <div style="font-size:12px; color:#000;">info@kwaleebeachresort.com</div>
           <div style="font-size:12px; color:#000;">+231 774 340 843 / +231 881 774 350</div>
@@ -130,20 +134,20 @@ export default function BillingPage() {
         <div style="border-bottom:1px dashed #000; margin:12px 0;"></div>
         
         <div style="font-size:12px; display:flex; justify-content:space-between; margin-top:4px; color:#000;">
-          <span>Subtotal (Charges)</span><span>$${totalCharges.toFixed(2)}</span>
+          <span>Subtotal (Charges)</span><span>${format(totalCharges)}</span>
         </div>
         <div style="font-size:12px; display:flex; justify-content:space-between; margin-top:4px; color:#000;">
-          <span style="color:#555;">GST Included (10%)</span><span style="color:#555;">$${gst.toFixed(2)}</span>
+          <span style="color:#555;">GST Included (10%)</span><span style="color:#555;">${format(gst)}</span>
         </div>
         ${totalDiscounts > 0 ? `<div style="font-size:12px; display:flex; justify-content:space-between; margin-top:4px; color:#dc2626;">
-          <span>Total Discounts</span><span>-$${totalDiscounts.toFixed(2)}</span>
+          <span>Total Discounts</span><span>-${format(totalDiscounts)}</span>
         </div>` : ''}
         ${totalPayments > 0 ? `<div style="font-size:12px; display:flex; justify-content:space-between; margin-top:4px; color:#059669;">
-          <span>Total Payments</span><span>-$${totalPayments.toFixed(2)}</span>
+          <span>Total Payments</span><span>-${format(totalPayments)}</span>
         </div>` : ''}
         
         <div style="font-size:18px; font-weight:bold; display:flex; justify-content:space-between; margin-top:12px; color:#000;">
-          <span>BALANCE DUE</span><span>$${Number(bal).toFixed(2)}</span>
+          <span>BALANCE DUE</span><span>${format(Number(bal))}</span>
         </div>
 
         ${mode === 'INVOICE' ? `
@@ -367,12 +371,12 @@ export default function BillingPage() {
         <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/50 rounded-2xl p-6 shadow-lg relative overflow-hidden group hover:border-cyan-500/30 transition-all">
             <div className="absolute -right-6 -top-6 text-cyan-500/10 group-hover:text-cyan-500/20 transition-all duration-500"><Receipt size={120} /></div>
             <h3 className="text-sm font-semibold tracking-wide text-slate-400 mb-2 relative z-10 uppercase">Pending Rooms Billing</h3>
-            <p className="text-4xl font-extrabold text-white relative z-10 tracking-tight">${totalPendingRooms.toFixed(2)}</p>
+            <p className="text-4xl font-extrabold text-white relative z-10 tracking-tight">{format(totalPendingRooms)}</p>
           </div>
           <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/50 rounded-2xl p-6 shadow-lg relative overflow-hidden group hover:border-cyan-500/30 transition-all">
             <div className="absolute -right-6 -top-6 text-cyan-500/10 group-hover:text-cyan-500/20 transition-all duration-500"><Receipt size={120} /></div>
             <h3 className="text-sm font-semibold tracking-wide text-slate-400 mb-2 relative z-10 uppercase">Pending F&B Billing</h3>
-            <p className="text-4xl font-extrabold text-white relative z-10 tracking-tight">${totalPendingPOS.toFixed(2)}</p>
+            <p className="text-4xl font-extrabold text-white relative z-10 tracking-tight">{format(totalPendingPOS)}</p>
           </div>
         </div>
 
@@ -399,7 +403,7 @@ export default function BillingPage() {
                     <>
                       <div className="flex justify-between items-start mb-1">
                         <span className="font-bold text-slate-200 text-sm">Bill: {b.reservation?.guest?.lastName}</span>
-                        <span className={`font-bold ${b.balance > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>${Number(b.balance).toFixed(2)}</span>
+                        <span className={`font-bold ${b.balance > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>{format(Number(b.balance))}</span>
                       </div>
                       <div className="text-xs text-slate-400">Room {b.reservation?.room?.number || 'N/A'}</div>
                     </>
@@ -407,7 +411,7 @@ export default function BillingPage() {
                     <>
                       <div className="flex justify-between items-start mb-1">
                         <span className="font-bold text-slate-200 text-sm">POS: {b.table?.number ? `Table ${b.table.number}` : 'Walk-in'}</span>
-                        <span className="font-bold text-rose-400">${Number(b.totalAmount).toFixed(2)}</span>
+                        <span className="font-bold text-rose-400">{format(Number(b.totalAmount))}</span>
                       </div>
                       <div className="text-xs text-slate-400">{b.guest ? `${b.guest.firstName} ${b.guest.lastName}` : 'Guest'} • {b.items?.length || 0} items</div>
                     </>
@@ -442,7 +446,7 @@ export default function BillingPage() {
                 <div className="text-right">
                   <div className="text-slate-400 text-xs uppercase tracking-wider mb-1">Total Balance Due</div>
                   <div className={`text-3xl font-bold ${selectedBill.balance > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                    ${Number(selectedBill.balance).toFixed(2)}
+                    {format(Number(selectedBill.balance))}
                   </div>
                   <div className="flex gap-2 justify-end mt-2">
                       {selectedBill.status === 'OPEN' && (
@@ -475,8 +479,8 @@ export default function BillingPage() {
                             <td className="p-3">{new Date(item.createdAt).toLocaleString()}</td>
                             <td className="p-3">{item.category.replace('_', ' ')}</td>
                             <td className="p-3">{item.description}</td>
-                            <td className="p-3 text-right text-rose-400 font-mono">{item.type === 'CHARGE' ? `$${Number(item.amount).toFixed(2)}` : ''}</td>
-                            <td className="p-3 text-right text-emerald-400 font-mono">{item.type === 'PAYMENT' ? `$${Number(item.amount).toFixed(2)}` : ''}</td>
+                            <td className="p-3 text-right text-rose-400 font-mono">{item.type === 'CHARGE' ? format(Number(item.amount)) : ''}</td>
+                            <td className="p-3 text-right text-emerald-400 font-mono">{item.type === 'PAYMENT' ? format(Number(item.amount)) : ''}</td>
                           </tr>
                         ))
                       )}
@@ -492,7 +496,7 @@ export default function BillingPage() {
                       <option value="ROOM">Room Rate</option><option value="F_AND_B">Food & Beverage</option><option value="LAUNDRY">Laundry</option><option value="SPA">Spa</option><option value="TOUR">Tour</option><option value="EVENT">Event</option><option value="PACKAGE">Package</option><option value="ACTIVITY">Activity</option><option value="TAX">GST / Tax</option><option value="OTHER">Other</option>
                     </select>
                     <input type="text" placeholder="Description" required value={chargeDesc} onChange={e => setChargeDesc(e.target.value)} className="bg-slate-900 border border-slate-700 text-white p-2.5 rounded-lg outline-none" />
-                    <input type="number" step="0.01" min="0.01" placeholder="Amount ($)" required value={chargeAmount} onChange={e => setChargeAmount(e.target.value)} className="bg-slate-900 border border-slate-700 text-white p-2.5 rounded-lg outline-none" />
+                    <input type="number" step="0.01" min="0.01" placeholder={`Amount (${currencySymbol})`} required value={chargeAmount} onChange={e => setChargeAmount(e.target.value)} className="bg-slate-900 border border-slate-700 text-white p-2.5 rounded-lg outline-none" />
                     <button type="submit" className="bg-rose-500/20 text-rose-400 border border-rose-500/30 hover:bg-rose-500/30 p-2.5 rounded-lg font-bold transition-all">Add Charge</button>
                   </form>
                   { (isCashierOrManager || isFrontDesk) && (
@@ -500,7 +504,7 @@ export default function BillingPage() {
                     <form onSubmit={handlePostDiscount} className="flex-1 bg-slate-800 border border-slate-700 p-5 rounded-xl flex flex-col gap-3">
                       <h4 className="font-bold text-slate-200">Post Discount</h4>
                       <input type="text" placeholder="Description (e.g. Service Apology)" value={discountDescription} onChange={e => setDiscountDescription(e.target.value)} className="bg-slate-900 border border-slate-700 text-white rounded-lg p-2.5 outline-none focus:border-cyan-500" required />
-                      <input type="number" step="0.01" min="0.01" placeholder="Amount ($)" value={discountAmount} onChange={e => setDiscountAmount(e.target.value)} className="bg-slate-900 border border-slate-700 text-white rounded-lg p-2.5 outline-none focus:border-cyan-500" required />
+                      <input type="number" step="0.01" min="0.01" placeholder={`Amount (${currencySymbol})`} value={discountAmount} onChange={e => setDiscountAmount(e.target.value)} className="bg-slate-900 border border-slate-700 text-white rounded-lg p-2.5 outline-none focus:border-cyan-500" required />
                       <button type="submit" className="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 rounded-lg transition-colors mt-auto shadow-lg shadow-amber-900/20">Add Discount</button>
                     </form>
                     <form onSubmit={handlePostPayment} className="flex-1 bg-slate-800 border border-slate-700 p-5 rounded-xl flex flex-col gap-3">
@@ -511,7 +515,7 @@ export default function BillingPage() {
                         <option value="PAYMENT_MOBILE">Mobile Money</option>
                         <option value="PAYMENT_BANK">Bank Transfer</option>
                       </select>
-                      <input type="number" step="0.01" min="0.01" placeholder="Amount ($)" required value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} className="bg-slate-900 border border-slate-700 text-white p-2.5 rounded-lg outline-none" />
+                      <input type="number" step="0.01" min="0.01" placeholder={`Amount (${currencySymbol})`} required value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} className="bg-slate-900 border border-slate-700 text-white p-2.5 rounded-lg outline-none" />
                       <button type="submit" className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 p-2.5 rounded-lg font-bold transition-all">Add Payment</button>
                     </form>
                   </>
@@ -532,7 +536,7 @@ export default function BillingPage() {
                 </div>
                 <div className="text-right">
                   <div className="text-slate-400 text-xs uppercase tracking-wider mb-1">Total Balance Due</div>
-                  <div className="text-4xl font-extrabold text-rose-400 tracking-tight">${Number(selectedBill.totalAmount).toFixed(2)}</div>
+                  <div className="text-4xl font-extrabold text-rose-400 tracking-tight">{format(Number(selectedBill.totalAmount))}</div>
                 </div>
               </div>
               <div className="flex-1 p-6 overflow-y-auto">
@@ -552,8 +556,8 @@ export default function BillingPage() {
                         <tr key={item.id} className="border-b border-slate-700/50 last:border-0">
                           <td className="p-3">{item.quantity}x</td>
                           <td className="p-3">{item.menuItem?.name}</td>
-                          <td className="p-3 text-right font-mono">${Number(item.menuItem?.price).toFixed(2)}</td>
-                          <td className="p-3 text-right font-mono font-bold">${(Number(item.menuItem?.price) * item.quantity).toFixed(2)}</td>
+                          <td className="p-3 text-right font-mono">{format(Number(item.menuItem?.price))}</td>
+                          <td className="p-3 text-right font-mono font-bold">{format(Number(item.menuItem?.price) * item.quantity)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -579,7 +583,7 @@ export default function BillingPage() {
                         <option value="PAYMENT_BANK">Bank Transfer</option>
                       </select>
                     <button onClick={handleCheckoutPOS} className="bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-emerald-500/20 flex items-center gap-2">
-                      Checkout / Pay ${Number(selectedBill.totalAmount).toFixed(2)}
+                      Checkout / Pay {format(Number(selectedBill.totalAmount))}
                     </button>
                   </>
                 )}

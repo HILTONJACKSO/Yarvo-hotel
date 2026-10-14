@@ -108,6 +108,8 @@ export interface Property {
   email: string;
   website: string;
   taxId: string;
+  currencyPrimary?: string;
+  currencySecondary?: string;
 }
 
 export interface Company {

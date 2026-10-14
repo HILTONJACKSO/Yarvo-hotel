@@ -22,6 +22,7 @@ import {
 import { AlertCircle, TrendingUp, Utensils, Bed, Wallet } from 'lucide-react';
 import ReportExportToolbar from '@/components/ReportExportToolbar';
 import { downloadCSV } from '@/utils/export';
+import { useCurrency } from '@/lib/currency';
 
 type ChartData = { date: string; revenue: number; };
 type FbMetrics = { todayFbRevenue: number; todayFbIndex: number; weekFbRevenue: number; weekFbIndex: number; monthFbRevenue: number; monthFbIndex: number; customRangeRevenue?: number; };
@@ -42,6 +43,7 @@ type HeatmapData = {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 export default function ReportsPage() {
+  const { format, currencySymbol } = useCurrency();
   const [activeTab, setActiveTab] = useState<'HOTEL' | 'FB' | 'FINANCIAL' | 'TICKETS' | 'EVENTS'>('HOTEL');
   
   // Hotel state
@@ -262,11 +264,11 @@ export default function ReportsPage() {
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(217, 20%, 14%)" vertical={false} />
                     <XAxis dataKey="date" stroke="hsl(215, 20%, 55%)" fontSize={12} tickFormatter={(val) => { const d = new Date(val); return `${d.getMonth() + 1}/${d.getDate()}`; }} />
-                    <YAxis stroke="hsl(215, 20%, 55%)" fontSize={12} tickFormatter={(val) => `$${val}`} axisLine={false} tickLine={false} />
+                    <YAxis stroke="hsl(215, 20%, 55%)" fontSize={12} tickFormatter={(val) => `${currencySymbol}${val}`} axisLine={false} tickLine={false} />
                     <Tooltip 
                       contentStyle={{ backgroundColor: 'hsl(222, 35%, 10%)', borderColor: 'hsl(217, 20%, 20%)', borderRadius: '8px', color: 'hsl(210, 40%, 96%)' }}
                       itemStyle={{ color: 'hsl(43, 96%, 56%)' }}
-                      formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'Revenue']}
+                      formatter={(value: any) => [format(Number(value)), 'Revenue']}
                     />
                     <Area type="monotone" dataKey="revenue" stroke="hsl(43, 96%, 56%)" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
                   </AreaChart>
@@ -384,12 +386,12 @@ export default function ReportsPage() {
                     <BarChart data={fbChart} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(217, 20%, 14%)" vertical={false} />
                       <XAxis dataKey="date" stroke="hsl(215, 20%, 55%)" fontSize={12} tickFormatter={(val) => { const d = new Date(val); return `${d.getMonth() + 1}/${d.getDate()}`; }} />
-                      <YAxis stroke="hsl(215, 20%, 55%)" fontSize={12} tickFormatter={(val) => `$${val}`} axisLine={false} tickLine={false} />
+                      <YAxis stroke="hsl(215, 20%, 55%)" fontSize={12} tickFormatter={(val) => `${currencySymbol}${val}`} axisLine={false} tickLine={false} />
                       <Tooltip 
                         contentStyle={{ backgroundColor: 'hsl(222, 35%, 10%)', borderColor: 'hsl(217, 20%, 20%)', borderRadius: '8px', color: 'hsl(210, 40%, 96%)' }}
                         itemStyle={{ color: 'hsl(142, 76%, 55%)' }}
                         cursor={{ fill: 'hsl(217, 20%, 14%)' }}
-                        formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'Revenue']}
+                        formatter={(value: any) => [format(Number(value)), 'Revenue']}
                       />
                       <Bar dataKey="revenue" fill="hsl(142, 76%, 50%)" radius={[4,4,0,0]} />
                     </BarChart>
@@ -430,7 +432,7 @@ export default function ReportsPage() {
               </div>
               <div className="chart-stat">
                 <span className="stat-label">Total Revenue</span>
-                <span className="stat-val">${totalPaymentRevenue.toFixed(2)}</span>
+                <span className="stat-val">{format(totalPaymentRevenue)}</span>
               </div>
             </div>
             
@@ -460,7 +462,7 @@ export default function ReportsPage() {
                     </Pie>
                     <Tooltip 
                       contentStyle={{ backgroundColor: 'hsl(222, 35%, 10%)', borderColor: 'hsl(217, 20%, 20%)', borderRadius: '8px', color: 'hsl(210, 40%, 96%)' }}
-                      formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'Revenue']}
+                      formatter={(value: any) => [format(Number(value)), 'Revenue']}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -487,7 +489,7 @@ export default function ReportsPage() {
                     <td>
                       <span className="method-badge">{p.method.replace('PAYMENT_', '')}</span>
                     </td>
-                    <td style={{ textAlign: 'right', fontWeight: 600 }}>${p.revenue.toFixed(2)}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 600 }}>{format(p.revenue)}</td>
                     <td style={{ textAlign: 'right' }}>{((p.revenue / totalPaymentRevenue) * 100).toFixed(1)}%</td>
                   </tr>
                 ))}
@@ -542,10 +544,10 @@ export default function ReportsPage() {
                     <BarChart data={ticketMetrics.chart} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(217, 20%, 14%)" vertical={false} />
                       <XAxis dataKey="month" stroke="hsl(215, 20%, 55%)" fontSize={12} />
-                      <YAxis stroke="hsl(215, 20%, 55%)" fontSize={12} tickFormatter={(val) => `$${val}`} axisLine={false} tickLine={false} />
+                      <YAxis stroke="hsl(215, 20%, 55%)" fontSize={12} tickFormatter={(val) => `${currencySymbol}${val}`} axisLine={false} tickLine={false} />
                       <Tooltip
                         contentStyle={{ backgroundColor: 'hsl(222, 35%, 10%)', borderColor: 'hsl(217, 20%, 20%)', borderRadius: '8px', color: 'hsl(210, 40%, 96%)' }}
-                        formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'Revenue']}
+                        formatter={(value: any) => [format(Number(value)), 'Revenue']}
                       />
                       <Bar dataKey="revenue" fill="hsl(43, 96%, 56%)" radius={[4,4,0,0]} />
                     </BarChart>
@@ -640,7 +642,7 @@ export default function ReportsPage() {
                       <div className="item-name">{b.eventType || 'Event'}</div>
                       <div className="item-sales">{new Date(b.date).toLocaleDateString()}</div>
                     </div>
-                    <div className="item-rev">${Number(b.revenue).toFixed(2)}</div>
+                    <div className="item-rev">{format(Number(b.revenue))}</div>
                   </div>
                 ))}
               </div>

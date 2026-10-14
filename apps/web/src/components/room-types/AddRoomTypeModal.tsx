@@ -7,6 +7,7 @@ import * as z from 'zod';
 import { Modal } from '../ui/Modal';
 import { MultiImageUpload } from '../ui/MultiImageUpload';
 import { AlertCircle, Loader2 } from 'lucide-react';
+import { useCurrency } from '@/lib/currency';
 
 const schema = z.object({
   name: z.string().min(1, 'Name is required').max(50),
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export function AddRoomTypeModal({ isOpen, onClose, onSuccess }: Props) {
+  const { currency } = useCurrency();
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [images, setImages] = useState<string[]>([]);
 
@@ -101,7 +103,7 @@ export function AddRoomTypeModal({ isOpen, onClose, onSuccess }: Props) {
 
         <div className="form-row">
           <div className="form-group">
-            <label>Base Rate (USD)</label>
+            <label>Base Rate ({currency})</label>
             <input type="number" step="0.01" min="0" {...register('baseRateUsd', { valueAsNumber: true })} className={errors.baseRateUsd ? 'error' : ''} />
             {errors.baseRateUsd && <span className="error-text">{errors.baseRateUsd.message}</span>}
           </div>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, MapPin, Compass, Calendar, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-provider';
+import { useCurrency } from '@/lib/currency';
 import { MultiImageUpload } from '@/components/ui/MultiImageUpload';
 
 type Activity = {
@@ -18,6 +19,7 @@ type Activity = {
 
 export default function ToursEventsPage() {
   const { user } = useAuth();
+  const { format, currency } = useCurrency();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -140,7 +142,7 @@ export default function ToursEventsPage() {
             <div className="p-5">
               <div className="flex justify-between items-start mb-2">
                 <h3 className="text-lg font-bold text-slate-100">{act.name}</h3>
-                <span className="text-amber-500 font-bold">${Number(act.price).toFixed(2)}</span>
+                <span className="text-amber-500 font-bold">{format(Number(act.price))}</span>
               </div>
               <p className="text-slate-400 text-sm mb-4 line-clamp-2">{act.description}</p>
               
@@ -201,7 +203,7 @@ export default function ToursEventsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Price (USD)</label>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Price ({currency})</label>
                 <input 
                   type="number" required min="0" step="0.01"
                   className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none"

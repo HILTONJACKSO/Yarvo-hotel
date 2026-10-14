@@ -5,6 +5,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
 import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
 import { useToast } from '@/components/ui/toast-provider';
+import { useCurrency } from '@/lib/currency';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 type OrderItem = {
@@ -26,6 +27,7 @@ type Order = {
 };
 
 export default function BarPage() {
+  const { format } = useCurrency();
   const { showToast } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
   const [confirmingReturnId, setConfirmingReturnId] = useState<string | null>(null);
@@ -178,7 +180,7 @@ export default function BarPage() {
         </div>
         <div className="stat-card" style={{ background: 'hsl(222, 35%, 15%)', padding: '20px', borderRadius: '8px', border: '1px solid hsl(217, 20%, 25%)' }}>
           <h3 style={{ color: 'hsl(215, 20%, 65%)', fontSize: '0.875rem', margin: '0 0 8px 0' }}>Bar Revenue Generated</h3>
-          <p style={{ color: 'hsl(43,96%,56%)', fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>${(stats?.totalRevenue || 0).toFixed(2)}</p>
+          <p style={{ color: 'hsl(43,96%,56%)', fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>{format(stats?.totalRevenue || 0)}</p>
         </div>
       </div>
       <h2>Bar Management Screen</h2>

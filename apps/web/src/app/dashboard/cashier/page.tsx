@@ -7,6 +7,8 @@ import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
 import jsPDF from 'jspdf';
 import domtoimage from 'dom-to-image-more';
 import { useToast } from '@/components/ui/toast-provider';
+import { useCurrency } from '@/lib/currency';
+import { useAuth } from '@/lib/auth-provider';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 type PosOrder = {
@@ -36,6 +38,7 @@ type PosOrder = {
 
 const TransferModal = ({ isOpen, onClose, onTransferSuccess, API_URL }: any) => {
   const { showToast } = useToast();
+  const { format } = useCurrency();
   const [sourceOrderId, setSourceOrderId] = useState<string>('');
   const [targetTableId, setTargetTableId] = useState<string>('');
   const [targetOrderId, setTargetOrderId] = useState<string>('');
@@ -139,7 +142,7 @@ const TransferModal = ({ isOpen, onClose, onTransferSuccess, API_URL }: any) => 
                 <option value="">Select source...</option>
                 {activeOrders.map(o => (
                   <option key={o.id} value={o.id}>
-                    {o.table?.number ? 'Table ' + o.table.number : 'Walk-in - ' + o.id.substring(0, 6)} - $ {Number(o.totalAmount).toFixed(2)}
+                    {o.table?.number ? 'Table ' + o.table.number : 'Walk-in - ' + o.id.substring(0, 6)} - {format(Number(o.totalAmount))}
                   </option>
                 ))}
               </select>
@@ -235,6 +238,10 @@ const TransferModal = ({ isOpen, onClose, onTransferSuccess, API_URL }: any) => 
 };
 
 export default function CashierPage() {
+  const { user } = useAuth();
+  const { format, currencySymbol } = useCurrency();
+  const property = useLiveQuery(() => db.properties.toCollection().first());
+  const hotelName = property?.name || user?.propertyName || 'KWALEE BEACH RESORT';
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const { showToast } = useToast();
   const orders: any[] = useLiveQuery(() => db.posOrders.toArray())?.filter(o => o.status === 'SERVED' || o.status === 'OPEN') || [];
@@ -349,8 +356,8 @@ export default function CashierPage() {
       const isReturned = item.status === 'RETURNED';
       const displayName = isReturned ? `(Returned) ${item.menuItem.name}` : item.menuItem.name;
       const displayPrice = isReturned 
-          ? `$0.00`
-          : `$${(Number(item.menuItem.price) * item.quantity).toFixed(2)}`;
+          ? format(0)
+          : format(Number(item.menuItem.price) * item.quantity);
           
       itemsHtml += `
         <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; ${isReturned ? 'color: #dc2626;' : ''}">
@@ -399,7 +406,7 @@ export default function CashierPage() {
         <body>
           <div class="header-container">
             <img src="https://kwaleebeachresort.com/kwalee-logo.png" alt="Logo" />
-            <div class="header-title">KWALEE BEACH RESORT</div>
+            <div class="header-title">${hotelName}</div>
             <div class="header-info">www.kwaleebeachresort.com</div>
             <div class="header-info">+231 774 340 843 / +231 881 774 350</div>
             <div class="header-info">Kpakpa Kon, Marshall, Lower Margibi County, Liberia</div>
@@ -418,10 +425,10 @@ export default function CashierPage() {
           
           <div class="divider"></div>
           
-          <div class="summary-row"><span>Subtotal</span><span>$${orderTotal.toFixed(2)}</span></div>
-          <div class="summary-row"><span style="font-size: 11px; color: #555;">GST Included (10%)</span><span style="font-size: 11px; color: #555;">$${gst.toFixed(2)}</span></div>
-          ${calculatedDiscount > 0 ? `<div class="summary-row" style="color: #dc2626;"><span>Discount</span><span>-$${calculatedDiscount.toFixed(2)}</span></div>` : ''}
-          <div class="totals"><span>TOTAL</span><span>$${finalTotal.toFixed(2)}</span></div>
+          <div class="summary-row"><span>Subtotal</span><span>${format(orderTotal)}</span></div>
+          <div class="summary-row"><span style="font-size: 11px; color: #555;">GST Included (10%)</span><span style="font-size: 11px; color: #555;">${format(gst)}</span></div>
+          ${calculatedDiscount > 0 ? `<div class="summary-row" style="color: #dc2626;"><span>Discount</span><span>-${format(calculatedDiscount)}</span></div>` : ''}
+          <div class="totals"><span>TOTAL</span><span>${format(finalTotal)}</span></div>
           
           ${signatureBlock}
 
@@ -593,7 +600,7 @@ export default function CashierPage() {
     
     // Allow small floating point variance for non-room walk-in orders
     if (!isRoomOrder && Math.abs(finalTotal - currentTotal) > 0.01) {
-      showToast(`Please settle the full amount of $${finalTotal.toFixed(2)}`, 'error');
+      showToast(`Please settle the full amount of ${format(finalTotal)}`, 'error');
       return;
     }
 
@@ -664,7 +671,7 @@ export default function CashierPage() {
         <div className="coming-soon-grid" style={{ marginBottom: '28px' }}>
           <div className="stat-card">
             <div className="stat-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="hsl(215, 20%, 55%)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
-            <div className="stat-value">${Number(stats?.totalRevenue || 0).toFixed(2)}</div>
+            <div className="stat-value">{format(Number(stats?.totalRevenue || 0))}</div>
             <div className="stat-title">Total Revenue</div>
             <div className="stat-desc">Settled today</div>
           </div>
@@ -702,7 +709,7 @@ export default function CashierPage() {
                       ? `Table ${order.table.number}` 
                       : 'Walk-in'}
                 </h3>
-                <span className="amount">${Number(order.totalAmount).toFixed(2)}</span>
+                <span className="amount">{format(Number(order.totalAmount))}</span>
               </div>
               {order.folio?.reservation?.guest && (
                 <p style={{ color: 'hsl(215, 20%, 65%)', fontSize: '0.85rem', marginTop: '-4px', marginBottom: '8px' }}>
@@ -733,22 +740,22 @@ export default function CashierPage() {
                   <div key={item.id} className={`receipt-item ${isReturned ? 'text-rose-400' : ''}`}>
                     <span className="qty">{item.quantity}x</span>
                     <span className="name">{isReturned ? '(Returned) ' : ''}{item.menuItem.name}</span>
-                    <span className="price">{isReturned ? '$0.00' : `$${(Number(item.menuItem.price) * item.quantity).toFixed(2)}`}</span>
+                    <span className="price">{isReturned ? format(0) : format(Number(item.menuItem.price) * item.quantity)}</span>
                   </div>
                 )})}
               <div className="receipt-total" style={{ borderBottom: calculatedDiscount > 0 ? 'none' : '', paddingBottom: calculatedDiscount > 0 ? '4px' : '' }}>
                   <span>Subtotal</span>
-                  <span>${Number(selectedOrder.totalAmount).toFixed(2)}</span>
+                  <span>{format(Number(selectedOrder.totalAmount))}</span>
                 </div>
                 {calculatedDiscount > 0 && (
                   <div className="receipt-total" style={{ borderTop: 'none', paddingTop: '4px', marginTop: 0, color: 'hsl(142, 76%, 45%)' }}>
                     <span>Discount</span>
-                    <span>-${calculatedDiscount.toFixed(2)}</span>
+                    <span>-{format(calculatedDiscount)}</span>
                   </div>
                 )}
                 <div className="receipt-total" style={{ borderTop: calculatedDiscount > 0 ? 'none' : '' }}>
                   <span>Total Amount</span>
-                  <span>${finalTotal.toFixed(2)}</span>
+                  <span>{format(finalTotal)}</span>
                 </div>
             </div>
 
@@ -780,7 +787,7 @@ export default function CashierPage() {
                     style={{ width: '100%', padding: '10px', background: 'hsl(222, 35%, 10%)', border: '1px solid hsl(217, 20%, 20%)', color: 'white', borderRadius: '6px' }}
                   >
                     <option value="PERCENT">%</option>
-                    <option value="FLAT">$</option>
+                    <option value="FLAT">{currencySymbol}</option>
                   </select>
                 </div>
               </div>
@@ -792,7 +799,7 @@ export default function CashierPage() {
                     <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', background: 'hsl(222, 35%, 15%)', borderRadius: '4px', marginBottom: '4px' }}>
                       <span style={{ color: 'hsl(215, 20%, 65%)' }}>{p.method.replace('PAYMENT_', '')}</span>
                       <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                        <span style={{ color: 'white', fontWeight: 600 }}>${p.amount.toFixed(2)}</span>
+                        <span style={{ color: 'white', fontWeight: 600 }}>{format(p.amount)}</span>
                         <button type="button" onClick={() => removePayment(idx)} style={{ background: 'none', border: 'none', color: 'hsl(0, 84%, 60%)', cursor: 'pointer', fontSize: '1rem' }}>×</button>
                       </div>
                     </div>
@@ -800,7 +807,7 @@ export default function CashierPage() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid hsl(217, 20%, 25%)' }}>
                     <span style={{ color: 'white', fontWeight: 600 }}>Remaining Balance:</span>
                     <span style={{ color: 'hsl(43,96%,56%)', fontWeight: 700 }}>
-                      ${Math.max(0, finalTotal - payments.reduce((sum, p) => sum + p.amount, 0)).toFixed(2)}
+                      {format(Math.max(0, finalTotal - payments.reduce((sum, p) => sum + p.amount, 0)))}
                     </span>
                   </div>
                 </div>
@@ -809,7 +816,7 @@ export default function CashierPage() {
               {payments.reduce((sum, p) => sum + p.amount, 0) < finalTotal && (
                 <div className="payment-entry-form" style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', marginBottom: '24px' }}>
                   <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                    <label style={{ display: 'block', marginBottom: '8px', color: 'hsl(215, 20%, 65%)', fontSize: '0.875rem' }}>Amount ($)</label>
+                    <label style={{ display: 'block', marginBottom: '8px', color: 'hsl(215, 20%, 65%)', fontSize: '0.875rem' }}>Amount ({currencySymbol})</label>
                     <input 
                       type="number" 
                       step="0.01" 
@@ -854,7 +861,7 @@ export default function CashierPage() {
                 {isProcessing 
                   ? 'Processing...' 
                   : Boolean(selectedOrder.folioId || selectedOrder.folio?.reservation?.room || selectedOrder.folio?.id)
-                    ? `Charge to Room Folio ($${finalTotal.toFixed(2)})`
+                    ? `Charge to Room Folio (${format(finalTotal)})`
                     : 'Complete Payment'}
               </button>
             </div>
@@ -864,7 +871,7 @@ export default function CashierPage() {
               <div id="kwalee-receipt" className="kwalee-receipt">
                 <div className="header-container">
                   <img src="https://kwaleebeachresort.com/kwalee-logo.png" alt="Logo" style={{ maxWidth: '120px', marginBottom: '10px', display: 'block', margin: '0 auto' }} />
-                  <div className="header-title">KWALEE BEACH RESORT</div>
+                  <div className="header-title">{hotelName}</div>
                   <div className="header-info">www.kwaleebeachresort.com</div>
                   <div className="header-info">+231 774 340 843 / +231 881 774 350</div>
                   <div className="header-info">Kpakpa Kon, Marshall, Lower Margibi County, Liberia</div>
@@ -883,8 +890,8 @@ export default function CashierPage() {
                   const isReturned = item.status === 'RETURNED';
                   const displayName = isReturned ? `(Returned) ${item.menuItem.name}` : item.menuItem.name;
                   const displayPrice = isReturned 
-                    ? `$0.00`
-                    : `$${(Number(item.menuItem.price) * item.quantity).toFixed(2)}`;
+                    ? format(0)
+                    : format(Number(item.menuItem.price) * item.quantity);
                   return (
                     <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px', color: isReturned ? '#dc2626' : '#000' }}>
                       <div><span style={{ marginRight: '8px', color: '#000' }}>{item.quantity}x</span><span style={{ color: '#000' }}>{displayName}</span></div>
@@ -895,10 +902,10 @@ export default function CashierPage() {
                 
                 <div className="divider"></div>
                 
-                <div className="summary-row"><span>Subtotal</span><span>${Number(selectedOrder.totalAmount).toFixed(2)}</span></div>
-                <div className="summary-row"><span style={{ fontSize: '11px', color: '#555' }}>GST Included (10%)</span><span style={{ fontSize: '11px', color: '#555' }}>${((Number(selectedOrder.totalAmount)) - (Number(selectedOrder.totalAmount) / 1.10)).toFixed(2)}</span></div>
-                {calculatedDiscount > 0 && <div className="summary-row" style={{ color: '#dc2626' }}><span>Discount</span><span>-${calculatedDiscount.toFixed(2)}</span></div>}
-                <div className="totals"><span>TOTAL</span><span>${finalTotal.toFixed(2)}</span></div>
+                <div className="summary-row"><span>Subtotal</span><span>{format(Number(selectedOrder.totalAmount))}</span></div>
+                <div className="summary-row"><span style={{ fontSize: '11px', color: '#555' }}>GST Included (10%)</span><span style={{ fontSize: '11px', color: '#555' }}>{format((Number(selectedOrder.totalAmount)) - (Number(selectedOrder.totalAmount) / 1.10))}</span></div>
+                {calculatedDiscount > 0 && <div className="summary-row" style={{ color: '#dc2626' }}><span>Discount</span><span>-{format(calculatedDiscount)}</span></div>}
+                <div className="totals"><span>TOTAL</span><span>{format(finalTotal)}</span></div>
                 
                 <div className="footer">
                   <p><strong>THANK YOU FOR CHOOSING KWALEE BEACH RESORT!</strong><br/>PLEASE COME AGAIN!</p>
@@ -916,7 +923,7 @@ export default function CashierPage() {
               <div id="kwalee-invoice" className="kwalee-receipt">
                 <div className="header-container">
                   <img src="https://kwaleebeachresort.com/kwalee-logo.png" alt="Logo" style={{ maxWidth: '120px', marginBottom: '10px', display: 'block', margin: '0 auto' }} />
-                  <div className="header-title">KWALEE BEACH RESORT</div>
+                  <div className="header-title">{hotelName}</div>
                   <div className="header-info">www.kwaleebeachresort.com</div>
                   <div className="header-info">+231 774 340 843 / +231 881 774 350</div>
                   <div className="header-info">Kpakpa Kon, Marshall, Lower Margibi County, Liberia</div>
@@ -935,8 +942,8 @@ export default function CashierPage() {
                   const isReturned = item.status === 'RETURNED';
                   const displayName = isReturned ? `(Returned) ${item.menuItem.name}` : item.menuItem.name;
                   const displayPrice = isReturned 
-                    ? `$0.00`
-                    : `$${(Number(item.menuItem.price) * item.quantity).toFixed(2)}`;
+                    ? format(0)
+                    : format(Number(item.menuItem.price) * item.quantity);
                   return (
                     <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px', color: isReturned ? '#dc2626' : '#000' }}>
                       <div><span style={{ marginRight: '8px', color: '#000' }}>{item.quantity}x</span><span style={{ color: '#000' }}>{displayName}</span></div>
@@ -947,10 +954,10 @@ export default function CashierPage() {
                 
                 <div className="divider"></div>
                 
-                <div className="summary-row"><span>Subtotal</span><span>${Number(selectedOrder.totalAmount).toFixed(2)}</span></div>
-                <div className="summary-row"><span style={{ fontSize: '11px', color: '#555' }}>GST Included (10%)</span><span style={{ fontSize: '11px', color: '#555' }}>${((Number(selectedOrder.totalAmount)) - (Number(selectedOrder.totalAmount) / 1.10)).toFixed(2)}</span></div>
-                {calculatedDiscount > 0 && <div className="summary-row" style={{ color: '#dc2626' }}><span>Discount</span><span>-${calculatedDiscount.toFixed(2)}</span></div>}
-                <div className="totals"><span>TOTAL</span><span>${finalTotal.toFixed(2)}</span></div>
+                <div className="summary-row"><span>Subtotal</span><span>{format(Number(selectedOrder.totalAmount))}</span></div>
+                <div className="summary-row"><span style={{ fontSize: '11px', color: '#555' }}>GST Included (10%)</span><span style={{ fontSize: '11px', color: '#555' }}>{format((Number(selectedOrder.totalAmount)) - (Number(selectedOrder.totalAmount) / 1.10))}</span></div>
+                {calculatedDiscount > 0 && <div className="summary-row" style={{ color: '#dc2626' }}><span>Discount</span><span>-{format(calculatedDiscount)}</span></div>}
+                <div className="totals"><span>TOTAL</span><span>{format(finalTotal)}</span></div>
                 
                 <div style={{ marginTop: '50px', textAlign: 'center' }}>
                   <div style={{ borderTop: '1px solid #000', width: '200px', margin: '0 auto 8px auto' }}></div>

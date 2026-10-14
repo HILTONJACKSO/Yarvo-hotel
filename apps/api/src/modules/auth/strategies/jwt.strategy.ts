@@ -40,7 +40,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       include: { 
         roles: true,
         property: {
-          select: { id: true, selectedFeatures: true }
+          select: { id: true, name: true, selectedFeatures: true, currencyPrimary: true, currencySecondary: true }
         }
       },
     });
@@ -59,7 +59,10 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       firstName: user.firstName,
       lastName: user.lastName,
       propertyId,
+      propertyName: user.property?.name,
       features,
+      currencyPrimary: user.property?.currencyPrimary || 'USD',
+      currencySecondary: user.property?.currencySecondary || 'LRD',
     };
   }
 }

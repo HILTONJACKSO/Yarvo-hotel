@@ -6,6 +6,7 @@ import { db } from '@/lib/db';
 import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
 import { useToast } from '@/components/ui/toast-provider';
 import { useAuth } from '@/lib/auth-provider';
+import { useCurrency } from '@/lib/currency';
 import { MultiImageUpload } from '@/components/ui/MultiImageUpload';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -17,6 +18,7 @@ type ServedOrder = { id: string; status: string; totalAmount: string | number; t
 
 export default function PosPage() {
   const { user } = useAuth();
+  const { format, currencySymbol } = useCurrency();
   const isAdmin = user?.roles?.some((role: string) => ['ADMIN', 'SUPER_ADMIN'].includes(role?.toUpperCase?.() || (role as any)?.name?.toUpperCase?.()));
   const canEditPos = user?.roles?.some((role: string) => ['ADMIN', 'SUPER_ADMIN', 'CEO', 'MANAGER'].includes(role?.toUpperCase?.() || (role as any)?.name?.toUpperCase?.()));
   const canSettleOrders = user?.roles?.some((role: string) => ['ADMIN', 'SUPER_ADMIN', 'CEO', 'MANAGER', 'CASHIER', 'POS_CASHIER'].includes(role?.toUpperCase?.() || (role as any)?.name?.toUpperCase?.()));
@@ -505,7 +507,7 @@ export default function PosPage() {
               <div className="menu-card-content">
                 <div className="menu-card-type">{item.type}</div>
                 <h4>{item.name}</h4>
-                <div className="menu-card-price">${Number(item.price).toFixed(2)}</div>
+                <div className="menu-card-price">{format(item.price)}</div>
               </div>
             </div>
           ))}
@@ -529,10 +531,10 @@ export default function PosPage() {
             <div key={c.item.id} className="cart-item">
               <div className="ci-info">
                 <span className="ci-name">{c.item.name}</span>
-                <span className="ci-price">${Number(c.item.price).toFixed(2)}</span>
+                <span className="ci-price">{format(c.item.price)}</span>
               </div>
               <div className="ci-actions">
-                <span className="ci-total" style={{ marginRight: '8px' }}>${(Number(c.item.price) * c.quantity).toFixed(2)}</span>
+                <span className="ci-total" style={{ marginRight: '8px' }}>{format(Number(c.item.price) * c.quantity)}</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'hsl(217, 20%, 15%)', padding: '4px', borderRadius: '8px' }}>
                   <button onClick={() => decreaseQuantity(c.item.id)} style={{ background: 'hsl(215, 20%, 30%)', border: 'none', color: 'white', borderRadius: '4px', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>-</button>
                   <span style={{ fontSize: '0.9rem', width: '20px', textAlign: 'center' }}>{c.quantity}</span>
@@ -547,15 +549,15 @@ export default function PosPage() {
         <div className="cart-footer">
           <div className="cart-summary" style={{ fontSize: '0.875rem', color: 'hsl(215, 20%, 65%)', marginBottom: '4px' }}>
             <span>Subtotal:</span>
-            <span>${cartSubtotal.toFixed(2)}</span>
+            <span>{format(cartSubtotal)}</span>
           </div>
           <div className="cart-summary" style={{ fontSize: '0.875rem', color: 'hsl(215, 20%, 65%)', marginBottom: '4px' }}>
             <span>GST:</span>
-            <span>${cartTaxes.toFixed(2)}</span>
+            <span>{format(cartTaxes)}</span>
           </div>
           <div className="cart-summary" style={{ fontWeight: 600, fontSize: '1.125rem', marginBottom: '12px', borderTop: '1px solid hsl(217, 20%, 18%)', paddingTop: '8px' }}>
             <span>Total:</span>
-            <span>${cartTotal.toFixed(2)}</span>
+            <span>{format(cartTotal)}</span>
           </div>
 
           <div style={{ marginBottom: '12px' }}>
@@ -659,7 +661,7 @@ export default function PosPage() {
                           )}
                         </div>
                     )}
-                    <span className="sc-total">${Math.max(0, Number(settleOrder.totalAmount) - (Number(settleOrder.totalAmount) * (settleDiscountPercent / 100))).toFixed(2)}</span>
+                    <span className="sc-total">{format(Math.max(0, Number(settleOrder.totalAmount) - (Number(settleOrder.totalAmount) * (settleDiscountPercent / 100))))}</span>
                   </div>
                 </div>
                 {settleOrder.folio?.reservation?.room ? (
@@ -686,7 +688,7 @@ export default function PosPage() {
                           <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', background: 'hsl(222, 35%, 15%)', borderRadius: '4px', marginBottom: '4px' }}>
                             <span style={{ color: 'hsl(215, 20%, 65%)' }}>{p.method.replace('PAYMENT_', '')}</span>
                             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                              <span style={{ color: 'white', fontWeight: 600 }}>${p.amount.toFixed(2)}</span>
+                              <span style={{ color: 'white', fontWeight: 600 }}>{format(p.amount)}</span>
                               <button type="button" onClick={() => removePayment(idx)} style={{ background: 'none', border: 'none', color: 'hsl(0, 84%, 60%)', cursor: 'pointer', fontSize: '1rem' }}>×</button>
                             </div>
                           </div>
@@ -694,7 +696,7 @@ export default function PosPage() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid hsl(217, 20%, 25%)' }}>
                           <span style={{ color: 'white', fontWeight: 600 }}>Remaining Balance:</span>
                           <span style={{ color: 'hsl(43,96%,56%)', fontWeight: 700 }}>
-                            ${Math.max(0, (Number(settleOrder.totalAmount) - (Number(settleOrder.totalAmount) * (settleDiscountPercent / 100))) - payments.reduce((sum, p) => sum + p.amount, 0)).toFixed(2)}
+                            {format(Math.max(0, (Number(settleOrder.totalAmount) - (Number(settleOrder.totalAmount) * (settleDiscountPercent / 100))) - payments.reduce((sum, p) => sum + p.amount, 0)))}
                           </span>
                         </div>
                       </div>
@@ -703,7 +705,7 @@ export default function PosPage() {
                     {!settleFolioId && payments.reduce((sum, p) => sum + p.amount, 0) < Number(settleOrder.totalAmount) && (
                       <div className="payment-entry-form" style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', marginBottom: '24px' }}>
                         <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                          <label>Amount ($)</label>
+                          <label>Amount ({currencySymbol})</label>
                           <input type="number" step="0.01" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} max={Math.max(0, (Number(settleOrder.totalAmount) - (Number(settleOrder.totalAmount) * (settleDiscountPercent / 100))) - payments.reduce((sum, p) => sum + p.amount, 0))} />
                         </div>
                         <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
@@ -781,7 +783,7 @@ export default function PosPage() {
             <h3>{editMenuItemId ? 'Edit' : 'Add'} Menu Item</h3>
             <form onSubmit={handleAddMenuItem}>
               <div className="form-group"><label>Name</label><input required type="text" value={newMenuItem.name} onChange={e => setNewMenuItem({...newMenuItem, name: e.target.value})} /></div>
-              <div className="form-group"><label>Price ($)</label><input required type="number" min="0" step="0.01" value={newMenuItem.price} onChange={e => setNewMenuItem({...newMenuItem, price: Number(e.target.value)})} /></div>
+              <div className="form-group"><label>Price ({currencySymbol})</label><input required type="number" min="0" step="0.01" value={newMenuItem.price} onChange={e => setNewMenuItem({...newMenuItem, price: Number(e.target.value)})} /></div>
               <div className="form-group">
                 <label>Category</label>
                 <select className="form-select" required value={newMenuItem.categoryId} onChange={e => setNewMenuItem({...newMenuItem, categoryId: e.target.value})}>
@@ -818,7 +820,7 @@ export default function PosPage() {
                   }
                   setNewMenuItem({...newMenuItem, taxIds: selected});
                 }}>
-                  {taxes.filter(t => t.isActive).map(t => <option key={t.id} value={t.id}>{t.name} ({t.type === 'PERCENTAGE' ? `${t.rate}%` : `$${t.rate}`})</option>)}
+                  {taxes.filter(t => t.isActive).map(t => <option key={t.id} value={t.id}>{t.name} ({t.type === 'PERCENTAGE' ? `${t.rate}%` : `${currencySymbol}${t.rate}`})</option>)}
                 </select>
                 <small style={{ color: 'hsl(215, 20%, 65%)', fontSize: '0.75rem' }}>Hold Ctrl/Cmd to select multiple</small>
               </div>

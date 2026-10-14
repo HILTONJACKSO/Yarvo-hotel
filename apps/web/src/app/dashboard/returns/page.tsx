@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import jsPDF from 'jspdf';
 import domtoimage from 'dom-to-image-more';
 import { useToast } from '@/components/ui/toast-provider';
+import { useCurrency } from '@/lib/currency';
 import ReportExportToolbar from '@/components/ReportExportToolbar';
 import { downloadCSV } from '@/utils/export';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -26,6 +27,7 @@ type PosReturnRequest = {
 };
 
 export default function ReturnsPage() {
+  const { format } = useCurrency();
   const { showToast } = useToast();
   const [returns, setReturns] = useState<PosReturnRequest[]>([]);
   const [discounts, setDiscounts] = useState<any[]>([]);
@@ -173,7 +175,7 @@ export default function ReturnsPage() {
             
             <div className="r-body">
               <h3>{req.orderItem.quantity}x {req.orderItem.menuItem.name}</h3>
-              <p className="r-price">${Number(req.orderItem.menuItem.price).toFixed(2)}</p>
+              <p className="r-price">{format(Number(req.orderItem.menuItem.price))}</p>
               <p><strong>Table:</strong> {req.orderItem.order.table?.number || 'Takeout'}</p>
               <p><strong>Requested By:</strong> {req.requestedBy.firstName} {req.requestedBy.lastName}</p>
               
@@ -224,7 +226,7 @@ export default function ReturnsPage() {
                   <td className="p-4"><span className={`px-2 py-1 rounded text-xs font-bold ${d.source === 'FOLIO' ? 'bg-blue-500/20 text-blue-400' : 'bg-orange-500/20 text-orange-400'}`}>{d.source}</span></td>
                   <td className="p-4">{d.description}</td>
                   <td className="p-4">{d.reference}</td>
-                  <td className="p-4 text-right font-bold text-amber-400">${Number(d.amount).toFixed(2)}</td>
+                  <td className="p-4 text-right font-bold text-amber-400">{format(Number(d.amount))}</td>
                 </tr>
               ))}
             </tbody>

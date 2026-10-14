@@ -6,6 +6,7 @@ import { db } from '@/lib/db';
 import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
 import { useToast } from '@/components/ui/toast-provider';
 import { useAuth } from '@/lib/auth-provider';
+import { useCurrency } from '@/lib/currency';
 import { Plus, Minus, Edit, ArrowRightLeft, Trash2, Search, PackagePlus } from 'lucide-react';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -26,6 +27,7 @@ type InventoryItem = {
 
 export default function InventoryPage() {
   const { user } = useAuth();
+  const { format, currencySymbol } = useCurrency();
   const isAdmin = user?.roles?.some((r: string) => ['ADMIN', 'SUPER_ADMIN', 'CEO'].includes(r?.toUpperCase?.() || (r as any)?.name?.toUpperCase?.()));
   const canEdit = user?.roles?.some(r => ['ADMIN', 'SUPER_ADMIN', 'MANAGER'].includes(r.toUpperCase())) || !user?.roles?.some(r => r.toUpperCase() === 'POS');
   
@@ -377,7 +379,7 @@ export default function InventoryPage() {
                   <td>
                     {isLow ? <span className="badge badge-error">Low Stock</span> : <span className="badge badge-success">OK</span>}
                   </td>
-                  <td>${Number(item.costPerUnit).toFixed(2)}</td>
+                  <td>{format(Number(item.costPerUnit))}</td>
                   <td>
                     <div className="action-buttons">
                       {canEdit && (
@@ -442,7 +444,7 @@ export default function InventoryPage() {
                   <input required type="number" step="0.01" min="0.01" value={stockInData.amount} onChange={e => setStockInData({...stockInData, amount: Number(e.target.value)})} />
                 </div>
                 <div className="form-group">
-                  <label>Cost per Unit ($) - Optional</label>
+                  <label>Cost per Unit ({currencySymbol}) - Optional</label>
                   <input required type="number" step="0.01" min="0" value={stockInData.costPerUnit} onChange={e => setStockInData({...stockInData, costPerUnit: Number(e.target.value)})} />
                 </div>
               </div>
@@ -583,7 +585,7 @@ export default function InventoryPage() {
                 </div>
               </div>
               <div className="form-group">
-                <label>Cost Per Unit ($)</label>
+                <label>Cost Per Unit ({currencySymbol})</label>
                 <input type="number" step="0.01" value={newItem.costPerUnit} onChange={e => setNewItem({...newItem, costPerUnit: Number(e.target.value)})} />
               </div>
               <div className="modal-actions">

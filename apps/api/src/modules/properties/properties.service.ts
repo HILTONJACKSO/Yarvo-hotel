@@ -6,22 +6,30 @@ import { UpdatePropertyDto } from './dto/update-property.dto';
 export class PropertiesService {
   constructor(private prisma: PrismaService) {}
 
-  async getProperty() {
-    let property = await this.prisma.property.findFirst();
+  async getProperty(propertyId?: string) {
+    let property = propertyId 
+      ? await this.prisma.property.findUnique({ where: { id: propertyId } })
+      : null;
+
+    if (!property) {
+      property = await this.prisma.property.findFirst();
+    }
 
     if (!property) {
       // Auto-seed default property if none exists
       property = await this.prisma.property.create({
         data: {
-          name: 'Kwalee Hotel',
-          legalName: 'Kwalee Hotel & Suites LLC',
-          address: 'Tubman Blvd, Sinkor',
+          name: 'Yarvo Hotel',
+          legalName: 'Yarvo Hospitality Group LLC',
+          address: 'Broad Street',
           city: 'Monrovia',
           country: 'Liberia',
           phone: '+231 777 123 456',
-          email: 'info@kwalee.com',
-          website: 'www.kwalee.com',
+          email: 'info@yarvohotel.com',
+          website: 'www.yarvohotel.com',
           taxId: 'LBR-12345678',
+          currencyPrimary: 'USD',
+          currencySecondary: 'LRD',
         }
       });
     }

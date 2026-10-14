@@ -1,4 +1,4 @@
-import { Controller, Get, Body, Patch, Param } from '@nestjs/common';
+import { Controller, Get, Body, Patch, Param, Req } from '@nestjs/common';
 import { PropertiesService } from './properties.service';
 import { UpdatePropertyDto } from './dto/update-property.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiCookieAuth } from '@nestjs/swagger';
@@ -13,8 +13,8 @@ export class PropertiesController {
   @Get()
   @ApiOperation({ summary: 'Get the main property configuration' })
   @ApiResponse({ status: 200, description: 'The property configuration.' })
-  getProperty() {
-    return this.propertiesService.getProperty();
+  getProperty(@Req() req: any) {
+    return this.propertiesService.getProperty(req.user?.propertyId);
   }
 
   @Patch(':id')
@@ -22,8 +22,10 @@ export class PropertiesController {
   @ApiOperation({ summary: 'Update property configuration' })
   @ApiResponse({ status: 200, description: 'Property successfully updated.' })
   @ApiResponse({ status: 404, description: 'Property not found.' })
-  update(@Param('id') id: string, @Body() updatePropertyDto: UpdatePropertyDto) {
-    return this.propertiesService.update(id, updatePropertyDto);
+  update(@Param('id') id: string, @Body() updatePropertyDto: UpdatePropertyDto, @Req() req: any) {
+    const isSuperAdmin = req.user?.roles?.some((r: string) => r.toUpperCase() === 'SUPER_ADMIN');
+    const targetId = (!isSuperAdmin && req.user?.propertyId) ? req.user.propertyId : id;
+    return this.propertiesService.update(targetId, updatePropertyDto);
   }
 }
 

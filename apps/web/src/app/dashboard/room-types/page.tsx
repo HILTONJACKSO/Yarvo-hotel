@@ -5,6 +5,7 @@ import { AddRoomTypeModal } from '@/components/room-types/AddRoomTypeModal';
 import { EditRoomTypeModal } from '@/components/room-types/EditRoomTypeModal';
 import { Modal } from '@/components/ui/Modal';
 import { AlertCircle, Trash2 } from 'lucide-react';
+import { useCurrency } from '@/lib/currency';
 
 type RoomType = {
   id: string;
@@ -17,6 +18,7 @@ type RoomType = {
 };
 
 export default function RoomTypesPage() {
+  const { format } = useCurrency();
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -103,7 +105,7 @@ export default function RoomTypesPage() {
               <div className="card-stats">
                 <div className="stat">
                   <span className="label">Rate</span>
-                  <span className="value">${rt.baseRateUsd}/night</span>
+                  <span className="value">{format(rt.baseRateUsd)}/night</span>
                 </div>
                 <div className="stat">
                   <span className="label">Occupancy</span>

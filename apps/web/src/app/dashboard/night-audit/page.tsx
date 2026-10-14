@@ -6,8 +6,10 @@ import domtoimage from 'dom-to-image-more';
 import { Moon, History, FileText, CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react';
 import ReportExportToolbar from '@/components/ReportExportToolbar';
 import { downloadCSV } from '@/utils/export';
+import { useCurrency } from '@/lib/currency';
 
 export default function NightAuditPage() {
+  const { format } = useCurrency();
   const [history, setHistory] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -231,10 +233,10 @@ export default function NightAuditPage() {
                           </span>
                         </td>
                         <td className="p-4 text-right text-emerald-400 font-medium">
-                          ${Number(audit.totalRoomRevenue || 0).toFixed(2)}
+                          {format(Number(audit.totalRoomRevenue || 0))}
                         </td>
                         <td className="p-4 text-right text-emerald-400 font-medium">
-                          ${Number(audit.totalFbRevenue || 0).toFixed(2)}
+                          {format(Number(audit.totalFbRevenue || 0))}
                         </td>
                         <td className="p-4 text-slate-300">
                           {audit.user ? `${audit.user.firstName} ${audit.user.lastName}` : 'System'}

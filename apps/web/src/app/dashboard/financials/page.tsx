@@ -6,14 +6,18 @@ import domtoimage from 'dom-to-image-more';
 import { Landmark, TrendingUp, TrendingDown, Scale, Calculator, Download } from 'lucide-react';
 import ReportExportToolbar from '@/components/ReportExportToolbar';
 import { downloadCSV } from '@/utils/export';
+import { useCurrency } from '@/lib/currency';
+import { useAuth } from '@/lib/auth-provider';
 
 export default function FinancialsPage() {
+  const { format } = useCurrency();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'PNL' | 'BALANCE_SHEET' | 'TRIAL_BALANCE'>('PNL');
   
   const [pnlData, setPnlData] = useState<any>(null);
   const [bsData, setBsData] = useState<any>(null);
   const [tbData, setTbData] = useState<any>(null);
-      const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
     
       const [dateRange, setDateRange] = useState(() => {
     const d = new Date();
@@ -162,7 +166,7 @@ export default function FinancialsPage() {
               <div className="max-w-4xl mx-auto space-y-6">
                 <div className="text-center mb-8">
                   <h2 className="text-2xl font-bold text-slate-100">Income Statement (P&L)</h2>
-                  <p className="text-slate-400">Kwalee Hotel</p>
+                  <p className="text-slate-400">{user?.propertyName || 'Hotel Operations'}</p>
                 </div>
 
                 {/* Revenue */}
@@ -172,12 +176,12 @@ export default function FinancialsPage() {
                     {pnlData.revenues.map((rev: any) => (
                       <div key={rev.category} className="flex justify-between items-center text-slate-300">
                         <span>{rev.category.replace('_', ' ')} Revenue</span>
-                        <span>${Number(rev.amount).toFixed(2)}</span>
+                        <span>{format(rev.amount)}</span>
                       </div>
                     ))}
                     <div className="flex justify-between items-center text-emerald-400 font-bold pt-2 border-t border-slate-700/50">
                       <span>Total Revenue</span>
-                      <span>${Number(pnlData.totalRevenue).toFixed(2)}</span>
+                      <span>{format(pnlData.totalRevenue)}</span>
                     </div>
                   </div>
                 </div>
@@ -189,12 +193,12 @@ export default function FinancialsPage() {
                     {pnlData.expenses.map((exp: any) => (
                       <div key={exp.category} className="flex justify-between items-center text-slate-300">
                         <span>{exp.category.replace('_', ' ')}</span>
-                        <span>${Number(exp.amount).toFixed(2)}</span>
+                        <span>{format(exp.amount)}</span>
                       </div>
                     ))}
                     <div className="flex justify-between items-center text-rose-400 font-bold pt-2 border-t border-slate-700/50">
                       <span>Total Expenses</span>
-                      <span>${Number(pnlData.totalExpenses).toFixed(2)}</span>
+                      <span>{format(pnlData.totalExpenses)}</span>
                     </div>
                   </div>
                 </div>
@@ -204,7 +208,7 @@ export default function FinancialsPage() {
                   <span>NET PROFIT / LOSS</span>
                   <div className="flex items-center gap-2">
                     {pnlData.netProfit >= 0 ? <TrendingUp /> : <TrendingDown />}
-                    <span>${Number(pnlData.netProfit).toFixed(2)}</span>
+                    <span>{format(pnlData.netProfit)}</span>
                   </div>
                 </div>
               </div>
@@ -214,7 +218,7 @@ export default function FinancialsPage() {
               <div className="max-w-4xl mx-auto space-y-6">
                 <div className="text-center mb-8">
                   <h2 className="text-2xl font-bold text-slate-100">Balance Sheet</h2>
-                  <p className="text-slate-400">Kwalee Hotel</p>
+                  <p className="text-slate-400">{user?.propertyName || 'Hotel Operations'}</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
@@ -225,12 +229,12 @@ export default function FinancialsPage() {
                       {bsData.assets.map((asset: any) => (
                         <div key={asset.name} className="flex justify-between items-center text-slate-300">
                           <span>{asset.name}</span>
-                          <span>${Number(asset.amount).toFixed(2)}</span>
+                          <span>{format(asset.amount)}</span>
                         </div>
                       ))}
                       <div className="flex justify-between items-center text-emerald-400 font-bold pt-2 border-t border-slate-700/50">
                         <span>Total Assets</span>
-                        <span>${Number(bsData.totalAssets).toFixed(2)}</span>
+                        <span>{format(bsData.totalAssets)}</span>
                       </div>
                     </div>
                   </div>
@@ -245,13 +249,13 @@ export default function FinancialsPage() {
                         bsData.liabilities.map((liab: any) => (
                           <div key={liab.name} className="flex justify-between items-center text-slate-300">
                             <span>{liab.name}</span>
-                            <span>${Number(liab.amount).toFixed(2)}</span>
+                            <span>{format(liab.amount)}</span>
                           </div>
                         ))
                       )}
                       <div className="flex justify-between items-center text-rose-400 font-bold pt-2 border-t border-slate-700/50">
                         <span>Total Liabilities</span>
-                        <span>${Number(bsData.totalLiabilities).toFixed(2)}</span>
+                        <span>{format(bsData.totalLiabilities)}</span>
                       </div>
                     </div>
 
@@ -259,11 +263,11 @@ export default function FinancialsPage() {
                     <div className="space-y-3">
                       <div className="flex justify-between items-center text-slate-300">
                         <span>Owner's Equity / Net Income</span>
-                        <span>${Number(bsData.equity).toFixed(2)}</span>
+                        <span>{format(bsData.equity)}</span>
                       </div>
                       <div className="flex justify-between items-center text-indigo-400 font-bold pt-2 border-t border-slate-700/50">
                         <span>Total Equity</span>
-                        <span>${Number(bsData.equity).toFixed(2)}</span>
+                        <span>{format(bsData.equity)}</span>
                       </div>
                     </div>
                   </div>
@@ -275,7 +279,7 @@ export default function FinancialsPage() {
               <div className="max-w-4xl mx-auto space-y-6">
                 <div className="text-center mb-8">
                   <h2 className="text-2xl font-bold text-slate-100">Trial Balance</h2>
-                  <p className="text-slate-400">Kwalee Hotel</p>
+                  <p className="text-slate-400">{user?.propertyName || 'Hotel Operations'}</p>
                 </div>
 
                 <table className="w-full text-left">
@@ -291,7 +295,7 @@ export default function FinancialsPage() {
                     {tbData.debits.map((d: any) => (
                       <tr key={d.account}>
                         <td className="py-3">{d.account}</td>
-                        <td className="py-3 text-right">${Number(d.amount).toFixed(2)}</td>
+                        <td className="py-3 text-right">{format(d.amount)}</td>
                         <td className="py-3 text-right">-</td>
                       </tr>
                     ))}
@@ -300,14 +304,14 @@ export default function FinancialsPage() {
                       <tr key={c.account}>
                         <td className="py-3 pl-8 text-slate-400 italic">{c.account}</td>
                         <td className="py-3 text-right">-</td>
-                        <td className="py-3 text-right">${Number(c.amount).toFixed(2)}</td>
+                        <td className="py-3 text-right">{format(c.amount)}</td>
                       </tr>
                     ))}
                     {/* Totals */}
                     <tr className="border-t-2 border-slate-700 font-bold text-slate-100">
                       <td className="py-4">TOTALS</td>
-                      <td className="py-4 text-right border-double border-b-4 border-slate-700">${Number(tbData.totalDebits).toFixed(2)}</td>
-                      <td className="py-4 text-right border-double border-b-4 border-slate-700">${Number(tbData.totalCredits).toFixed(2)}</td>
+                      <td className="py-4 text-right border-double border-b-4 border-slate-700">{format(tbData.totalDebits)}</td>
+                      <td className="py-4 text-right border-double border-b-4 border-slate-700">{format(tbData.totalCredits)}</td>
                     </tr>
                   </tbody>
                 </table>

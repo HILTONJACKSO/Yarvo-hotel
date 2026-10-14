@@ -3,11 +3,13 @@
 import { useState, useEffect } from 'react';
 import { Ticket, Waves, Umbrella, Search, CheckCircle, Plus, Settings, Trash2, Minus, ShoppingCart } from 'lucide-react';
 import { useAuth } from '@/lib/auth-provider';
+import { useCurrency } from '@/lib/currency';
 
 export default function TicketsPage() {
   const [stats, setStats] = useState<any>({ totalOrders: 0, totalRevenue: 0 });
 
   const { user } = useAuth();
+  const { format, currencySymbol } = useCurrency();
   const [tickets, setTickets] = useState<any[]>([]);
   const [tiers, setTiers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -165,7 +167,7 @@ export default function TicketsPage() {
       itemsHtml += `
         <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;">
           <div><span style="margin-right: 8px;">${item.quantity}x</span><span>${item.tier.name}</span></div>
-          <span>$${(Number(item.tier.price) * item.quantity).toFixed(2)}</span>
+          <span>${currencySymbol}${(Number(item.tier.price) * item.quantity).toFixed(2)}</span>
         </div>
       `;
     });
@@ -214,10 +216,10 @@ export default function TicketsPage() {
           
           <div class="divider"></div>
           
-          <div class="summary-row"><span>Subtotal</span><span>$${cartTotal.toFixed(2)}</span></div>
-          <div class="summary-row"><span style="font-size: 11px; color: #555;">GST Included (10%)</span><span style="font-size: 11px; color: #555;">$${gst.toFixed(2)}</span></div>
-          ${calculatedDiscount > 0 ? `<div class="summary-row" style="color: #dc2626;"><span>Discount</span><span>-$${calculatedDiscount.toFixed(2)}</span></div>` : ''}
-          <div class="totals"><span>TOTAL</span><span>$${finalTotal.toFixed(2)}</span></div>
+          <div class="summary-row"><span>Subtotal</span><span>${currencySymbol}${cartTotal.toFixed(2)}</span></div>
+          <div class="summary-row"><span style="font-size: 11px; color: #555;">GST Included (10%)</span><span style="font-size: 11px; color: #555;">${currencySymbol}${gst.toFixed(2)}</span></div>
+          ${calculatedDiscount > 0 ? `<div class="summary-row" style="color: #dc2626;"><span>Discount</span><span>-${currencySymbol}${calculatedDiscount.toFixed(2)}</span></div>` : ''}
+          <div class="totals"><span>TOTAL</span><span>${currencySymbol}${finalTotal.toFixed(2)}</span></div>
           
           <div class="footer">
             <p><strong>THANK YOU FOR CHOOSING KWALEE BEACH RESORT!</strong><br/>PLEASE COME AGAIN!</p>
@@ -314,7 +316,7 @@ export default function TicketsPage() {
           </div>
           <div className="bg-slate-800/80 p-4 rounded-xl border border-slate-700 shadow-sm flex flex-col justify-center transition-all hover:bg-slate-800">
             <h3 className="text-slate-400 text-xs font-medium mb-1">Revenue Generated</h3>
-            <p className="text-cyan-400 text-2xl font-bold">${(stats?.totalRevenue || 0).toFixed(2)}</p>
+            <p className="text-cyan-400 text-2xl font-bold">{format(stats?.totalRevenue || 0)}</p>
           </div>
         </div>
 
@@ -323,11 +325,11 @@ export default function TicketsPage() {
           <h3 className="text-slate-300 text-xs font-bold border-b border-slate-700/50 pb-2 mb-2">Entry Passes</h3>
           <div className="flex justify-between items-center mb-1">
             <span className="text-slate-400 text-xs">Adults <span className="text-slate-300">({stats?.breakdown?.entryAdults?.count || 0})</span></span>
-            <span className="text-emerald-400 text-sm font-medium">${(stats?.breakdown?.entryAdults?.revenue || 0).toFixed(2)}</span>
+            <span className="text-emerald-400 text-sm font-medium">{format(stats?.breakdown?.entryAdults?.revenue || 0)}</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-slate-400 text-xs">Kids <span className="text-slate-300">({stats?.breakdown?.entryKids?.count || 0})</span></span>
-            <span className="text-emerald-400 text-sm font-medium">${(stats?.breakdown?.entryKids?.revenue || 0).toFixed(2)}</span>
+            <span className="text-emerald-400 text-sm font-medium">{format(stats?.breakdown?.entryKids?.revenue || 0)}</span>
           </div>
         </div>
 
@@ -336,11 +338,11 @@ export default function TicketsPage() {
           <h3 className="text-slate-300 text-xs font-bold border-b border-slate-700/50 pb-2 mb-2">Pool Passes</h3>
           <div className="flex justify-between items-center mb-1">
             <span className="text-slate-400 text-xs">Adults <span className="text-slate-300">({stats?.breakdown?.poolAdults?.count || 0})</span></span>
-            <span className="text-emerald-400 text-sm font-medium">${(stats?.breakdown?.poolAdults?.revenue || 0).toFixed(2)}</span>
+            <span className="text-emerald-400 text-sm font-medium">{format(stats?.breakdown?.poolAdults?.revenue || 0)}</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-slate-400 text-xs">Kids <span className="text-slate-300">({stats?.breakdown?.poolKids?.count || 0})</span></span>
-            <span className="text-emerald-400 text-sm font-medium">${(stats?.breakdown?.poolKids?.revenue || 0).toFixed(2)}</span>
+            <span className="text-emerald-400 text-sm font-medium">{format(stats?.breakdown?.poolKids?.revenue || 0)}</span>
           </div>
         </div>
 
@@ -406,7 +408,7 @@ export default function TicketsPage() {
                       <h3 className="font-bold text-slate-200 line-clamp-2">{tier.name}</h3>
                     </div>
                     <div className="mt-4 flex justify-between items-end">
-                      <span className="text-emerald-400 font-bold">${Number(tier.price).toFixed(2)}</span>
+                      <span className="text-emerald-400 font-bold">{format(tier.price)}</span>
                       <div className="bg-cyan-500/20 text-cyan-400 p-1.5 rounded-lg">
                         <Plus size={16} />
                       </div>
@@ -442,11 +444,11 @@ export default function TicketsPage() {
                     <div key={item.tier.id} className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50 flex flex-col gap-2">
                       <div className="flex justify-between items-start">
                         <span className="text-slate-200 font-medium">{item.tier.name}</span>
-                        <span className="text-emerald-400 font-bold">${(Number(item.tier.price) * item.quantity).toFixed(2)}</span>
+                        <span className="text-emerald-400 font-bold">{format(Number(item.tier.price) * item.quantity)}</span>
                       </div>
                       
                       <div className="flex justify-between items-center">
-                        <span className="text-slate-400 text-sm">${Number(item.tier.price).toFixed(2)} each</span>
+                        <span className="text-slate-400 text-sm">{format(item.tier.price)} each</span>
                         <div className="flex items-center gap-3 bg-slate-800 rounded-lg border border-slate-600 p-1">
                           <button 
                             onClick={() => updateQuantity(item.tier.id, -1)}
@@ -474,21 +476,21 @@ export default function TicketsPage() {
                 <div className="space-y-2 mb-4 text-sm">
                   <div className="flex justify-between text-slate-400">
                     <span>Subtotal</span>
-                    <span>${subtotal.toFixed(2)}</span>
+                    <span>{format(subtotal)}</span>
                   </div>
                   <div className="flex justify-between text-slate-400">
                     <span>GST (10%)</span>
-                    <span>${gst.toFixed(2)}</span>
+                    <span>{format(gst)}</span>
                   </div>
                   {calculatedDiscount > 0 && (
                     <div className="flex justify-between text-rose-400">
                       <span>Discount</span>
-                      <span>-${calculatedDiscount.toFixed(2)}</span>
+                      <span>-{format(calculatedDiscount)}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-slate-100 font-bold text-lg pt-2 border-t border-slate-700">
                     <span>Total</span>
-                    <span className="text-emerald-400">${finalTotal.toFixed(2)}</span>
+                    <span className="text-emerald-400">{format(finalTotal)}</span>
                   </div>
                 </div>
 
@@ -510,7 +512,7 @@ export default function TicketsPage() {
                         className="bg-slate-700 text-slate-200 p-2 border-l border-slate-600 outline-none"
                       >
                         <option value="PERCENT">%</option>
-                        <option value="FLAT">$</option>
+                        <option value="FLAT">{currencySymbol}</option>
                       </select>
                     </div>
                   </div>

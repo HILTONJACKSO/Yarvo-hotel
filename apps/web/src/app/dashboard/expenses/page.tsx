@@ -9,9 +9,11 @@ import { db } from '@/lib/db';
 import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
 import ReportExportToolbar from '@/components/ReportExportToolbar';
 import { downloadCSV } from '@/utils/export';
+import { useCurrency } from '@/lib/currency';
 
 export default function ExpensesPage() {
   const { user } = useAuth();
+  const { format, currencySymbol } = useCurrency();
   const canDelete = user?.roles?.some((r: any) => ['SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT'].includes(r?.toUpperCase?.() || r?.name?.toUpperCase?.()));
 
   const [expenses, setExpenses] = useState<any[]>([]);
@@ -221,7 +223,7 @@ export default function ExpensesPage() {
                     <td className="p-4 text-slate-200">{expense.description}</td>
                     <td className="p-4 text-slate-400 text-sm">{expense.referenceCode || '-'}</td>
                     <td className="p-4 text-right font-medium text-rose-400">
-                      ${Number(expense.amount).toFixed(2)}
+                      {format(expense.amount)}
                     </td>
                     <td className="p-4 text-center">
                       {canDelete && (
@@ -278,7 +280,7 @@ export default function ExpensesPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-400 mb-1">Amount ($)</label>
+                <label className="block text-sm font-medium text-slate-400 mb-1">Amount ({currencySymbol})</label>
                 <input 
                   type="number"
                   step="0.01"

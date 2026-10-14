@@ -10,6 +10,10 @@ export interface AuthUser {
   lastName: string;
   roles: string[];
   features?: string[];
+  propertyId?: string;
+  propertyName?: string;
+  currencyPrimary?: string;
+  currencySecondary?: string;
 }
 
 interface AuthContextValue {
