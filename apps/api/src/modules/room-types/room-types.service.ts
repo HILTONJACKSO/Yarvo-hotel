@@ -7,11 +7,15 @@ import { UpdateRoomTypeDto } from './dto/update-room-type.dto';
 export class RoomTypesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createRoomTypeDto: CreateRoomTypeDto) {
+  async create(createRoomTypeDto: CreateRoomTypeDto, propertyId?: string) {
     const { taxIds, ...data } = createRoomTypeDto;
     
-    const existing = await this.prisma.roomType.findUnique({
-      where: { code: data.code },
+    const existing = await this.prisma.roomType.findFirst({
+      where: {
+        code: data.code,
+        deletedAt: null,
+        ...(propertyId ? { propertyId } : {}),
+      },
     });
 
     if (existing) {
@@ -21,6 +25,7 @@ export class RoomTypesService {
     return this.prisma.roomType.create({
       data: {
         ...data,
+        ...(propertyId ? { propertyId } : {}),
         taxes: taxIds ? {
           connect: taxIds.map(id => ({ id }))
         } : undefined
@@ -28,17 +33,24 @@ export class RoomTypesService {
     });
   }
 
-  async findAll() {
+  async findAll(propertyId?: string) {
     return this.prisma.roomType.findMany({
-      where: { deletedAt: null },
+      where: {
+        deletedAt: null,
+        ...(propertyId ? { propertyId } : {}),
+      },
       orderBy: { name: 'asc' },
       include: { taxes: true }
     });
   }
 
-  async findOne(id: string) {
-    const roomType = await this.prisma.roomType.findUnique({
-      where: { id },
+  async findOne(id: string, propertyId?: string) {
+    const roomType = await this.prisma.roomType.findFirst({
+      where: {
+        id,
+        deletedAt: null,
+        ...(propertyId ? { propertyId } : {}),
+      },
       include: { taxes: true }
     });
 
@@ -49,14 +61,19 @@ export class RoomTypesService {
     return roomType;
   }
 
-  async update(id: string, updateRoomTypeDto: UpdateRoomTypeDto) {
-    await this.findOne(id); // Ensure it exists and is not deleted
+  async update(id: string, updateRoomTypeDto: UpdateRoomTypeDto, propertyId?: string) {
+    await this.findOne(id, propertyId); // Ensure it exists and is not deleted
     
     const { taxIds, ...data } = updateRoomTypeDto as any;
 
     if (data.code) {
       const existing = await this.prisma.roomType.findFirst({
-        where: { code: data.code, id: { not: id } },
+        where: {
+          code: data.code,
+          id: { not: id },
+          deletedAt: null,
+          ...(propertyId ? { propertyId } : {}),
+        },
       });
 
       if (existing) {
@@ -75,8 +92,8 @@ export class RoomTypesService {
     });
   }
 
-  async remove(id: string) {
-    await this.findOne(id); // Ensure it exists and is not deleted
+  async remove(id: string, propertyId?: string) {
+    await this.findOne(id, propertyId); // Ensure it exists and is not deleted
 
     // Soft delete
     return this.prisma.roomType.update({
@@ -85,4 +102,3 @@ export class RoomTypesService {
     });
   }
 }
-

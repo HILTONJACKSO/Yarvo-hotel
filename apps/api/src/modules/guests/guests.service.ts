@@ -7,10 +7,13 @@ import { UpdateGuestDto } from './dto/update-guest.dto';
 export class GuestsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createGuestDto: CreateGuestDto) {
+  async create(createGuestDto: CreateGuestDto, propertyId?: string) {
     if (createGuestDto.email) {
-      const existing = await this.prisma.guest.findUnique({
-        where: { email: createGuestDto.email },
+      const existing = await this.prisma.guest.findFirst({
+        where: {
+          email: createGuestDto.email,
+          ...(propertyId ? { propertyId } : {}),
+        },
       });
       if (existing) {
         if (!existing.isActive) {
@@ -25,12 +28,18 @@ export class GuestsService {
     }
 
     return this.prisma.guest.create({
-      data: createGuestDto,
+      data: {
+        ...createGuestDto,
+        ...(propertyId ? { propertyId } : {}),
+      },
     });
   }
 
-  async findAll(search?: string, page: number = 1, limit: number = 50) {
-    const where: any = { isActive: true };
+  async findAll(search?: string, page: number = 1, limit: number = 50, propertyId?: string) {
+    const where: any = {
+      isActive: true,
+      ...(propertyId ? { propertyId } : {}),
+    };
 
     if (search) {
       where.OR = [
@@ -62,9 +71,12 @@ export class GuestsService {
     };
   }
 
-  async findOne(id: string) {
-    const guest = await this.prisma.guest.findUnique({
-      where: { id },
+  async findOne(id: string, propertyId?: string) {
+    const guest = await this.prisma.guest.findFirst({
+      where: {
+        id,
+        ...(propertyId ? { propertyId } : {}),
+      },
     });
 
     if (!guest || !guest.isActive) {
@@ -74,12 +86,16 @@ export class GuestsService {
     return guest;
   }
 
-  async update(id: string, updateGuestDto: UpdateGuestDto) {
-    await this.findOne(id);
+  async update(id: string, updateGuestDto: UpdateGuestDto, propertyId?: string) {
+    await this.findOne(id, propertyId);
 
     if (updateGuestDto.email) {
       const existing = await this.prisma.guest.findFirst({
-        where: { email: updateGuestDto.email, id: { not: id } },
+        where: {
+          email: updateGuestDto.email,
+          id: { not: id },
+          ...(propertyId ? { propertyId } : {}),
+        },
       });
       if (existing) {
         throw new ConflictException(`Guest with email ${updateGuestDto.email} already exists`);
@@ -92,12 +108,11 @@ export class GuestsService {
     });
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, propertyId?: string) {
+    await this.findOne(id, propertyId);
     return this.prisma.guest.update({
       where: { id },
       data: { isActive: false },
     });
   }
 }
-

@@ -241,7 +241,7 @@ enum RoomStatus {
 model RoomType {
   id          String  @id @default(uuid()) @db.Uuid
   name        String  @db.VarChar(100) // e.g., "Standard Double"
-  code        String  @unique @db.VarChar(20) // e.g., "STD-DBL"
+  code        String  @db.VarChar(20) // e.g., "STD-DBL"
   description String? @db.Text
 
   // Occupancy limits
@@ -272,12 +272,14 @@ model RoomType {
   propertyId String? @db.Uuid
   property Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
+  @@unique([propertyId, code])
+  @@index([propertyId])
   @@map("room_types")
 }
 
 model Room {
   id     String @id @default(uuid()) @db.Uuid
-  number String @unique @db.VarChar(10) // e.g., "101", "201A"
+  number String @db.VarChar(10) // e.g., "101", "201A"
   floor  Int
 
   roomTypeId String   @db.Uuid
@@ -298,6 +300,8 @@ model Room {
   propertyId String? @db.Uuid
   property Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
+  @@unique([propertyId, number])
+  @@index([propertyId])
   @@index([roomTypeId])
   @@index([status])
   @@index([floor])
@@ -363,7 +367,7 @@ model Guest {
   id        String  @id @default(uuid()) @db.Uuid
   firstName String  @db.VarChar(100)
   lastName  String  @db.VarChar(100)
-  email     String? @unique @db.VarChar(255)
+  email     String? @db.VarChar(255)
   phone     String? @db.VarChar(50)
   whatsapp  String? @db.VarChar(50)
 
@@ -393,6 +397,8 @@ model Guest {
   propertyId String? @db.Uuid
   property Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
+  @@unique([propertyId, email])
+  @@index([propertyId])
   @@index([lastName, firstName])
   @@index([email])
   @@index([phone])
@@ -478,6 +484,7 @@ model Reservation {
   propertyId String? @db.Uuid
   property Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
+  @@index([propertyId])
   @@index([guestId])
   @@index([roomTypeId])
   @@index([status])
@@ -515,6 +522,7 @@ model Folio {
   propertyId String? @db.Uuid
   property Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
+  @@index([propertyId])
   @@map("folios")
 }
 
@@ -626,6 +634,7 @@ model WorkOrder {
   propertyId String? @db.Uuid
   property Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
+  @@index([propertyId])
   @@index([roomId])
   @@index([status])
   @@map("work_orders")
@@ -638,7 +647,7 @@ model WorkOrder {
 
 model PosTable {
   id       String @id @default(uuid()) @db.Uuid
-  number   String @unique @db.VarChar(50)
+  number   String @db.VarChar(50)
   capacity Int    @default(4)
   status   String @default("AVAILABLE") // AVAILABLE, OCCUPIED, RESERVED
 
@@ -647,18 +656,22 @@ model PosTable {
   propertyId String? @db.Uuid
   property Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
+  @@unique([propertyId, number])
+  @@index([propertyId])
   @@map("pos_tables")
 }
 
 model PosCategory {
   id   String @id @default(uuid()) @db.Uuid
-  name String @unique @db.VarChar(100)
+  name String @db.VarChar(100)
 
   items PosMenuItem[]
 
   propertyId String? @db.Uuid
   property Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
+  @@unique([propertyId, name])
+  @@index([propertyId])
   @@map("pos_categories")
 }
 
@@ -715,6 +728,7 @@ model PosOrder {
   propertyId String? @db.Uuid
   property Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
+  @@index([propertyId])
   @@map("pos_orders")
 }
 
@@ -741,6 +755,7 @@ model PosReturnRequest {
   propertyId String? @db.Uuid
   property Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
+  @@index([propertyId])
   @@map("pos_return_requests")
 }
 
@@ -763,6 +778,7 @@ model PosOrderItem {
   propertyId String? @db.Uuid
   property Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
+  @@index([propertyId])
   @@map("pos_order_items")
 }
 
@@ -789,6 +805,7 @@ model InventoryItem {
   propertyId String? @db.Uuid
   property Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
+  @@index([propertyId])
   @@map("inventory_items")
 }
 
@@ -806,6 +823,7 @@ model InventoryRecipe {
   propertyId String? @db.Uuid
   property Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
+  @@index([propertyId])
   @@map("inventory_recipes")
 }
 
@@ -820,6 +838,7 @@ model PosPayment {
   propertyId String? @db.Uuid
   property Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
+  @@index([propertyId])
   @@map("pos_payments")
 }
 
@@ -857,6 +876,7 @@ model Expense {
   propertyId String? @db.Uuid
   property Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
+  @@index([propertyId])
   @@index([category])
   @@index([date])
   @@map("expenses")

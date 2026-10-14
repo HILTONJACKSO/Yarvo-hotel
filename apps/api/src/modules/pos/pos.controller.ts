@@ -10,14 +10,14 @@ export class PosController {
   constructor(private readonly posService: PosService) {}
 
   @Get('tables')
-  getTables() {
-    return this.posService.getTables();
+  getTables(@Req() req: any) {
+    return this.posService.getTables(req.user?.propertyId);
   }
 
   @Post('tables')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
-  createTable(@Body() data: { number: string; capacity: number }) {
-    return this.posService.createTable(data);
+  createTable(@Body() data: { number: string; capacity: number }, @Req() req: any) {
+    return this.posService.createTable(data, req.user?.propertyId);
   }
 
   @Delete('tables/:id')
@@ -27,14 +27,14 @@ export class PosController {
   }
 
   @Get('categories')
-  getCategories() {
-    return this.posService.getCategories();
+  getCategories(@Req() req: any) {
+    return this.posService.getCategories(req.user?.propertyId);
   }
 
   @Post('categories')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
-  createCategory(@Body() data: { name: string }) {
-    return this.posService.createCategory(data);
+  createCategory(@Body() data: { name: string }, @Req() req: any) {
+    return this.posService.createCategory(data, req.user?.propertyId);
   }
 
   @Patch('categories/:id')
@@ -50,8 +50,8 @@ export class PosController {
   }
 
   @Get('menu-items')
-  getMenuItems() {
-    return this.posService.getMenuItems();
+  getMenuItems(@Req() req: any) {
+    return this.posService.getMenuItems(req.user?.propertyId);
   }
 
   @Post('menu-items')
@@ -73,13 +73,13 @@ export class PosController {
   }
 
   @Get('stats/kitchen')
-  getKitchenStats() {
-    return this.posService.getDailyDepartmentStats('FOOD');
+  getKitchenStats(@Req() req: any) {
+    return this.posService.getDailyDepartmentStats('FOOD', req.user?.propertyId);
   }
 
   @Get('stats/bar')
-  getBarStats() {
-    return this.posService.getDailyDepartmentStats('DRINK');
+  getBarStats(@Req() req: any) {
+    return this.posService.getDailyDepartmentStats('DRINK', req.user?.propertyId);
   }
 
   @Get('stats/waitstaff')
@@ -88,8 +88,8 @@ export class PosController {
   }
 
   @Get('stats/cashier')
-  getCashierStats() {
-    return this.posService.getDailyCashierStats();
+  getCashierStats(@Req() req: any) {
+    return this.posService.getDailyCashierStats(req.user?.propertyId);
   }
 
     @Post('orders/transfer')
@@ -103,23 +103,23 @@ export class PosController {
     return this.posService.transferItems(data);
   }
   @Get('orders')
-  getActiveOrders() {
-    return this.posService.getActiveOrders();
+  getActiveOrders(@Req() req: any) {
+    return this.posService.getActiveOrders(req.user?.propertyId);
   }
 
   @Get('ready-items')
-  getReadyOrderItems() {
-    return this.posService.getReadyOrderItems();
+  getReadyOrderItems(@Req() req: any) {
+    return this.posService.getReadyOrderItems(req.user?.propertyId);
   }
 
   @Get('served-orders')
-  getServedOrders() {
-    return this.posService.getServedOrders();
+  getServedOrders(@Req() req: any) {
+    return this.posService.getServedOrders(req.user?.propertyId);
   }
 
   @Post('orders')
   createOrder(@Body() data: { tableId?: string; folioId?: string; guestId?: string; discountAmount?: number; notes?: string }, @Req() req: any) {
-    return this.posService.createOrder({ ...data, userId: req.user.id, userRoles: req.user.roles });
+    return this.posService.createOrder({ ...data, userId: req.user.id, userRoles: req.user.roles, propertyId: req.user?.propertyId });
   }
 
   @Post('orders/:id/items')

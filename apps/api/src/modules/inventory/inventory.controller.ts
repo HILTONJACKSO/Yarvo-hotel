@@ -11,20 +11,20 @@ export class InventoryController {
   constructor(private readonly inventoryService: InventoryService) {}
 
   @Get()
-  getInventoryItems() {
-    return this.inventoryService.getInventoryItems();
+  getInventoryItems(@Req() req: any) {
+    return this.inventoryService.getInventoryItems(req.user?.propertyId);
   }
 
   @Post()
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   createInventoryItem(@Body() data: { name: string; category?: string; unit: string; stockLevel?: number; minThreshold?: number; costPerUnit?: number }, @Req() req: any) {
-    return this.inventoryService.createInventoryItem(data, req.user?.id);
+    return this.inventoryService.createInventoryItem(data, req.user?.id, req.user?.propertyId);
   }
 
   @Patch(':id')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   updateInventoryItem(@Param('id') id: string, @Body() data: { name: string; category?: string; unit: string; stockLevel?: number; minThreshold?: number; costPerUnit?: number }, @Req() req: any) {
-    return this.inventoryService.updateInventoryItem(id, data, req.user.id);
+    return this.inventoryService.updateInventoryItem(id, data, req.user.id, req.user?.propertyId);
   }
 
   @Delete(':id')
@@ -66,4 +66,3 @@ export class InventoryController {
     return this.inventoryService.addRecipeIngredient(data);
   }
 }
-

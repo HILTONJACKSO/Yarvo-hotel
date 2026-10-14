@@ -13,17 +13,23 @@ export class RoomsService {
     private readonly auditLogsService: AuditLogsService,
   ) {}
 
-  async create(createRoomDto: CreateRoomDto, userId?: string) {
-    const existing = await this.prisma.room.findUnique({
-      where: { number: createRoomDto.number },
+  async create(createRoomDto: CreateRoomDto, userId?: string, propertyId?: string) {
+    const existing = await this.prisma.room.findFirst({
+      where: {
+        number: createRoomDto.number,
+        ...(propertyId ? { propertyId } : {}),
+      },
     });
 
     if (existing) {
       throw new ConflictException(`Room number ${createRoomDto.number} already exists`);
     }
 
-    const roomType = await this.prisma.roomType.findUnique({
-      where: { id: createRoomDto.roomTypeId },
+    const roomType = await this.prisma.roomType.findFirst({
+      where: {
+        id: createRoomDto.roomTypeId,
+        ...(propertyId ? { propertyId } : {}),
+      },
     });
 
     if (!roomType || roomType.deletedAt) {
@@ -33,7 +39,10 @@ export class RoomsService {
     // Wrap in a transaction to also update the denormalized totalRooms count
     return this.prisma.$transaction(async (tx) => {
       const room = await tx.room.create({
-        data: createRoomDto,
+        data: {
+          ...createRoomDto,
+          ...(propertyId ? { propertyId } : {}),
+        },
         include: { roomType: true },
       });
 
@@ -66,11 +75,12 @@ export class RoomsService {
     });
   }
 
-  async findAll(status?: RoomStatus, floor?: number, roomTypeId?: string) {
+  async findAll(status?: RoomStatus, floor?: number, roomTypeId?: string, propertyId?: string) {
     const where: any = { isActive: true };
     if (status) where.status = status;
     if (floor) where.floor = floor;
     if (roomTypeId) where.roomTypeId = roomTypeId;
+    if (propertyId) where.propertyId = propertyId;
 
     return this.prisma.room.findMany({
       where,
@@ -79,13 +89,16 @@ export class RoomsService {
     });
   }
 
-  async getRoomCalendar(startDateStr: string, endDateStr: string) {
+  async getRoomCalendar(startDateStr: string, endDateStr: string, propertyId?: string) {
     const startDate = new Date(startDateStr);
     const endDate = new Date(endDateStr);
     
     // Fetch all active rooms, including roomType and relevant reservations
     return this.prisma.room.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        ...(propertyId ? { propertyId } : {}),
+      },
       orderBy: [
         { roomType: { name: 'asc' } },
         { number: 'asc' }
@@ -96,7 +109,8 @@ export class RoomsService {
           where: {
             status: { notIn: ['CANCELLED', 'NO_SHOW'] },
             checkInDate: { lte: endDate },
-            checkOutDate: { gte: startDate }
+            checkOutDate: { gte: startDate },
+            ...(propertyId ? { propertyId } : {}),
           },
           include: {
             guest: true,
@@ -107,9 +121,12 @@ export class RoomsService {
     });
   }
 
-  async findOne(id: string) {
-    const room = await this.prisma.room.findUnique({
-      where: { id },
+  async findOne(id: string, propertyId?: string) {
+    const room = await this.prisma.room.findFirst({
+      where: {
+        id,
+        ...(propertyId ? { propertyId } : {}),
+      },
       include: { roomType: true },
     });
 
@@ -120,12 +137,16 @@ export class RoomsService {
     return room;
   }
 
-  async update(id: string, updateRoomDto: UpdateRoomDto, userId?: string) {
-    const oldRoom = await this.findOne(id); // Ensure it exists
+  async update(id: string, updateRoomDto: UpdateRoomDto, userId?: string, propertyId?: string) {
+    const oldRoom = await this.findOne(id, propertyId); // Ensure it exists
 
     if (updateRoomDto.number) {
       const existing = await this.prisma.room.findFirst({
-        where: { number: updateRoomDto.number, id: { not: id } },
+        where: {
+          number: updateRoomDto.number,
+          id: { not: id },
+          ...(propertyId ? { propertyId } : {}),
+        },
       });
 
       if (existing) {
@@ -134,8 +155,11 @@ export class RoomsService {
     }
 
     if (updateRoomDto.roomTypeId) {
-      const roomType = await this.prisma.roomType.findUnique({
-        where: { id: updateRoomDto.roomTypeId },
+      const roomType = await this.prisma.roomType.findFirst({
+        where: {
+          id: updateRoomDto.roomTypeId,
+          ...(propertyId ? { propertyId } : {}),
+        },
       });
 
       if (!roomType || roomType.deletedAt) {
@@ -202,8 +226,8 @@ export class RoomsService {
     });
   }
 
-  async remove(id: string) {
-    const room = await this.findOne(id);
+  async remove(id: string, propertyId?: string) {
+    const room = await this.findOne(id, propertyId);
 
     // Wrap in a transaction to also update the denormalized totalRooms count
     return this.prisma.$transaction(async (tx) => {
@@ -221,4 +245,3 @@ export class RoomsService {
     });
   }
 }
-

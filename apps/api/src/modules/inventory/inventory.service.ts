@@ -9,15 +9,19 @@ export class InventoryService {
     private readonly auditLogsService: AuditLogsService
   ) {}
 
-  async getInventoryItems() {
+  async getInventoryItems(propertyId?: string) {
     return this.prisma.inventoryItem.findMany({
+      where: propertyId ? { propertyId } : {},
       orderBy: { name: 'asc' },
     });
   }
 
-  async createInventoryItem(data: { name: string; category?: string; unit: string; stockLevel?: number; minThreshold?: number; costPerUnit?: number }, userId?: string) {
+  async createInventoryItem(data: { name: string; category?: string; unit: string; stockLevel?: number; minThreshold?: number; costPerUnit?: number }, userId?: string, propertyId?: string) {
     const existingItem = await this.prisma.inventoryItem.findFirst({
-      where: { name: { equals: data.name, mode: 'insensitive' } }
+      where: {
+        name: { equals: data.name, mode: 'insensitive' },
+        ...(propertyId ? { propertyId } : {}),
+      }
     });
     if (existingItem) {
       throw new BadRequestException('An item with this name already exists in the system');
@@ -32,7 +36,8 @@ export class InventoryService {
           stockLevel: data.stockLevel || 0,
           stockMain: data.stockLevel || 0,
           minThreshold: data.minThreshold || 10,
-          costPerUnit: data.costPerUnit || 0
+          costPerUnit: data.costPerUnit || 0,
+          ...(propertyId ? { propertyId } : {}),
         }
       });
 
@@ -71,11 +76,12 @@ export class InventoryService {
     });
   }
 
-  async updateInventoryItem(id: string, data: { name: string; category?: string; unit: string; stockLevel?: number; minThreshold?: number; costPerUnit?: number }, userId?: string) {
+  async updateInventoryItem(id: string, data: { name: string; category?: string; unit: string; stockLevel?: number; minThreshold?: number; costPerUnit?: number }, userId?: string, propertyId?: string) {
     const existingItem = await this.prisma.inventoryItem.findFirst({
       where: { 
         name: { equals: data.name, mode: 'insensitive' },
-        id: { not: id }
+        id: { not: id },
+        ...(propertyId ? { propertyId } : {}),
       }
     });
     if (existingItem) {
@@ -245,5 +251,3 @@ export class InventoryService {
     });
   }
 }
-
-

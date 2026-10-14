@@ -10,14 +10,20 @@ export class PosService {
   ) {}
 
   // ─── TABLES ─────────────────────────────────────────────────────────────
-  async getTables() {
+  async getTables(propertyId?: string) {
     return this.prisma.posTable.findMany({
+      where: propertyId ? { propertyId } : {},
       orderBy: { number: 'asc' },
     });
   }
 
-  async createTable(data: { number: string; capacity: number }) {
-    return this.prisma.posTable.create({ data });
+  async createTable(data: { number: string; capacity: number }, propertyId?: string) {
+    return this.prisma.posTable.create({
+      data: {
+        ...data,
+        ...(propertyId ? { propertyId } : {}),
+      },
+    });
   }
 
   async deleteTable(id: string) {
@@ -25,15 +31,21 @@ export class PosService {
   }
 
   // ─── MENU ─────────────────────────────────────────────────────────────
-  async getCategories() {
+  async getCategories(propertyId?: string) {
     return this.prisma.posCategory.findMany({
+      where: propertyId ? { propertyId } : {},
       include: { items: true },
       orderBy: { name: 'asc' },
     });
   }
 
-  async createCategory(data: { name: string }) {
-    return this.prisma.posCategory.create({ data });
+  async createCategory(data: { name: string }, propertyId?: string) {
+    return this.prisma.posCategory.create({
+      data: {
+        ...data,
+        ...(propertyId ? { propertyId } : {}),
+      },
+    });
   }
 
   async updateCategory(id: string, data: { name: string }, userId?: string) {
@@ -68,8 +80,9 @@ export class PosService {
     });
   }
 
-  async getMenuItems() {
+  async getMenuItems(propertyId?: string) {
     return this.prisma.posMenuItem.findMany({
+      where: propertyId ? { category: { propertyId } } : {},
       include: { category: true, recipes: true, taxes: true },
       orderBy: { name: 'asc' },
     });
@@ -168,13 +181,14 @@ export class PosService {
   }
 
   // ─── ORDERS ─────────────────────────────────────────────────────────────
-  async getDailyDepartmentStats(type: 'FOOD' | 'DRINK') {
+  async getDailyDepartmentStats(type: 'FOOD' | 'DRINK', propertyId?: string) {
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
 
     const items = await this.prisma.posOrderItem.findMany({
       where: {
         createdAt: { gte: startOfDay },
+        ...(propertyId ? { order: { propertyId } } : {}),
         menuItem: {
           type: type === 'FOOD' ? 'FOOD' : { in: ['DRINK', 'BAR'] }
         },
@@ -226,7 +240,7 @@ export class PosService {
     return { totalOrders, totalRevenue };
   }
 
-  async getDailyCashierStats() {
+  async getDailyCashierStats(propertyId?: string) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -234,7 +248,8 @@ export class PosService {
     const settledOrders = await this.prisma.posOrder.findMany({
       where: {
         status: { in: ['PAID', 'BILLED_TO_ROOM'] },
-        updatedAt: { gte: today }
+        updatedAt: { gte: today },
+        ...(propertyId ? { propertyId } : {}),
       }
     });
 
@@ -245,9 +260,10 @@ export class PosService {
     return { totalOrders, totalRevenue };
   }
 
-  async getActiveOrders() {
+  async getActiveOrders(propertyId?: string) {
     return this.prisma.posOrder.findMany({
       where: { 
+        ...(propertyId ? { propertyId } : {}),
         OR: [
           { status: { notIn: ['PAID', 'BILLED_TO_ROOM', 'SERVED'] } },
           { items: { some: { status: { in: ['PENDING', 'RETURN_REQUESTED'] } } } }
@@ -266,9 +282,12 @@ export class PosService {
     });
   }
 
-  async getReadyOrderItems() {
+  async getReadyOrderItems(propertyId?: string) {
     return this.prisma.posOrderItem.findMany({
-      where: { status: 'READY' },
+      where: {
+        status: 'READY',
+        ...(propertyId ? { order: { propertyId } } : {}),
+      },
       include: {
         menuItem: true,
         order: { include: { table: true, guest: true, user: { select: { firstName: true, lastName: true } }, folio: { include: { reservation: { include: { room: true } } } } } }
@@ -277,9 +296,12 @@ export class PosService {
     });
   }
 
-  async getServedOrders() {
+  async getServedOrders(propertyId?: string) {
     return this.prisma.posOrder.findMany({
-      where: { status: { in: ['OPEN', 'SERVED'] } },
+      where: {
+        status: { in: ['OPEN', 'SERVED'] },
+        ...(propertyId ? { propertyId } : {}),
+      },
       include: {
         table: true,
         guest: true,
@@ -390,11 +412,15 @@ export class PosService {
     });
   }
 
-  async createOrder(data: { tableId?: string; folioId?: string; guestId?: string; userId?: string; userRoles?: string[]; discountAmount?: number; discountReason?: string; notes?: string }) {
+  async createOrder(data: { tableId?: string; folioId?: string; guestId?: string; userId?: string; userRoles?: string[]; discountAmount?: number; discountReason?: string; notes?: string; propertyId?: string }) {
     // Check if an OPEN or SERVED order already exists for this destination to consolidate bills
     if (data.tableId) {
       const existing = await this.prisma.posOrder.findFirst({
-        where: { tableId: data.tableId, status: { in: ['OPEN', 'SERVED'] } },
+        where: {
+          tableId: data.tableId,
+          status: { in: ['OPEN', 'SERVED'] },
+          ...(data.propertyId ? { propertyId: data.propertyId } : {}),
+        },
         orderBy: { createdAt: 'desc' }
       });
       if (existing) {
@@ -477,8 +503,9 @@ export class PosService {
         userId: data.userId,
         status: 'OPEN',
         discountAmount: data.discountAmount || 0,
-          discountReason: data.discountReason,
-          notes: data.notes,
+        discountReason: data.discountReason,
+        notes: data.notes,
+        ...(data.propertyId ? { propertyId: data.propertyId } : {}),
       },
     });
   }

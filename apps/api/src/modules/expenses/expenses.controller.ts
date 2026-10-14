@@ -13,29 +13,28 @@ export class ExpensesController {
   @Post()
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT', 'CASHIER')
   async create(@Body() createExpenseDto: CreateExpenseDto, @CurrentUser() user: any) {
-    const data = await this.expensesService.create(createExpenseDto, user.id);
+    const data = await this.expensesService.create(createExpenseDto, user.id, user?.propertyId);
     return { message: 'Expense recorded successfully', data };
   }
 
   @Get()
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'ACCOUNTANT', 'CASHIER')
-  async findAll(@Query('start') start?: string, @Query('end') end?: string) {
-    const data = await this.expensesService.findAll(start, end);
+  async findAll(@CurrentUser() user: any, @Query('start') start?: string, @Query('end') end?: string) {
+    const data = await this.expensesService.findAll(start, end, user?.propertyId);
     return { data };
   }
 
   @Get(':id')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT', 'CASHIER')
-  async findOne(@Param('id') id: string) {
-    const data = await this.expensesService.findOne(id);
+  async findOne(@Param('id') id: string, @CurrentUser() user: any) {
+    const data = await this.expensesService.findOne(id, user?.propertyId);
     return { data };
   }
 
   @Delete(':id')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT')
-  async remove(@Param('id') id: string) {
-    await this.expensesService.remove(id);
+  async remove(@Param('id') id: string, @CurrentUser() user: any) {
+    await this.expensesService.remove(id, user?.propertyId);
     return { message: 'Expense deleted successfully' };
   }
 }
-

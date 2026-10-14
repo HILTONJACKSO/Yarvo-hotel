@@ -2,6 +2,7 @@ import { Controller, Get, UseGuards, Query } from '@nestjs/common';
 import { AnalyticsService } from './analytics.service';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ApiOperation, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 
 @ApiTags('Analytics')
@@ -14,8 +15,8 @@ export class AnalyticsController {
   @Get('dashboard')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK')
   @ApiOperation({ summary: 'Get main dashboard aggregates' })
-  async getDashboard() {
-    const data = await this.analyticsService.getDashboardMetrics();
+  async getDashboard(@CurrentUser() user: any) {
+    const data = await this.analyticsService.getDashboardMetrics(user?.propertyId);
     return { data };
   }
 

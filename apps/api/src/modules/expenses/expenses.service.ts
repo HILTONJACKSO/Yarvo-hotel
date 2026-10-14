@@ -6,7 +6,7 @@ import { CreateExpenseDto } from './dto/create-expense.dto';
 export class ExpensesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createExpenseDto: CreateExpenseDto, userId: string) {
+  async create(createExpenseDto: CreateExpenseDto, userId: string, propertyId?: string) {
     return this.prisma.expense.create({
       data: {
         amount: createExpenseDto.amount,
@@ -15,12 +15,15 @@ export class ExpensesService {
         description: createExpenseDto.description,
         referenceCode: createExpenseDto.referenceCode,
         recordedById: userId,
+        ...(propertyId ? { propertyId } : {}),
       },
     });
   }
 
-  async findAll(start?: string, end?: string) {
-    const where: any = {};
+  async findAll(start?: string, end?: string, propertyId?: string) {
+    const where: any = {
+      ...(propertyId ? { propertyId } : {}),
+    };
     if (start && end) {
       where.date = {
         gte: new Date(start),
@@ -38,9 +41,12 @@ export class ExpensesService {
     });
   }
 
-  async findOne(id: string) {
-    const expense = await this.prisma.expense.findUnique({
-      where: { id },
+  async findOne(id: string, propertyId?: string) {
+    const expense = await this.prisma.expense.findFirst({
+      where: {
+        id,
+        ...(propertyId ? { propertyId } : {}),
+      },
       include: {
         user: { select: { firstName: true, lastName: true } },
       },
@@ -49,9 +55,8 @@ export class ExpensesService {
     return expense;
   }
 
-  async remove(id: string) {
-    const expense = await this.findOne(id);
+  async remove(id: string, propertyId?: string) {
+    const expense = await this.findOne(id, propertyId);
     return this.prisma.expense.delete({ where: { id: expense.id } });
   }
 }
-

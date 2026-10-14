@@ -5,16 +5,25 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 export class AnalyticsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getDashboardMetrics() {
+  async getDashboardMetrics(propertyId?: string) {
     // We default to UTC for start and end of "today"
     const now = new Date();
     const startOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
     const endOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999));
 
     // 1. Occupancy Rate
-    const totalRooms = await this.prisma.room.count();
+    const totalRooms = await this.prisma.room.count({
+      where: {
+        isActive: true,
+        ...(propertyId ? { propertyId } : {}),
+      },
+    });
     const occupiedRooms = await this.prisma.room.count({
-      where: { status: 'OCCUPIED' },
+      where: {
+        status: 'OCCUPIED',
+        isActive: true,
+        ...(propertyId ? { propertyId } : {}),
+      },
     });
     
     // Formatting as a percentage string e.g., "75.0%"
@@ -31,6 +40,7 @@ export class AnalyticsService {
           lte: endOfToday,
         },
         status: 'CHECKED_IN',
+        ...(propertyId ? { propertyId } : {}),
       },
     });
 
@@ -38,38 +48,57 @@ export class AnalyticsService {
     const pendingReservations = await this.prisma.reservation.count({
       where: {
         status: 'PENDING',
+        ...(propertyId ? { propertyId } : {}),
       },
     });
 
     // 4. Today's Collected Revenue
     const revenueItems = await this.prisma.folioLineItem.aggregate({
       _sum: { amount: true },
-      where: { type: 'PAYMENT', createdAt: { gte: startOfToday, lte: endOfToday } },
+      where: {
+        type: 'PAYMENT',
+        createdAt: { gte: startOfToday, lte: endOfToday },
+        ...(propertyId ? { folio: { propertyId } } : {}),
+      },
     });
 
     const ticketRevenueItems = await this.prisma.ticket.aggregate({
       _sum: { price: true },
-      where: { issueDate: { gte: startOfToday, lte: endOfToday }, status: { in: ['VALID', 'USED'] } },
+      where: {
+        issueDate: { gte: startOfToday, lte: endOfToday },
+        status: { in: ['VALID', 'USED'] },
+        ...(propertyId ? { propertyId } : {}),
+      },
     });
 
     const posRevenueItems = await this.prisma.posPayment.aggregate({
       _sum: { amount: true },
-      where: { createdAt: { gte: startOfToday, lte: endOfToday } },
+      where: {
+        createdAt: { gte: startOfToday, lte: endOfToday },
+        ...(propertyId ? { propertyId } : {}),
+      },
     });
 
     // 5. Outstanding Revenue (Unpaid open folio balances + unpaid company balances + unpaid POS orders)
     const openFolios = await this.prisma.folio.aggregate({
       _sum: { balance: true },
-      where: { status: 'OPEN' }
+      where: {
+        status: 'OPEN',
+        ...(propertyId ? { propertyId } : {}),
+      }
     });
     
     const companyBalances = await this.prisma.company.aggregate({
       _sum: { balance: true },
+      where: propertyId ? { propertyId } : {},
     });
 
     const openPosOrders = await this.prisma.posOrder.aggregate({
       _sum: { totalAmount: true, discountAmount: true },
-      where: { status: { in: ['OPEN', 'SERVED'] } }
+      where: {
+        status: { in: ['OPEN', 'SERVED'] },
+        ...(propertyId ? { propertyId } : {}),
+      }
     });
     const posOutstanding = (openPosOrders._sum.totalAmount?.toNumber() || 0) - (openPosOrders._sum.discountAmount?.toNumber() || 0);
 
