@@ -8,14 +8,19 @@ import { UpdateUserDto } from './dto/update-user.dto';
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll() {
+  async findAll(currentUser?: any) {
+    const isSuperAdmin = currentUser?.roles?.includes('SUPER_ADMIN');
     return this.prisma.user.findMany({
-      where: { deletedAt: null },
+      where: { 
+        deletedAt: null,
+        ...(!isSuperAdmin && currentUser?.propertyId ? { propertyId: currentUser.propertyId } : {})
+      },
       select: {
         id: true,
         firstName: true,
         lastName: true,
         email: true,
+        propertyId: true,
         isActive: true,
         isLocked: true,
         createdAt: true,
@@ -50,7 +55,7 @@ export class UsersService {
     });
   }
 
-    async create(createUserDto: CreateUserDto, currentUser?: any) {
+  async create(createUserDto: CreateUserDto, currentUser?: any) {
     if (currentUser?.roles?.includes('MANAGER') && !currentUser?.roles?.some((r: string) => ['SUPER_ADMIN', 'ADMIN', 'CEO'].includes(r))) {
       const assigningRoles = await this.prisma.role.findMany({
         where: { id: { in: createUserDto.roleIds } }
@@ -65,6 +70,7 @@ export class UsersService {
     });
 
     const passwordHash = await argon2.hash(createUserDto.password);
+    const targetPropertyId = createUserDto.propertyId || currentUser?.propertyId || null;
 
     if (existingUser) {
       if (existingUser.deletedAt) {
@@ -77,6 +83,7 @@ export class UsersService {
             firstName: createUserDto.firstName,
             lastName: createUserDto.lastName,
             passwordHash,
+            ...(targetPropertyId ? { propertyId: targetPropertyId } : {}),
             roles: { set: createUserDto.roleIds.map((id) => ({ id })) },
           },
           select: {
@@ -84,6 +91,7 @@ export class UsersService {
             firstName: true,
             lastName: true,
             email: true,
+            propertyId: true,
             roles: true,
           }
         });
@@ -98,6 +106,7 @@ export class UsersService {
         lastName: createUserDto.lastName,
         email: createUserDto.email,
         passwordHash,
+        ...(targetPropertyId ? { propertyId: targetPropertyId } : {}),
         roles: { connect: createUserDto.roleIds.map((id) => ({ id })) },
       },
       select: {
@@ -105,12 +114,13 @@ export class UsersService {
         firstName: true,
         lastName: true,
         email: true,
+        propertyId: true,
         roles: true,
       }
     });
   }
 
-    async update(id: string, updateUserDto: UpdateUserDto, currentUser?: any) {
+  async update(id: string, updateUserDto: UpdateUserDto, currentUser?: any) {
     if (updateUserDto.roleIds && currentUser?.roles?.includes('MANAGER') && !currentUser?.roles?.some((r: string) => ['SUPER_ADMIN', 'ADMIN', 'CEO'].includes(r))) {
       const assigningRoles = await this.prisma.role.findMany({
         where: { id: { in: updateUserDto.roleIds } }
@@ -125,6 +135,8 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
+    const targetPropertyId = updateUserDto.propertyId || (!user.propertyId ? currentUser?.propertyId : undefined);
+
     return this.prisma.user.update({
       where: { id },
       data: {
@@ -132,6 +144,7 @@ export class UsersService {
         lastName: updateUserDto.lastName,
         email: updateUserDto.email,
         isActive: updateUserDto.isActive,
+        ...(targetPropertyId ? { propertyId: targetPropertyId } : {}),
         ...(updateUserDto.roleIds && {
           roles: { set: updateUserDto.roleIds.map((id) => ({ id })) },
         }),
@@ -141,6 +154,7 @@ export class UsersService {
         firstName: true,
         lastName: true,
         email: true,
+        propertyId: true,
         isActive: true,
         roles: true,
       }

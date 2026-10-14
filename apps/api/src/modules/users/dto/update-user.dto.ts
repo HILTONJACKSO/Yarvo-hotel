@@ -26,5 +26,10 @@ export class UpdateUserDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
+
+  @ApiPropertyOptional()
+  @IsUUID('4')
+  @IsOptional()
+  propertyId?: string;
 }
 

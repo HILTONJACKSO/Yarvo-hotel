@@ -13,8 +13,8 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
-  async findAll() {
-    return this.usersService.findAll();
+  async findAll(@Req() req: any) {
+    return this.usersService.findAll(req.user);
   }
 
   @Get('roles')

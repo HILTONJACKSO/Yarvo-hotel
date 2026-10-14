@@ -37,12 +37,20 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   async validate(payload: { sub: string; email: string; roles: string[]; propertyId: string; features: string[] }) {
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      include: { roles: true },
+      include: { 
+        roles: true,
+        property: {
+          select: { id: true, selectedFeatures: true }
+        }
+      },
     });
 
     if (!user || !user.isActive || user.isLocked) {
       throw new UnauthorizedException('User is not authorized');
     }
+
+    const propertyId = user.propertyId || payload.propertyId;
+    const features = (user.property?.selectedFeatures as string[]) || payload.features || [];
 
     return {
       id: user.id,
@@ -50,8 +58,8 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       roles: user.roles.map((r: any) => r.name),
       firstName: user.firstName,
       lastName: user.lastName,
-      propertyId: payload.propertyId,
-      features: payload.features || [],
+      propertyId,
+      features,
     };
   }
 }

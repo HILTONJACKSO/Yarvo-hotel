@@ -106,15 +106,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       
       const currentItem = matchableItems.find(item => window.location.pathname.startsWith(item.href!));
       if (currentItem) {
+        const isOwnerOrAdmin = user.roles.some((role: string) => 
+          ['admin', 'ceo', 'super_admin'].includes(role.toLowerCase())
+        );
+        const hasFeature = !currentItem.requiredFeature || 
+          (user.features && user.features.includes(currentItem.requiredFeature)) ||
+          (isOwnerOrAdmin && (!user.features || user.features.length === 0));
+
         const hasAccess = user.roles.some((role: string) => 
           currentItem.allowedRoles!.includes(role.toLowerCase())
-        );
+        ) && hasFeature;
+
         if (!hasAccess) {
           // Find the first route this user IS allowed to access
-          const firstAllowed = NAV_ITEMS.find(item => 
-            item.type !== 'divider' && 
-            user.roles.some((role: string) => item.allowedRoles!.includes(role.toLowerCase()))
-          );
+          const firstAllowed = NAV_ITEMS.find(item => {
+            if (item.type === 'divider') return false;
+            const roleOk = user.roles.some((role: string) => item.allowedRoles!.includes(role.toLowerCase()));
+            const featOk = !item.requiredFeature || 
+              (user.features && user.features.includes(item.requiredFeature)) ||
+              (isOwnerOrAdmin && (!user.features || user.features.length === 0));
+            return roleOk && featOk;
+          });
           if (firstAllowed && firstAllowed.type !== 'divider' && firstAllowed.href) {
             router.replace(firstAllowed.href);
           } else if (user.roles.some((r: string) => r.toUpperCase() === 'SUPER_ADMIN')) {
@@ -190,39 +202,62 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         <nav className="sidebar-nav">
-          {NAV_ITEMS.map((item, index) => {
-            if (item.type === 'divider') {
-              return <div key={`divider-${index}`} className="nav-divider" />;
-            }
-            
-            // Filter based on roles
-            const hasAccess = user.roles?.some((role: string) => 
-              item.allowedRoles.includes(role.toLowerCase())
+          {(() => {
+            const isOwnerOrAdmin = user.roles?.some((role: string) => 
+              ['admin', 'ceo', 'super_admin'].includes(role.toLowerCase())
             );
-            
-            // Filter based on selected features (SaaS)
-            const hasFeature = !item.requiredFeature || (user.features && user.features.includes(item.requiredFeature));
-            
-            if (!hasAccess || !hasFeature) return null;
 
-            const IconComponent = item.icon!;
-            return (
-              <a
-                key={item.href}
-                id={item.id}
-                href={item.href}
-                className={`nav-item ${currentPath === item.href ? 'nav-item-active' : ''}`}
-                title={!sidebarOpen ? item.label : undefined}
-                onClick={() => window.innerWidth <= 1024 && setSidebarOpen(false)}
-              >
-                <span className="nav-icon">
-                  <IconComponent size={20} />
-                </span>
-                {sidebarOpen && <span className="nav-label">{item.label}</span>}
-                {currentPath === item.href && <div className="nav-active-bar" />}
-              </a>
-            );
-          })}
+            // Filter items by role and feature
+            const visibleItems = NAV_ITEMS.filter((item) => {
+              if (item.type === 'divider') return true;
+              const hasAccess = user.roles?.some((role: string) => 
+                item.allowedRoles.includes(role.toLowerCase())
+              );
+              const hasFeature = !item.requiredFeature || 
+                (user.features && user.features.includes(item.requiredFeature)) ||
+                (isOwnerOrAdmin && (!user.features || user.features.length === 0));
+              return hasAccess && hasFeature;
+            });
+
+            // Clean up dividers: remove leading, trailing, and consecutive dividers
+            const cleanedItems: NavItem[] = [];
+            for (let i = 0; i < visibleItems.length; i++) {
+              const current = visibleItems[i];
+              if (current.type === 'divider') {
+                if (cleanedItems.length === 0 || cleanedItems[cleanedItems.length - 1].type === 'divider') {
+                  continue;
+                }
+              }
+              cleanedItems.push(current);
+            }
+            if (cleanedItems.length > 0 && cleanedItems[cleanedItems.length - 1].type === 'divider') {
+              cleanedItems.pop();
+            }
+
+            return cleanedItems.map((item, index) => {
+              if (item.type === 'divider') {
+                return <div key={`divider-${index}`} className="nav-divider" />;
+              }
+
+              const IconComponent = item.icon!;
+              return (
+                <a
+                  key={item.href}
+                  id={item.id}
+                  href={item.href}
+                  className={`nav-item ${currentPath === item.href ? 'nav-item-active' : ''}`}
+                  title={!sidebarOpen ? item.label : undefined}
+                  onClick={() => window.innerWidth <= 1024 && setSidebarOpen(false)}
+                >
+                  <span className="nav-icon">
+                    <IconComponent size={20} />
+                  </span>
+                  {sidebarOpen && <span className="nav-label">{item.label}</span>}
+                  {currentPath === item.href && <div className="nav-active-bar" />}
+                </a>
+              );
+            });
+          })()}
         </nav>
 
         <div className="sidebar-footer">
