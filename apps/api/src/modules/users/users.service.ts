@@ -70,10 +70,20 @@ export class UsersService {
     });
 
     const passwordHash = await argon2.hash(createUserDto.password);
-    const targetPropertyId = createUserDto.propertyId || currentUser?.propertyId || null;
+    const isSuperAdmin = currentUser?.roles?.includes('SUPER_ADMIN');
+    if (!isSuperAdmin && !currentUser?.propertyId) {
+      throw new BadRequestException('Your account is not associated with an active property.');
+    }
+    const targetPropertyId = isSuperAdmin
+      ? (createUserDto.propertyId || currentUser?.propertyId || null)
+      : currentUser.propertyId;
 
     if (existingUser) {
       if (existingUser.deletedAt) {
+        // Prevent hijacking accounts across properties
+        if (!isSuperAdmin && existingUser.propertyId && existingUser.propertyId !== currentUser?.propertyId) {
+          throw new BadRequestException('User with this email is already registered to another organization.');
+        }
         // User was soft-deleted, let's reactivate and update them
         return this.prisma.user.update({
           where: { id: existingUser.id },
@@ -135,7 +145,14 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    const targetPropertyId = updateUserDto.propertyId || (!user.propertyId ? currentUser?.propertyId : undefined);
+    const isSuperAdmin = currentUser?.roles?.includes('SUPER_ADMIN');
+    if (!isSuperAdmin && user.propertyId && user.propertyId !== currentUser?.propertyId) {
+      throw new ForbiddenException('You cannot modify staff belonging to another property.');
+    }
+
+    const targetPropertyId = isSuperAdmin
+      ? (updateUserDto.propertyId || user.propertyId)
+      : (user.propertyId || currentUser?.propertyId);
 
     return this.prisma.user.update({
       where: { id },

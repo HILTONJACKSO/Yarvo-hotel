@@ -31,13 +31,19 @@ export class AuthService {
     const lastName = nameParts.slice(1).join(' ') || 'Admin';
 
     return this.prisma.$transaction(async (tx) => {
+      const defaultFeatures = ['FRONT_DESK', 'OPERATIONS', 'STAFF_MANAGEMENT', 'POS', 'EVENTS', 'FINANCE', 'INVENTORY'];
+      const selectedFeatures = (dto.selectedFeatures && dto.selectedFeatures.length > 0)
+        ? dto.selectedFeatures
+        : defaultFeatures;
+
       // 1. Create Property
       const property = await tx.property.create({
         data: {
           name: dto.propertyName,
           address: dto.propertyAddress,
           city: dto.propertyCity,
-          selectedFeatures: dto.selectedFeatures,
+          selectedFeatures,
+          status: 'APPROVED',
         },
       });
 
