@@ -516,30 +516,92 @@ export class PosService {
       where: { id: data.menuItemId }
     });
 
-    let deductField = 'stockMain';
-    if (menuItem?.type === 'DRINK' || menuItem?.type === 'BAR') deductField = 'stockBar';
-    if (menuItem?.type === 'FOOD') deductField = 'stockKitchen';
+    let primaryField = 'stockMain';
+    let deptName = 'Main';
+    if (menuItem?.type === 'DRINK' || menuItem?.type === 'BAR') {
+      primaryField = 'stockBar';
+      deptName = 'Bar';
+    } else if (menuItem?.type === 'FOOD') {
+      primaryField = 'stockKitchen';
+      deptName = 'Kitchen';
+    }
 
     // Verify stock before creating order item
     const recipes = await this.prisma.inventoryRecipe.findMany({
       where: { menuItemId: data.menuItemId }
     });
     
+    // Check stock for all recipe items
+    const deductionPlans: Array<{
+      recipe: typeof recipes[0];
+      invItem: any;
+      deductFromPrimary: number;
+      deductFromMain: number;
+      totalDeduction: number;
+    }> = [];
+
     for (const recipe of recipes) {
-      const deductionAmount = Number(recipe.quantity) * data.quantity;
+      const deductionAmount = Number(recipe.quantity) * Number(data.quantity);
       const invItem = await this.prisma.inventoryItem.findUnique({
         where: { id: recipe.inventoryItemId }
       });
+
       if (invItem) {
-        const currentStock = Number((invItem as any)[deductField]) || 0;
-        if (currentStock < deductionAmount) {
-          const locKey = deductField === 'stockMain' ? 'Main' : deductField.replace('stock', '');
-          throw new BadRequestException(`Not enough stock in ${locKey} Storage to stock out ${data.quantity}. Current: ${currentStock}`);
+        const totalStock = Number(invItem.stockLevel || 0);
+        const primaryStock = Number((invItem as any)[primaryField] || 0);
+        const currentMain = Number(invItem.stockMain || 0);
+        
+        // Calculate unallocated main stock if stockMain desynced
+        const otherAllocated = 
+          Number(invItem.stockKitchen || 0) + 
+          Number(invItem.stockBar || 0) + 
+          Number(invItem.stockHousekeeping || 0) + 
+          Number(invItem.stockBoutique || 0);
+        const unallocatedMain = Math.max(0, totalStock - otherAllocated);
+        const effectiveMain = Math.max(currentMain, unallocatedMain);
+
+        let deductFromPrimary = 0;
+        let deductFromMain = 0;
+
+        if (primaryField === 'stockMain') {
+          // General item - check main & total available
+          const totalAvailable = Math.max(totalStock, effectiveMain);
+          if (totalAvailable < deductionAmount) {
+            throw new BadRequestException(
+              `Not enough stock for "${invItem.name}". Available: ${totalAvailable} ${invItem.unit}, Requested: ${deductionAmount} ${invItem.unit}`
+            );
+          }
+          deductFromMain = deductionAmount;
+        } else {
+          // Departmental item (e.g. Bar or Kitchen)
+          const totalAvailable = primaryStock + effectiveMain;
+          if (totalAvailable < deductionAmount && totalStock < deductionAmount) {
+            throw new BadRequestException(
+              `Not enough stock for "${invItem.name}". Available: ${Math.max(totalAvailable, totalStock)} ${invItem.unit} (${primaryStock} in ${deptName}, ${effectiveMain} in Main), Requested: ${deductionAmount} ${invItem.unit}`
+            );
+          }
+
+          if (primaryStock >= deductionAmount) {
+            // Full amount satisfied by the department (e.g. Bar)
+            deductFromPrimary = deductionAmount;
+          } else {
+            // Take what is available in primary department, and rest from Main storage
+            deductFromPrimary = primaryStock;
+            deductFromMain = deductionAmount - primaryStock;
+          }
         }
+
+        deductionPlans.push({
+          recipe,
+          invItem,
+          deductFromPrimary,
+          deductFromMain,
+          totalDeduction: deductionAmount
+        });
       }
     }
 
-    // Now safe to create
+    // Now safe to create order item
     const item = await this.prisma.posOrderItem.create({
       data: {
         orderId,
@@ -559,15 +621,33 @@ export class PosService {
       data: { status: 'OPEN' }
     });
     
-    // Auto deduct inventory
-    for (const recipe of recipes) {
-      const deductionAmount = Number(recipe.quantity) * data.quantity;
-      await this.prisma.inventoryItem.update({
-        where: { id: recipe.inventoryItemId },
-        data: {
-          [deductField]: { decrement: deductionAmount },
-          stockLevel: { decrement: deductionAmount }
+    // Execute deduction plans
+    for (const plan of deductionPlans) {
+      const inv = plan.invItem;
+      const updateData: any = {
+        stockLevel: { decrement: plan.totalDeduction }
+      };
+
+      if (plan.deductFromPrimary > 0 && primaryField !== 'stockMain') {
+        updateData[primaryField] = { decrement: plan.deductFromPrimary };
+      }
+
+      if (plan.deductFromMain > 0) {
+        const currentMain = Number(inv.stockMain || 0);
+        if (currentMain >= plan.deductFromMain) {
+          updateData.stockMain = { decrement: plan.deductFromMain };
+        } else {
+          // Self-heal stockMain if it was 0 or desynced
+          const remainingTotal = Math.max(0, Number(inv.stockLevel || 0) - plan.totalDeduction);
+          const otherRemaining = 
+            (Number(inv.stockKitchen || 0) + Number(inv.stockBar || 0) + Number(inv.stockHousekeeping || 0) + Number(inv.stockBoutique || 0)) - plan.deductFromPrimary;
+          updateData.stockMain = Math.max(0, remainingTotal - otherRemaining);
         }
+      }
+
+      await this.prisma.inventoryItem.update({
+        where: { id: plan.recipe.inventoryItemId },
+        data: updateData
       });
     }
 

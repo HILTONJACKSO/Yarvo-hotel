@@ -10,9 +10,29 @@ export class InventoryService {
   ) {}
 
   async getInventoryItems(propertyId?: string) {
-    return this.prisma.inventoryItem.findMany({
+    const items = await this.prisma.inventoryItem.findMany({
       where: propertyId ? { propertyId } : {},
       orderBy: { name: 'asc' },
+    });
+
+    // Auto-heal items in response where stockMain was left 0 despite unallocated stockLevel
+    return items.map(item => {
+      const totalStock = Number(item.stockLevel || 0);
+      const otherAllocated = 
+        Number(item.stockKitchen || 0) + 
+        Number(item.stockBar || 0) + 
+        Number(item.stockHousekeeping || 0) + 
+        Number(item.stockBoutique || 0);
+      const unallocated = Math.max(0, totalStock - otherAllocated);
+      const currentMain = Number(item.stockMain || 0);
+
+      if (currentMain < unallocated) {
+        return {
+          ...item,
+          stockMain: unallocated as any
+        };
+      }
+      return item;
     });
   }
 
@@ -27,16 +47,22 @@ export class InventoryService {
       throw new BadRequestException('An item with this name already exists in the system');
     }
 
+    const initialStock = data.stockLevel !== undefined ? Number(data.stockLevel) : 0;
+
     return this.prisma.$transaction(async (tx) => {
       const newItem = await tx.inventoryItem.create({
         data: {
           name: data.name,
           category: data.category || 'GENERAL',
           unit: data.unit,
-          stockLevel: data.stockLevel || 0,
-          stockMain: data.stockLevel || 0,
-          minThreshold: data.minThreshold || 10,
-          costPerUnit: data.costPerUnit || 0,
+          stockLevel: initialStock,
+          stockMain: initialStock,
+          stockKitchen: 0,
+          stockBar: 0,
+          stockHousekeeping: 0,
+          stockBoutique: 0,
+          minThreshold: data.minThreshold !== undefined ? Number(data.minThreshold) : 10,
+          costPerUnit: data.costPerUnit !== undefined ? Number(data.costPerUnit) : 0,
           ...(propertyId ? { propertyId } : {}),
         }
       });
@@ -56,11 +82,24 @@ export class InventoryService {
   }
 
   async updateStock(id: string, amount: number, userId?: string) {
+    const numAmount = Number(amount);
     return this.prisma.$transaction(async (tx) => {
       const oldRecord = await tx.inventoryItem.findUnique({ where: { id } });
+      if (!oldRecord) throw new NotFoundException('Item not found');
+
+      const otherAllocated = 
+        Number(oldRecord.stockKitchen || 0) + 
+        Number(oldRecord.stockBar || 0) + 
+        Number(oldRecord.stockHousekeeping || 0) + 
+        Number(oldRecord.stockBoutique || 0);
+      const newStockMain = Math.max(0, numAmount - otherAllocated);
+
       const newRecord = await tx.inventoryItem.update({
         where: { id },
-        data: { stockLevel: amount },
+        data: { 
+          stockLevel: numAmount,
+          stockMain: newStockMain
+        },
       });
       if (oldRecord) {
         await this.auditLogsService.logAction({
@@ -90,15 +129,27 @@ export class InventoryService {
 
     return this.prisma.$transaction(async (tx) => {
       const oldRecord = await tx.inventoryItem.findUnique({ where: { id } });
+      if (!oldRecord) throw new NotFoundException('Item not found');
+
+      const otherAllocated = 
+        Number(oldRecord.stockKitchen || 0) + 
+        Number(oldRecord.stockBar || 0) + 
+        Number(oldRecord.stockHousekeeping || 0) + 
+        Number(oldRecord.stockBoutique || 0);
+      
+      const newStockLevel = data.stockLevel !== undefined ? Number(data.stockLevel) : Number(oldRecord.stockLevel || 0);
+      const newStockMain = Math.max(0, newStockLevel - otherAllocated);
+
       const newRecord = await tx.inventoryItem.update({
         where: { id },
         data: {
           name: data.name,
-          category: data.category,
-          unit: data.unit,
-          stockLevel: data.stockLevel,
-          minThreshold: data.minThreshold,
-          costPerUnit: data.costPerUnit
+          category: data.category || oldRecord.category,
+          unit: data.unit || oldRecord.unit,
+          stockLevel: newStockLevel,
+          stockMain: newStockMain,
+          minThreshold: data.minThreshold !== undefined ? Number(data.minThreshold) : oldRecord.minThreshold,
+          costPerUnit: data.costPerUnit !== undefined ? Number(data.costPerUnit) : oldRecord.costPerUnit
         }
       });
 
@@ -137,16 +188,30 @@ export class InventoryService {
   }
 
   async stockIn(id: string, data: { amount: number, costPerUnit?: number }, userId?: string) {
+    const amount = Number(data.amount);
+    if (isNaN(amount) || amount <= 0) {
+      throw new BadRequestException('Stock in amount must be greater than 0');
+    }
+
     return this.prisma.$transaction(async (tx) => {
       const oldRecord = await tx.inventoryItem.findUnique({ where: { id } });
       if (!oldRecord) throw new NotFoundException('Item not found');
 
+      const total = Number(oldRecord.stockLevel || 0);
+      const otherAllocated = 
+        Number(oldRecord.stockKitchen || 0) + 
+        Number(oldRecord.stockBar || 0) + 
+        Number(oldRecord.stockHousekeeping || 0) + 
+        Number(oldRecord.stockBoutique || 0);
+      const unallocated = Math.max(0, total - otherAllocated);
+      const currentMain = Math.max(Number(oldRecord.stockMain || 0), unallocated);
+
       const newRecord = await tx.inventoryItem.update({
         where: { id },
         data: {
-          stockLevel: { increment: data.amount },
-          stockMain: { increment: data.amount },
-          ...(data.costPerUnit !== undefined ? { costPerUnit: data.costPerUnit } : {})
+          stockLevel: total + amount,
+          stockMain: currentMain + amount,
+          ...(data.costPerUnit !== undefined ? { costPerUnit: Number(data.costPerUnit) } : {})
         },
       });
 
@@ -163,6 +228,11 @@ export class InventoryService {
   }
 
   async stockOut(id: string, data: { amount: number, staffName: string, reason?: string, location?: string }, userId?: string) {
+    const amount = Number(data.amount);
+    if (isNaN(amount) || amount <= 0) {
+      throw new BadRequestException('Stock out amount must be greater than 0');
+    }
+
     return this.prisma.$transaction(async (tx) => {
       const oldRecord = await tx.inventoryItem.findUnique({ where: { id } });
       if (!oldRecord) throw new NotFoundException('Item not found');
@@ -177,16 +247,27 @@ export class InventoryService {
       const locKey = data.location ? data.location.toUpperCase() : 'MAIN';
       const targetField = locMap[locKey] || 'stockMain';
 
-      const currentStock = Number((oldRecord as any)[targetField]) || 0;
-      if (currentStock < data.amount) {
-        throw new BadRequestException(`Not enough stock in ${locKey} Storage to stock out ${data.amount}. Current: ${currentStock}`);
+      let currentStock = Number((oldRecord as any)[targetField]) || 0;
+      if (targetField === 'stockMain') {
+        const total = Number(oldRecord.stockLevel || 0);
+        const otherAllocated = 
+          Number(oldRecord.stockKitchen || 0) + 
+          Number(oldRecord.stockBar || 0) + 
+          Number(oldRecord.stockHousekeeping || 0) + 
+          Number(oldRecord.stockBoutique || 0);
+        const unallocated = Math.max(0, total - otherAllocated);
+        if (currentStock < unallocated) currentStock = unallocated;
+      }
+
+      if (currentStock < amount) {
+        throw new BadRequestException(`Not enough stock in ${locKey} Storage to stock out ${amount}. Current: ${currentStock}`);
       }
 
       const newRecord = await tx.inventoryItem.update({
         where: { id },
         data: {
-          stockLevel: { decrement: data.amount },
-          [targetField]: { decrement: data.amount },
+          stockLevel: Math.max(0, Number(oldRecord.stockLevel || 0) - amount),
+          [targetField]: Math.max(0, currentStock - amount),
         },
       });
 
@@ -207,34 +288,60 @@ export class InventoryService {
   }
 
   async transferStock(id: string, data: { from: string, to: string, amount: number }, userId?: string) {
+    const amount = Number(data.amount);
+    if (isNaN(amount) || amount <= 0) {
+      throw new BadRequestException('Transfer amount must be a positive number');
+    }
+
     const fieldMap: Record<string, string> = {
       'MAIN': 'stockMain',
       'KITCHEN': 'stockKitchen',
       'BAR': 'stockBar',
       'HOUSEKEEPING': 'stockHousekeeping',
-        'BOUTIQUE': 'stockBoutique'
+      'BOUTIQUE': 'stockBoutique'
     };
 
-    const fromField = fieldMap[data.from];
-    const toField = fieldMap[data.to];
+    const fromKey = (data.from || '').toUpperCase();
+    const toKey = (data.to || '').toUpperCase();
+    const fromField = fieldMap[fromKey];
+    const toField = fieldMap[toKey];
 
-    if (!fromField || !toField) throw new BadRequestException('Invalid department');
+    if (!fromField || !toField) throw new BadRequestException(`Invalid department: ${data.from} or ${data.to}`);
     if (fromField === toField) throw new BadRequestException('Source and destination cannot be the same');
 
     return this.prisma.$transaction(async (tx) => {
       const item: any = await tx.inventoryItem.findUnique({ where: { id } });
       if (!item) throw new NotFoundException('Item not found');
 
-      const currentFromStock = Number(item[fromField]);
-      if (currentFromStock < data.amount) {
-        throw new BadRequestException(`Not enough stock in ${data.from}`);
+      let currentFromStock = Number(item[fromField]) || 0;
+
+      // Auto-heal stockMain if source is MAIN and stockMain had desynced from unallocated stockLevel
+      if (fromField === 'stockMain') {
+        const total = Number(item.stockLevel || 0);
+        const otherAllocated = 
+          Number(item.stockKitchen || 0) + 
+          Number(item.stockBar || 0) + 
+          Number(item.stockHousekeeping || 0) + 
+          Number(item.stockBoutique || 0);
+        const unallocated = Math.max(0, total - otherAllocated);
+        if (currentFromStock < unallocated) {
+          currentFromStock = unallocated;
+        }
       }
+
+      if (currentFromStock < amount) {
+        throw new BadRequestException(`Not enough stock in ${fromKey}. Available: ${currentFromStock}, Requested: ${amount}`);
+      }
+
+      const newFromStock = Math.max(0, currentFromStock - amount);
+      const currentToStock = Number(item[toField]) || 0;
+      const newToStock = currentToStock + amount;
 
       const newRecord = await tx.inventoryItem.update({
         where: { id },
         data: {
-          [fromField]: { decrement: data.amount },
-          [toField]: { increment: data.amount },
+          [fromField]: newFromStock,
+          [toField]: newToStock,
         }
       });
 

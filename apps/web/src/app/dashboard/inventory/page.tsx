@@ -8,7 +8,7 @@ import { useToast } from '@/components/ui/toast-provider';
 import { useAuth } from '@/lib/auth-provider';
 import { useCurrency } from '@/lib/currency';
 import { Plus, Minus, Edit, ArrowRightLeft, Trash2, Search, PackagePlus, Printer } from 'lucide-react';
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = '';
 
 type InventoryItem = {
   id: string;
@@ -261,72 +261,114 @@ export default function InventoryPage() {
   const handleTransfer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!transferItem) return;
+    const amount = Number(transferData.amount);
+    if (!amount || amount <= 0) {
+      showToast('Please enter a valid transfer amount greater than 0', 'error', 'Invalid Amount');
+      return;
+    }
     try {
       const res = await fetch(`${API_URL}/api/v1/inventory/${transferItem.id}/transfer`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify(transferData)
+        body: JSON.stringify({
+          from: transferData.from,
+          to: transferData.to,
+          amount
+        })
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || 'Failed to transfer');
       }
-      showToast('Stock transferred successfully', 'success');
+      const jsonRes = await res.json().catch(() => null);
+      const updated = jsonRes?.data || jsonRes;
+      if (updated && updated.id) {
+        await db.inventory.put(updated);
+      }
+      showToast(`Transferred ${amount} ${transferItem.unit} to ${transferData.to} successfully`, 'success', 'Transfer Complete');
       setShowTransferModal(false);
       setTransferItem(null);
       setTransferData({ from: 'MAIN', to: 'BAR', amount: 0 });
       fetchItems();
     } catch (err: any) {
-      showToast(err.message || 'Failed to transfer', 'error');
+      showToast(err.message || 'Failed to transfer', 'error', 'Transfer Failed');
     }
   };
 
   const handleStockIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!stockItem) return;
+    const amount = Number(stockInData.amount);
+    if (!amount || amount <= 0) {
+      showToast('Please enter a valid amount greater than 0', 'error', 'Invalid Amount');
+      return;
+    }
     try {
       const res = await fetch(`${API_URL}/api/v1/inventory/${stockItem.id}/stock-in`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify(stockInData)
+        body: JSON.stringify({
+          amount,
+          costPerUnit: Number(stockInData.costPerUnit || 0)
+        })
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || 'Failed to stock in');
       }
-      showToast('Stock added successfully', 'success');
+      const jsonRes = await res.json().catch(() => null);
+      const updated = jsonRes?.data || jsonRes;
+      if (updated && updated.id) {
+        await db.inventory.put(updated);
+      }
+      showToast(`Added ${amount} ${stockItem.unit} to stock successfully`, 'success', 'Stock Added');
       setShowStockInModal(false);
       setStockItem(null);
       setStockInData({ amount: 0, costPerUnit: 0 });
       fetchItems();
     } catch (err: any) {
-      showToast(err.message || 'Failed to stock in', 'error');
+      showToast(err.message || 'Failed to stock in', 'error', 'Stock In Failed');
     }
   };
 
   const handleStockOut = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!stockItem) return;
+    const amount = Number(stockOutData.amount);
+    if (!amount || amount <= 0) {
+      showToast('Please enter a valid amount greater than 0', 'error', 'Invalid Amount');
+      return;
+    }
     try {
       const res = await fetch(`${API_URL}/api/v1/inventory/${stockItem.id}/stock-out`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify(stockOutData)
+        body: JSON.stringify({
+          amount,
+          staffName: stockOutData.staffName,
+          reason: stockOutData.reason,
+          location: stockOutData.location
+        })
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || 'Failed to stock out');
       }
-      showToast('Stock reduced successfully', 'success');
+      const jsonRes = await res.json().catch(() => null);
+      const updated = jsonRes?.data || jsonRes;
+      if (updated && updated.id) {
+        await db.inventory.put(updated);
+      }
+      showToast(`Stock reduced by ${amount} ${stockItem.unit} successfully`, 'success', 'Stock Reduced');
       setShowStockOutModal(false);
       setStockItem(null);
       setStockOutData({ amount: 0, staffName: '', reason: '', location: 'MAIN' });
       fetchItems();
     } catch (err: any) {
-      showToast(err.message || 'Failed to stock out', 'error');
+      showToast(err.message || 'Failed to stock out', 'error', 'Stock Out Failed');
     }
   };
 
@@ -672,32 +714,47 @@ export default function InventoryPage() {
         <div className="modal-overlay">
           <div className="modal-content">
             <h3>Transfer Stock: {transferItem.name}</h3>
+            <p style={{ color: 'hsl(215, 20%, 65%)', fontSize: '13px', marginBottom: '16px' }}>
+              Move physical stock between hotel storage locations. Total Item Stock: <strong>{Number(transferItem.stockLevel || 0).toFixed(2)} {transferItem.unit}</strong>
+            </p>
             <form onSubmit={handleTransfer}>
               <div className="form-row">
                 <div className="form-group">
-                  <label>From</label>
+                  <label>From (Source Storage)</label>
                   <select required value={transferData.from} onChange={e => setTransferData({...transferData, from: e.target.value})}>
-                    <option value="MAIN">Main Storage</option>
-                    <option value="KITCHEN">Kitchen</option>
-                    <option value="BAR">Bar</option>
-                    <option value="HOUSEKEEPING">Housekeeping</option>
-                      <option value="BOUTIQUE">Boutique</option>
-                    </select>
+                    <option value="MAIN">Main Storage ({(() => {
+                      const total = Number(transferItem.stockLevel || 0);
+                      const other = Number(transferItem.stockKitchen || 0) + Number(transferItem.stockBar || 0) + Number(transferItem.stockHousekeeping || 0) + Number(transferItem.stockBoutique || 0);
+                      return Math.max(Number(transferItem.stockMain || 0), Math.max(0, total - other)).toFixed(2);
+                    })()} available)</option>
+                    <option value="BAR">Bar ({Number(transferItem.stockBar || 0).toFixed(2)} available)</option>
+                    <option value="KITCHEN">Kitchen ({Number(transferItem.stockKitchen || 0).toFixed(2)} available)</option>
+                    <option value="HOUSEKEEPING">Housekeeping ({Number(transferItem.stockHousekeeping || 0).toFixed(2)} available)</option>
+                    <option value="BOUTIQUE">Boutique ({Number(transferItem.stockBoutique || 0).toFixed(2)} available)</option>
+                  </select>
                 </div>
                 <div className="form-group">
-                  <label>To</label>
+                  <label>To (Destination)</label>
                   <select required value={transferData.to} onChange={e => setTransferData({...transferData, to: e.target.value})}>
+                    <option value="BAR">Bar Storage</option>
+                    <option value="KITCHEN">Kitchen Storage</option>
                     <option value="MAIN">Main Storage</option>
-                    <option value="KITCHEN">Kitchen</option>
-                    <option value="BAR">Bar</option>
                     <option value="HOUSEKEEPING">Housekeeping</option>
-                      <option value="BOUTIQUE">Boutique</option>
-                    </select>
+                    <option value="BOUTIQUE">Boutique</option>
+                  </select>
                 </div>
               </div>
               <div className="form-group">
                 <label>Amount to transfer ({transferItem.unit})</label>
-                <input required type="number" step="0.01" min="0.01" value={transferData.amount} onChange={e => setTransferData({...transferData, amount: Number(e.target.value)})} />
+                <input 
+                  required 
+                  type="number" 
+                  step="0.01" 
+                  min="0.01" 
+                  placeholder="Enter amount..."
+                  value={transferData.amount === 0 ? '' : transferData.amount} 
+                  onChange={e => setTransferData({...transferData, amount: Number(e.target.value)})} 
+                />
               </div>
               <div className="modal-actions">
                 <button type="button" className="btn-cancel" onClick={() => setShowTransferModal(false)}>Cancel</button>

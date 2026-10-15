@@ -217,7 +217,22 @@ export async function downloadLatestData() {
       fetch('/api/v1/inventory?limit=1000', { credentials: 'include' }),
       fetch('/api/v1/taxes', { credentials: 'include' })
     ]);
-    if (invRes.ok) { const d = await invRes.json(); const items = extractArray(d); if (items.length > 0) await db.inventory.bulkPut(items); }
+    if (invRes.ok) {
+      const d = await invRes.json();
+      const serverItems = extractArray(d);
+      if (serverItems.length > 0 || (d.data && Array.isArray(d.data))) {
+        const serverIds = new Set(serverItems.map((i: any) => i.id));
+        const localItems = await db.inventory.toArray();
+        for (const li of localItems) {
+          if (!serverIds.has(li.id)) {
+            await db.inventory.delete(li.id);
+          }
+        }
+        if (serverItems.length > 0) {
+          await db.inventory.bulkPut(serverItems);
+        }
+      }
+    }
     if (taxRes.ok) { const d = await taxRes.json(); const taxes = extractArray(d); if (taxes.length > 0) await db.taxes.bulkPut(taxes); }
     
     
