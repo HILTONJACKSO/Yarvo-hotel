@@ -283,8 +283,9 @@ export class PosService {
     return this.prisma.posOrder.findMany({
       where: { 
         ...(propertyId ? { propertyId } : {}),
+        status: { notIn: ['PAID', 'BILLED_TO_ROOM', 'CANCELLED'] },
         OR: [
-          { status: { notIn: ['PAID', 'BILLED_TO_ROOM', 'SERVED'] } },
+          { status: { notIn: ['SERVED'] } },
           { items: { some: { status: { in: ['PENDING', 'RETURN_REQUESTED'] } } } }
         ]
       },
@@ -901,25 +902,83 @@ export class PosService {
 
   // --- Return Workflow ---
 
-  async requestReturn(itemId: string, userId: string) {
+  async requestReturn(itemId: string, userId: string, reason?: string, quantity?: number, note?: string) {
     const item = await this.prisma.posOrderItem.findUnique({
-      where: { id: itemId }
+      where: { id: itemId },
+      include: { menuItem: true, order: true }
     });
-    if (!item) throw new Error("Item not found");
-    if (item.status === "RETURN_REQUESTED" || item.status === "RETURNED") {
-      throw new Error("Item is already requested for return or returned");
+    if (!item) throw new NotFoundException("Item not found");
+    if (item.status === "RETURNED") {
+      throw new BadRequestException("Item is already returned");
     }
 
+    const fullReason = [reason, note].filter(Boolean).join(' - ') || 'Customer return request';
+
+    // If partial return (quantity < item.quantity), split the item!
+    if (quantity && quantity > 0 && quantity < item.quantity) {
+      const returnQty = quantity;
+      const keepQty = item.quantity - returnQty;
+
+      // Update original item with remaining quantity
+      await this.prisma.posOrderItem.update({
+        where: { id: itemId },
+        data: { quantity: keepQty }
+      });
+
+      // Create new order item for the returned portion
+      const splitItem = await this.prisma.posOrderItem.create({
+        data: {
+          orderId: item.orderId,
+          menuItemId: item.menuItemId,
+          quantity: returnQty,
+          notes: item.notes,
+          status: 'RETURN_REQUESTED'
+        }
+      });
+
+      // Recalculate order total
+      await this.recalculateOrderTotal(item.orderId);
+
+      // Create return request for the split item
+      return this.prisma.posReturnRequest.create({
+        data: {
+          orderItemId: splitItem.id,
+          requestedById: userId,
+          kitchenNote: fullReason,
+          status: 'PENDING_APPROVAL'
+        }
+      });
+    }
+
+    // Full item return
     await this.prisma.posOrderItem.update({
       where: { id: itemId },
-      data: { status: 'RETURN_REQUESTED' }
+      data: { 
+        status: 'RETURN_REQUESTED'
+      }
     });
+
+    const existing = await this.prisma.posReturnRequest.findFirst({
+      where: { orderItemId: itemId },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    if (existing) {
+      return this.prisma.posReturnRequest.update({
+        where: { id: existing.id },
+        data: {
+          kitchenNote: fullReason,
+          status: 'PENDING_APPROVAL'
+        }
+      });
+    }
 
     return this.prisma.posReturnRequest.create({
       data: {
         orderItemId: itemId,
         requestedById: userId,
-        status: 'PENDING_CONFIRMATION'
+        kitchenNote: fullReason,
+        status: 'PENDING_APPROVAL'
       }
     });
   }
@@ -928,7 +987,7 @@ export class PosService {
     const where: any = {};
     if (start && end) {
       where.OR = [
-        { status: 'PENDING_APPROVAL' },
+        { status: { in: ['PENDING_APPROVAL', 'PENDING_CONFIRMATION'] } },
         {
           createdAt: {
             gte: new Date(start),

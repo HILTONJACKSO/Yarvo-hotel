@@ -161,8 +161,12 @@ export class PosController {
 
   // --- Return Workflow ---
   @Post('order-items/:itemId/return-request')
-  requestReturn(@Param('itemId') itemId: string, @Req() req: any) {
-    return this.posService.requestReturn(itemId, req.user.id);
+  requestReturn(
+    @Param('itemId') itemId: string,
+    @Body() body: { reason?: string; quantity?: number; note?: string },
+    @Req() req: any
+  ) {
+    return this.posService.requestReturn(itemId, req.user.id, body?.reason, body?.quantity, body?.note);
   }
 
   @Get('returns')

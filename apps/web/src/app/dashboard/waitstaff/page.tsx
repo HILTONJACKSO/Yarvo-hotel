@@ -6,7 +6,8 @@ import { db } from '@/lib/db';
 import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
 import { useToast } from '@/components/ui/toast-provider';
 import { useCurrency } from '@/lib/currency';
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+import ReturnItemModal from '@/components/pos/ReturnItemModal';
+const API_URL = '';
 
 type PosOrderItem = {
   id: string;
@@ -30,6 +31,14 @@ export default function WaitstaffPage() {
   const servedItems = dbOrders.flatMap(o => (o.items || []).filter(i => i.status === 'SERVED' || i.status === 'RETURN_REQUESTED' || i.status === 'RETURNED').map(i => ({ ...i, order: o })));
   const [printItem, setPrintItem] = useState<PosOrderItem | null>(null);
   const [stats, setStats] = useState({ totalOrders: 0, totalRevenue: 0 });
+  const [returnModalItem, setReturnModalItem] = useState<{
+    id: string;
+    name: string;
+    quantity: number;
+    price: number | string;
+    tableOrRoom?: string;
+  } | null>(null);
+  const [isSubmittingReturn, setIsSubmittingReturn] = useState(false);
 
   const fetchItems = async () => {
     const pendingCount = await db.syncQueue.count();
@@ -132,12 +141,13 @@ export default function WaitstaffPage() {
     }, 100);
   };
 
-  const requestReturn = async (itemId: string) => {
+  const handleReturnSubmit = async ({ itemId, reason, quantity, note }: { itemId: string; reason: string; quantity: number; note: string }) => {
+    setIsSubmittingReturn(true);
     try {
       const allOrders = await db.posOrders.toArray();
       let foundOrder = null;
       for (const order of allOrders) {
-         const hasItem = order.items?.some(i => i.id === itemId);
+         const hasItem = order.items?.some((i: any) => i.id === itemId);
          if (hasItem) {
              foundOrder = order;
              break;
@@ -145,28 +155,44 @@ export default function WaitstaffPage() {
       }
       
       if (foundOrder) {
-          foundOrder.items = foundOrder.items.map(i => {
+          foundOrder.items = foundOrder.items.map((i: any) => {
               if (i.id === itemId) {
-                  return { ...i, status: 'RETURN_REQUESTED', returnRequest: { id: 'temp_' + Date.now(), status: 'PENDING' } };
+                  return { ...i, status: 'RETURN_REQUESTED', returnRequest: { id: 'temp_' + Date.now(), status: 'PENDING_APPROVAL' } };
               }
               return i;
           });
           await db.posOrders.put(foundOrder);
       }
 
-      await db.syncQueue.add({
-        url: `/api/v1/pos/order-items/${itemId}/return-request`,
-        method: 'POST',
-        payload: { reason: 'Guest return request' },
-        createdAt: Date.now(),
-        status: 'PENDING',
-        retryCount: 0
-      });
-      if (navigator.onLine) syncOfflineMutations();
+      if (navigator.onLine) {
+        const res = await fetch(`/api/v1/pos/order-items/${itemId}/return-request`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ reason, quantity, note })
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.message || `Failed to submit return request (${res.status})`);
+        }
+        await downloadLatestData();
+      } else {
+        await db.syncQueue.add({
+          url: `/api/v1/pos/order-items/${itemId}/return-request`,
+          method: 'POST',
+          payload: { reason, quantity, note },
+          createdAt: Date.now(),
+          status: 'PENDING',
+          retryCount: 0
+        });
+      }
 
-      showToast('Return requested successfully', 'success', 'Success');
-    } catch (err) {
-      showToast('Failed to request return', 'error');
+      showToast('Return requested successfully. Sent for manager approval.', 'success', 'Success');
+      setReturnModalItem(null);
+    } catch (err: any) {
+      showToast(err.message || 'Failed to request return', 'error');
+    } finally {
+      setIsSubmittingReturn(false);
     }
   };
 
@@ -269,7 +295,23 @@ export default function WaitstaffPage() {
                   {item.notes && <div className="notes" style={{ fontSize: '0.85rem', color: '#888', marginTop: '4px' }}>Note: {item.notes}</div>}
                   <div style={{ marginTop: '8px' }}>
                     {item.status === 'SERVED' ? (
-                      <button className="btn-secondary btn-sm" onClick={() => requestReturn(item.id)} style={{ color: 'hsl(0, 84%, 60%)', borderColor: 'hsl(0, 84%, 30%)' }}>Request Return</button>
+                      <button 
+                        className="btn-secondary btn-sm" 
+                        onClick={() => setReturnModalItem({
+                          id: item.id,
+                          name: item.menuItem.name,
+                          quantity: item.quantity,
+                          price: item.menuItem.price,
+                          tableOrRoom: group.order?.folio?.reservation?.room 
+                            ? `Room ${group.order.folio.reservation.room.number}` 
+                            : group.order?.table?.number 
+                              ? `Table ${group.order.table.number}` 
+                              : 'Walk-in'
+                        })} 
+                        style={{ color: 'hsl(0, 84%, 60%)', borderColor: 'hsl(0, 84%, 30%)' }}
+                      >
+                        Request Return
+                      </button>
                     ) : (
                       <span className="text-warning" style={{ fontSize: '0.8rem' }}>{item.status.replace('_', ' ')}</span>
                     )}
@@ -326,6 +368,14 @@ export default function WaitstaffPage() {
           </div>
         </div>
       )}
+
+      <ReturnItemModal
+        isOpen={!!returnModalItem}
+        item={returnModalItem}
+        onClose={() => setReturnModalItem(null)}
+        onSubmit={handleReturnSubmit}
+        isSubmitting={isSubmittingReturn}
+      />
 
       <style>{`
         .waitstaff-layout { padding: 20px; }

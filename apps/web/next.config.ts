@@ -9,10 +9,11 @@ const withSerwist = withSerwistInit({
 
 const nextConfig: NextConfig = {
   async rewrites() {
+    const apiTarget = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     return [
       {
         source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'}/api/:path*`,
+        destination: `${apiTarget}/api/:path*`,
       },
     ];
   },

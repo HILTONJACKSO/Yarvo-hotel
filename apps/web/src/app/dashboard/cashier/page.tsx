@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/toast-provider';
 import { useCurrency } from '@/lib/currency';
 import { useAuth } from '@/lib/auth-provider';
 import { getDefaultReceiptInvoiceSettings, generateThermalReceiptHtml } from '@/lib/receipt-invoice-helper';
+import ReturnItemModal from '@/components/pos/ReturnItemModal';
 const API_URL = '';
 
 type PosOrder = {
@@ -339,7 +340,59 @@ export default function CashierPage() {
     return () => clearInterval(interval);
   }, []);
 
-    const printViaIframe = (mode: 'RECEIPT' | 'INVOICE') => {
+  const [returnModalItem, setReturnModalItem] = useState<{
+    id: string;
+    name: string;
+    quantity: number;
+    price: number | string;
+    tableOrRoom?: string;
+  } | null>(null);
+  const [isSubmittingReturn, setIsSubmittingReturn] = useState(false);
+
+  const handleReturnSubmit = async ({ itemId, reason, quantity, note }: { itemId: string; reason: string; quantity: number; note: string }) => {
+    setIsSubmittingReturn(true);
+    try {
+      if (navigator.onLine) {
+        const res = await fetch(`/api/v1/pos/order-items/${itemId}/return-request`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ reason, quantity, note })
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.message || `Failed to submit return request (${res.status})`);
+        }
+        await downloadLatestData();
+        await fetchOrders();
+      } else {
+        await db.syncQueue.add({
+          url: `/api/v1/pos/order-items/${itemId}/return-request`,
+          method: 'POST',
+          payload: { reason, quantity, note },
+          createdAt: Date.now(),
+          status: 'PENDING',
+          retryCount: 0
+        });
+      }
+
+      showToast('Return requested successfully. Sent for manager approval.', 'success', 'Success');
+      setReturnModalItem(null);
+      // Update selectedOrder view locally
+      if (selectedOrder) {
+        setSelectedOrder((prev: any) => prev ? {
+          ...prev,
+          items: prev.items.map((i: any) => i.id === itemId ? { ...i, status: 'RETURN_REQUESTED' } : i)
+        } : null);
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Failed to request return', 'error');
+    } finally {
+      setIsSubmittingReturn(false);
+    }
+  };
+
+  const printViaIframe = (mode: 'RECEIPT' | 'INVOICE') => {
     if (!selectedOrder) return;
     const iframe = document.createElement('iframe');
     iframe.style.position = 'absolute';
@@ -567,7 +620,10 @@ export default function CashierPage() {
           await db.posOrders.put(order);
       }
       
-      const payload: any = { discountAmount: calculatedDiscount };
+      const payload: any = { 
+        discountAmount: calculatedDiscount,
+        discountReason: calculatedDiscount > 0 ? `Discount of ${discountValue}${discountType === 'PERCENT' ? '%' : currencySymbol}` : undefined
+      };
       if (isRoomOrder) {
         payload.folioId = targetFolioId;
       }
@@ -700,11 +756,50 @@ export default function CashierPage() {
             <div className="receipt">
                 {selectedOrder.items.map((item: any) => {
                   const isReturned = item.status === 'RETURNED';
+                  const isReturnRequested = item.status === 'RETURN_REQUESTED';
                   return (
-                  <div key={item.id} className={`receipt-item ${isReturned ? 'text-rose-400' : ''}`}>
-                    <span className="qty">{item.quantity}x</span>
-                    <span className="name">{isReturned ? '(Returned) ' : ''}{item.menuItem.name}</span>
-                    <span className="price">{isReturned ? format(0) : format(Number(item.menuItem.price) * item.quantity)}</span>
+                  <div key={item.id} className={`receipt-item ${isReturned ? 'text-rose-400' : ''}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+                      <span className="qty" style={{ fontWeight: 'bold' }}>{item.quantity}x</span>
+                      <span className="name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {isReturned ? '(Returned) ' : isReturnRequested ? '(Return Pending) ' : ''}{item.menuItem.name}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '8px' }}>
+                      <span className="price" style={{ fontWeight: 600 }}>{isReturned ? format(0) : format(Number(item.menuItem.price) * item.quantity)}</span>
+                      {!isReturned && !isReturnRequested && selectedOrder.status !== 'PAID' && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setReturnModalItem({
+                              id: item.id,
+                              name: item.menuItem.name,
+                              quantity: item.quantity,
+                              price: item.menuItem.price,
+                              tableOrRoom: selectedOrder.folio?.reservation?.room 
+                                ? `Room ${selectedOrder.folio.reservation.room.number}` 
+                                : selectedOrder.table?.number 
+                                  ? `Table ${selectedOrder.table.number}` 
+                                  : 'Walk-in'
+                            });
+                          }}
+                          style={{
+                            background: 'rgba(239, 68, 68, 0.15)',
+                            border: '1px solid rgba(239, 68, 68, 0.4)',
+                            color: '#f87171',
+                            fontSize: '0.75rem',
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontWeight: 600
+                          }}
+                          title="Request return for this item"
+                        >
+                          Return
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )})}
               <div className="receipt-total" style={{ borderBottom: calculatedDiscount > 0 ? 'none' : '', paddingBottom: calculatedDiscount > 0 ? '4px' : '' }}>
@@ -967,6 +1062,14 @@ export default function CashierPage() {
           </div>
         )}
       </div>
+
+      <ReturnItemModal
+        isOpen={!!returnModalItem}
+        item={returnModalItem}
+        onClose={() => setReturnModalItem(null)}
+        onSubmit={handleReturnSubmit}
+        isSubmitting={isSubmittingReturn}
+      />
 
       <style>{`
         .cashier-layout { padding: 20px; display: flex; flex-direction: column; height: 100%; }

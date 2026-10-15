@@ -7,7 +7,7 @@ import { useToast } from '@/components/ui/toast-provider';
 import { useCurrency } from '@/lib/currency';
 import ReportExportToolbar from '@/components/ReportExportToolbar';
 import { downloadCSV } from '@/utils/export';
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = '';
 
 type PosReturnRequest = {
   id: string;
@@ -49,14 +49,20 @@ export default function ReturnsPage() {
 
   const fetchReturns = useCallback(() => {
     const query = `?start=${dateRange.start}&end=${dateRange.end}`;
-    fetch(`${API_URL}/api/v1/pos/returns${query}`, { credentials: 'include' })
+    fetch(`/api/v1/pos/returns${query}`, { credentials: 'include' })
       .then(res => res.json())
-      .then(data => setReturns(data.data || data))
+      .then(data => {
+        const list = Array.isArray(data) ? data : (data.data || []);
+        setReturns(list);
+      })
       .catch(console.error);
 
-    fetch(`${API_URL}/api/v1/analytics/discounts${query}`, { credentials: 'include' })
+    fetch(`/api/v1/analytics/discounts${query}`, { credentials: 'include' })
       .then(res => res.json())
-      .then(data => setDiscounts(data.data || []))
+      .then(data => {
+        const list = Array.isArray(data) ? data : (data.data || []);
+        setDiscounts(list);
+      })
       .catch(console.error);
   }, [dateRange.start, dateRange.end]);
 
@@ -124,7 +130,7 @@ export default function ReturnsPage() {
 
   const handleApprove = async (returnId: string, approved: boolean) => {
     try {
-      const res = await fetch(`${API_URL}/api/v1/pos/returns/${returnId}/approve`, {
+      const res = await fetch(`/api/v1/pos/returns/${returnId}/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -152,9 +158,9 @@ export default function ReturnsPage() {
       <div className="flex gap-4 mb-6 border-b border-slate-700">
         <button onClick={() => setActiveTab('RETURNS')} className={`pb-3 px-4 font-bold flex items-center gap-2 ${activeTab === 'RETURNS' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'}`}>
           Returns
-          {returns.filter(r => r.status === 'PENDING_APPROVAL').length > 0 && (
+          {returns.filter(r => r.status === 'PENDING_APPROVAL' || r.status === 'PENDING_CONFIRMATION').length > 0 && (
             <span className="px-2 py-0.5 text-xs bg-rose-500 text-white rounded-full font-bold animate-pulse">
-              {returns.filter(r => r.status === 'PENDING_APPROVAL').length}
+              {returns.filter(r => r.status === 'PENDING_APPROVAL' || r.status === 'PENDING_CONFIRMATION').length}
             </span>
           )}
         </button>
@@ -164,7 +170,9 @@ export default function ReturnsPage() {
       {activeTab === 'RETURNS' && (
         <div className="returns-grid">
           {returns.length === 0 && <p className="no-data">No return requests found.</p>}
-        {returns.map(req => (
+        {returns.map(req => {
+          const isPending = req.status === 'PENDING_APPROVAL' || req.status === 'PENDING_CONFIRMATION';
+          return (
           <div key={req.id} className="return-card">
             <div className="r-header">
               <span className={`status-badge status-${req.status.toLowerCase()}`}>
@@ -177,30 +185,33 @@ export default function ReturnsPage() {
               <h3>{req.orderItem.quantity}x {req.orderItem.menuItem.name}</h3>
               <p className="r-price">{format(Number(req.orderItem.menuItem.price))}</p>
               <p><strong>Table:</strong> {req.orderItem.order.table?.number || 'Takeout'}</p>
-              <p><strong>Requested By:</strong> {req.requestedBy.firstName} {req.requestedBy.lastName}</p>
+              <p><strong>Requested By:</strong> {req.requestedBy?.firstName} {req.requestedBy?.lastName}</p>
               
               {req.kitchenNote && (
-                <div className="r-note">
-                  <strong>Kitchen/Bar Note:</strong> {req.kitchenNote}
-                  <div style={{ fontSize: '0.8rem', marginTop: '4px' }}>
-                    - Confirmed by {req.confirmedBy?.firstName} {req.confirmedBy?.lastName}
-                  </div>
+                <div className="r-note" style={{ background: 'rgba(217, 119, 6, 0.15)', border: '1px solid rgba(217, 119, 6, 0.4)', borderRadius: '6px', padding: '8px 12px', marginTop: '10px' }}>
+                  <div style={{ color: '#fbbf24', fontWeight: 600, fontSize: '0.85rem' }}>Reason for Return:</div>
+                  <div style={{ color: '#f3f4f6', fontSize: '0.9rem', marginTop: '2px' }}>{req.kitchenNote}</div>
+                  {req.confirmedBy && (
+                    <div style={{ fontSize: '0.75rem', marginTop: '4px', color: '#9ca3af' }}>
+                      Confirmed by: {req.confirmedBy.firstName} {req.confirmedBy.lastName}
+                    </div>
+                  )}
                 </div>
               )}
 
               {req.approvedBy && (
-                <p><strong>Manager:</strong> {req.approvedBy.firstName} {req.approvedBy.lastName}</p>
+                <p style={{ marginTop: '8px' }}><strong>Manager:</strong> {req.approvedBy.firstName} {req.approvedBy.lastName}</p>
               )}
             </div>
 
-            {req.status === 'PENDING_APPROVAL' && (
-              <div className="r-actions">
-                <button className="btn-success" onClick={() => handleApprove(req.id, true)}>Approve Return</button>
-                <button className="btn-danger" onClick={() => handleApprove(req.id, false)}>Reject</button>
+            {isPending && (
+              <div className="r-actions" style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                <button className="btn-success" style={{ flex: 1 }} onClick={() => handleApprove(req.id, true)}>Approve Return</button>
+                <button className="btn-danger" style={{ flex: 1 }} onClick={() => handleApprove(req.id, false)}>Reject</button>
               </div>
             )}
           </div>
-        ))}
+        )})}
       </div>
       )}
 
