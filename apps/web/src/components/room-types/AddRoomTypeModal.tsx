@@ -56,6 +56,7 @@ export function AddRoomTypeModal({ isOpen, onClose, onSuccess }: Props) {
     try {
       const payload = {
         ...data,
+        images,
         maxAdults: data.maxOccupancy,
         maxChildren: Math.max(0, data.maxOccupancy - 1),
         baseRateLrd: Number((data.baseRateUsd * 190).toFixed(2)) // Default LRD conversion
@@ -118,6 +119,11 @@ export function AddRoomTypeModal({ isOpen, onClose, onSuccess }: Props) {
         <div className="form-group">
           <label>Description</label>
           <textarea {...register('description')} rows={3} placeholder="A luxurious room overlooking..." />
+        </div>
+
+        <div className="form-group">
+          <label>Room Photos / Gallery</label>
+          <MultiImageUpload images={images} onChange={setImages} maxImages={10} />
         </div>
 
         <div className="form-actions">

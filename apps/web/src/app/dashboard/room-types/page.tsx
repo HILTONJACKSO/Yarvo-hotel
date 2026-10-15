@@ -15,6 +15,7 @@ type RoomType = {
   maxOccupancy: number;
   baseRateUsd: number;
   totalRooms: number;
+  images?: string[];
 };
 
 export default function RoomTypesPage() {
@@ -97,6 +98,14 @@ export default function RoomTypesPage() {
         <div className="room-types-grid">
           {roomTypes.map((rt) => (
             <div key={rt.id} className="room-type-card">
+              {Array.isArray(rt.images) && rt.images.length > 0 && (
+                <div className="room-type-image-cover">
+                  <img src={rt.images[0]} alt={rt.name} className="room-type-img" />
+                  {rt.images.length > 1 && (
+                    <span className="image-count-tag">+{rt.images.length - 1} photos</span>
+                  )}
+                </div>
+              )}
               <div className="card-header">
                 <h3>{rt.name}</h3>
                 <span className="badge">{rt.code}</span>
@@ -201,6 +210,34 @@ export default function RoomTypesPage() {
           display: flex;
           flex-direction: column;
           gap: 16px;
+        }
+        .room-type-image-cover {
+          position: relative;
+          width: calc(100% + 40px);
+          margin: -20px -20px 0 -20px;
+          height: 160px;
+          border-top-left-radius: 12px;
+          border-top-right-radius: 12px;
+          overflow: hidden;
+          background: hsl(220, 25%, 12%);
+        }
+        .room-type-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .image-count-tag {
+          position: absolute;
+          bottom: 8px;
+          right: 8px;
+          background: rgba(0,0,0,0.75);
+          backdrop-filter: blur(4px);
+          color: white;
+          font-size: 0.75rem;
+          font-weight: 500;
+          padding: 3px 8px;
+          border-radius: 6px;
+          border: 1px solid rgba(255,255,255,0.15);
         }
         .card-header {
           display: flex;

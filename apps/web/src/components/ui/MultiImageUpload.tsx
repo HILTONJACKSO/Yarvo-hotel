@@ -36,12 +36,19 @@ export function MultiImageUpload({ images, onChange, maxImages = 50 }: MultiImag
           method: 'POST',
           body: formData,
         });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || `Upload failed (${res.status})`);
+        }
         const data = await res.json();
         if (data.success && data.url) {
           uploadedUrls.push(data.url);
+        } else {
+          throw new Error(data.error || 'Upload failed');
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to upload image', err);
+        alert(`Failed to upload ${file.name}: ${err.message || 'Server error'}`);
       }
     }
 

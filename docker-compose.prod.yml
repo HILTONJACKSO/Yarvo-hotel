@@ -115,6 +115,8 @@ services:
       PORT: 3000
     ports:
       - "${WEB_PORT:-3050}:3000"
+    volumes:
+      - yarvo_uploads:/app/apps/web/public/uploads
     networks:
       - yarvo_net
 
