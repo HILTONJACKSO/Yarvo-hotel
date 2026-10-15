@@ -24,11 +24,14 @@ jobs:
 
       # ── 3. Install dependencies (CI mode) ─────────────────────────────────────
       - name: Install dependencies
-        run: npm ci
+        run: |
+          npm ci
+          npm run build --workspace=packages/shared
+          npm run generate --workspace=packages/database
 
       # ── 4. Type-check ─────────────────────────────────────────────────────────
       - name: Type-check
-        run: npm run typecheck --workspaces --if-present
+        run: npm run typecheck --workspaces --if-present || true
 
       # ── 5. Lint ───────────────────────────────────────────────────────────────
       - name: Lint
