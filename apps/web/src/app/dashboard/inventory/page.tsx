@@ -7,7 +7,7 @@ import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
 import { useToast } from '@/components/ui/toast-provider';
 import { useAuth } from '@/lib/auth-provider';
 import { useCurrency } from '@/lib/currency';
-import { Plus, Minus, Edit, ArrowRightLeft, Trash2, Search, PackagePlus } from 'lucide-react';
+import { Plus, Minus, Edit, ArrowRightLeft, Trash2, Search, PackagePlus, Printer } from 'lucide-react';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 type InventoryItem = {
@@ -28,8 +28,18 @@ type InventoryItem = {
 export default function InventoryPage() {
   const { user } = useAuth();
   const { format, currencySymbol } = useCurrency();
-  const isAdmin = user?.roles?.some((r: string) => ['ADMIN', 'SUPER_ADMIN', 'CEO'].includes(r?.toUpperCase?.() || (r as any)?.name?.toUpperCase?.()));
-  const canEdit = user?.roles?.some(r => ['ADMIN', 'SUPER_ADMIN', 'MANAGER'].includes(r.toUpperCase())) || !user?.roles?.some(r => r.toUpperCase() === 'POS');
+  const userRoles = (user?.roles || []).map((r: any) => 
+    (typeof r === 'string' ? r : r?.name || '').toUpperCase()
+  );
+  const isAdmin = userRoles.some(r => ['ADMIN', 'SUPER_ADMIN', 'CEO'].includes(r));
+  const canManageInventory = userRoles.length === 0 || userRoles.some(r => 
+    ['ADMIN', 'SUPER_ADMIN', 'CEO', 'MANAGER', 'SUPERVISOR', 'INVENTORY_MANAGER', 'STOREKEEPER'].includes(r)
+  );
+  const canDeleteInventory = userRoles.some(r => 
+    ['ADMIN', 'SUPER_ADMIN', 'CEO', 'MANAGER'].includes(r)
+  );
+  const canEdit = canManageInventory || !userRoles.some(r => r === 'POS');
+  const canPrint = true;
   
   const { showToast } = useToast();
   const items = useLiveQuery(() => db.inventory.toArray()) || [];
@@ -57,12 +67,13 @@ export default function InventoryPage() {
 
     let headersHtml = '';
     if (printLocation === 'ALL') {
-      headersHtml = `<th>Item Name</th><th>Category</th><th>Unit</th><th>Main</th><th>Bar</th><th>Kitchen</th><th>Housekeeping</th><th>Boutique</th><th>Total</th>`;
+      headersHtml = `<th>Item Name</th><th>Category</th><th>Unit</th><th>Main</th><th>Kitchen</th><th>Bar</th><th>H.Keeping</th><th>Boutique</th><th>Total Stock</th><th>Cost/Unit</th><th>Total Value</th>`;
     } else {
-      headersHtml = `<th>Item Name</th><th>Category</th><th>Unit</th><th>${printLocation.charAt(0) + printLocation.slice(1).toLowerCase()} Stock</th>`;
+      headersHtml = `<th>Item Name</th><th>Category</th><th>Unit</th><th>${printLocation.charAt(0) + printLocation.slice(1).toLowerCase()} Stock</th><th>Cost/Unit</th><th>Value</th>`;
     }
 
     let rowsHtml = '';
+    let grandTotalValue = 0;
     
     // Filter items based on location
     const filteredItems = items.filter(item => {
@@ -82,18 +93,24 @@ export default function InventoryPage() {
     });
 
     sortedItems.forEach(item => {
+      const cost = Number(item.costPerUnit || 0);
       let cols = '';
       if (printLocation === 'ALL') {
+        const totalStock = Number(item.stockLevel || 0);
+        const itemVal = totalStock * cost;
+        grandTotalValue += itemVal;
         cols = `
           <td>${item.name}</td>
           <td>${item.category}</td>
           <td>${item.unit}</td>
           <td>${Number(item.stockMain || 0).toFixed(2)}</td>
-          <td>${Number(item.stockBar || 0).toFixed(2)}</td>
           <td>${Number(item.stockKitchen || 0).toFixed(2)}</td>
+          <td>${Number(item.stockBar || 0).toFixed(2)}</td>
           <td>${Number(item.stockHousekeeping || 0).toFixed(2)}</td>
           <td>${Number(item.stockBoutique || 0).toFixed(2)}</td>
-          <td><strong>${Number(item.stockLevel || 0).toFixed(2)}</strong></td>
+          <td><strong>${totalStock.toFixed(2)}</strong></td>
+          <td>${currencySymbol} ${cost.toFixed(2)}</td>
+          <td><strong>${currencySymbol} ${itemVal.toFixed(2)}</strong></td>
         `;
       } else {
         let val = 0;
@@ -102,46 +119,57 @@ export default function InventoryPage() {
         else if (printLocation === 'KITCHEN') val = Number(item.stockKitchen || 0);
         else if (printLocation === 'HOUSEKEEPING') val = Number(item.stockHousekeeping || 0);
         else if (printLocation === 'BOUTIQUE') val = Number(item.stockBoutique || 0);
+        const itemVal = val * cost;
+        grandTotalValue += itemVal;
 
         cols = `
           <td>${item.name}</td>
           <td>${item.category}</td>
           <td>${item.unit}</td>
           <td><strong>${val.toFixed(2)}</strong></td>
+          <td>${currencySymbol} ${cost.toFixed(2)}</td>
+          <td><strong>${currencySymbol} ${itemVal.toFixed(2)}</strong></td>
         `;
       }
       rowsHtml += `<tr>${cols}</tr>`;
     });
 
+    const propertyName = user?.propertyName || 'Hotel Stock & Inventory';
+
     doc.open();
     doc.write(`
       <html>
       <head>
-        <title>Inventory Report</title>
+        <title>${propertyName} - Inventory Report</title>
         <style>
-          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 20px; color: #333; }
-          h1 { text-align: center; margin-bottom: 5px; font-size: 24px; }
-          h2 { text-align: center; margin-bottom: 20px; font-size: 16px; color: #666; font-weight: normal; }
-          table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; }
-          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-          th { background-color: #f8f9fa; font-weight: bold; text-transform: uppercase; }
-          tr:nth-child(even) { background-color: #fafafa; }
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 24px; color: #1e293b; }
+          .header-box { text-align: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 16px; margin-bottom: 16px; }
+          h1 { margin: 0 0 6px 0; font-size: 22px; color: #0f172a; }
+          .meta { font-size: 13px; color: #64748b; margin: 3px 0; }
+          .summary-card { display: flex; justify-content: space-between; background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 16px; border-radius: 6px; margin: 16px 0; font-size: 13px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 12px; }
+          th, td { border: 1px solid #cbd5e1; padding: 7px 10px; text-align: left; }
+          th { background-color: #f1f5f9; font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; color: #334155; }
+          tr:nth-child(even) { background-color: #f8fafc; }
+          .total-row { font-weight: bold; background-color: #e2e8f0 !important; }
         </style>
       </head>
       <body>
-        <h1>Kwalee Beach Resort - Inventory Report</h1>
-        <h2>${printReportPeriod} Record - Date: ${(() => {
-          const s = printReportDate.split('-');
-          const e = printEndDate.split('-');
-          if (s[0] === e[0] && s[1] === e[1]) {
-            return `${s[0]}, ${s[1]}, ${s[2]} - ${e[2]}`;
-          }
-          return `${printReportDate} to ${printEndDate}`;
-        })()}</h2>
-        <h2>Department: ${printLocation === 'ALL' ? 'All Departments' : printLocation}</h2>
+        <div class="header-box">
+          <h1>${propertyName}</h1>
+          <div class="meta"><strong>Inventory Stock & Valuation Report</strong> (${printReportPeriod})</div>
+          <div class="meta">Department Scope: <strong>${printLocation === 'ALL' ? 'All Hotel Departments' : printLocation}</strong> | Printed: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</div>
+        </div>
+        <div class="summary-card">
+          <span>Total Catalog Items: <strong>${sortedItems.length}</strong></span>
+          <span>Valuation: <strong>${currencySymbol} ${grandTotalValue.toFixed(2)}</strong></span>
+        </div>
         <table>
           <thead><tr>${headersHtml}</tr></thead>
-          <tbody>${rowsHtml}</tbody>
+          <tbody>
+            ${rowsHtml || '<tr><td colspan="11" style="text-align:center;padding:20px;color:#94a3b8;">No inventory items found for this department.</td></tr>'}
+            ${sortedItems.length > 0 ? `<tr class="total-row"><td colspan="${printLocation === 'ALL' ? 10 : 5}" style="text-align:right;">Grand Total Stock Value:</td><td><strong>${currencySymbol} ${grandTotalValue.toFixed(2)}</strong></td></tr>` : ''}
+          </tbody>
         </table>
       </body>
       </html>
@@ -195,7 +223,12 @@ export default function InventoryPage() {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || `Failed to ${editItemId ? 'update' : 'create'} item`);
       }
-      showToast(`Inventory item ${editItemId ? 'updated' : 'created'}`, 'success', 'Success');
+      const jsonRes = await res.json().catch(() => null);
+      const saved = jsonRes?.data || jsonRes;
+      if (saved && saved.id) {
+        await db.inventory.put(saved);
+      }
+      showToast(`Inventory item ${editItemId ? 'updated' : 'created'} successfully`, 'success', 'Success');
       setShowAddModal(false);
       setNewItem({ name: '', category: 'GENERAL', unit: '', stockLevel: 0, minThreshold: 10, costPerUnit: 0 });
       setEditItemId(null);
@@ -216,6 +249,7 @@ export default function InventoryPage() {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || 'Failed to delete item');
       }
+      await db.inventory.delete(itemToDelete.id);
       showToast('Item deleted successfully', 'success', 'Success');
       setItemToDelete(null);
       fetchItems();
@@ -318,19 +352,30 @@ export default function InventoryPage() {
               className="search-input"
             />
           </div>
-                    {isAdmin && (
-            <button className="btn-secondary" onClick={() => setShowPrintModal(true)}>
-              Print Report
+          {canPrint && (
+            <button 
+              type="button" 
+              className="btn-secondary" 
+              onClick={() => setShowPrintModal(true)}
+              title="Print stock inventory report"
+            >
+              <Printer size={17} />
+              <span>Print Report</span>
             </button>
           )}
-          {isAdmin && (
-            <button className="btn-primary" onClick={() => {
-              setEditItemId(null);
-              setNewItem({ name: '', category: 'GENERAL', unit: '', stockLevel: 0, minThreshold: 10, costPerUnit: 0 });
-              setShowAddModal(true);
-            }}>
-              <PackagePlus size={18} className="mr-2" style={{ display: 'inline', marginRight: '6px' }} />
-              New Item Catalog
+          {canManageInventory && (
+            <button 
+              type="button" 
+              className="btn-primary" 
+              onClick={() => {
+                setEditItemId(null);
+                setNewItem({ name: '', category: 'GENERAL', unit: '', stockLevel: 0, minThreshold: 10, costPerUnit: 0 });
+                setShowAddModal(true);
+              }}
+              title="Add a new item to your inventory catalog"
+            >
+              <Plus size={18} />
+              <span>Add Inventory Item</span>
             </button>
           )}
         </div>
@@ -357,7 +402,33 @@ export default function InventoryPage() {
           <tbody>
             {filteredItems.length === 0 && (
               <tr>
-                <td colSpan={11} className="text-center">No inventory items found.</td>
+                <td colSpan={11} className="empty-state-cell">
+                  <div className="empty-inventory-state">
+                    <PackagePlus size={44} className="empty-icon" />
+                    <h4 className="empty-title">
+                      {searchQuery ? 'No matching inventory items' : 'No inventory items found'}
+                    </h4>
+                    <p className="empty-desc">
+                      {searchQuery 
+                        ? `No inventory items matched "${searchQuery}". Clear your search query to see all items.` 
+                        : 'Your inventory catalog is currently empty. Add your first hotel stock item to begin tracking stock across Main Storage, Kitchen, Bar, Housekeeping, and Boutique.'}
+                    </p>
+                    {canManageInventory && !searchQuery && (
+                      <button 
+                        type="button" 
+                        className="btn-primary empty-btn"
+                        onClick={() => {
+                          setEditItemId(null);
+                          setNewItem({ name: '', category: 'GENERAL', unit: '', stockLevel: 0, minThreshold: 10, costPerUnit: 0 });
+                          setShowAddModal(true);
+                        }}
+                      >
+                        <Plus size={16} />
+                        <span>Add First Inventory Item</span>
+                      </button>
+                    )}
+                  </div>
+                </td>
               </tr>
             )}
             {filteredItems.map(item => {
@@ -419,7 +490,7 @@ export default function InventoryPage() {
                       <button title="Transfer Stock" className="btn-icon" onClick={() => { setTransferItem(item); setShowTransferModal(true); }}>
                         <ArrowRightLeft size={16} />
                       </button>
-                      {isAdmin && (
+                      {canDeleteInventory && (
                         <button title="Delete Item" className="btn-icon" onClick={() => setItemToDelete(item)} style={{ color: 'hsl(0, 84%, 65%)' }}>
                           <Trash2 size={16} />
                         </button>
@@ -540,9 +611,9 @@ export default function InventoryPage() {
       {showAddModal && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <h3>{editItemId ? 'Edit' : 'Add'} Item Catalog</h3>
+            <h3>{editItemId ? 'Edit Inventory Item' : 'Add New Inventory Item'}</h3>
             <p style={{ color: 'hsl(215, 20%, 65%)', fontSize: '0.875rem', marginBottom: '16px' }}>
-              Note: Do not use this to add daily stock. Use the <Plus size={14} style={{ display: 'inline', verticalAlign: 'middle', color: 'hsl(142, 76%, 55%)' }} /> button on the table for that.
+              {editItemId ? 'Update item details, category, threshold, and unit cost.' : 'Define a new inventory item with its unit of measurement, initial stock, and cost per unit.'}
             </p>
             <datalist id="inventory-names">
               {Array.from(new Set(items.map(i => i.name))).map(name => (
@@ -709,8 +780,28 @@ export default function InventoryPage() {
           cursor: pointer;
           display: flex;
           align-items: center;
+          gap: 8px;
+          transition: background 0.2s;
         }
         .btn-primary:hover { background: hsl(43,96%,60%); }
+
+        .btn-secondary {
+          background: hsl(220, 25%, 16%);
+          color: white;
+          border: 1px solid hsl(217, 20%, 30%);
+          padding: 10px 18px;
+          border-radius: 6px;
+          font-weight: 600;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          transition: all 0.2s;
+        }
+        .btn-secondary:hover {
+          background: hsl(217, 20%, 24%);
+          border-color: hsl(217, 20%, 40%);
+        }
         
         .btn-cancel {
           background: transparent;
@@ -791,6 +882,40 @@ export default function InventoryPage() {
         .font-medium { font-weight: 500; }
         .font-bold { font-weight: 700; }
         .text-center { text-align: center; color: hsl(215, 20%, 50%); padding: 32px !important; }
+
+        .empty-state-cell {
+          padding: 56px 24px !important;
+          text-align: center;
+        }
+        .empty-inventory-state {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          max-width: 520px;
+          margin: 0 auto;
+          text-align: center;
+        }
+        .empty-icon {
+          color: hsl(43, 96%, 56%);
+          opacity: 0.85;
+          margin-bottom: 16px;
+        }
+        .empty-title {
+          font-size: 1.15rem;
+          font-weight: 600;
+          color: white;
+          margin: 0 0 8px 0;
+        }
+        .empty-desc {
+          font-size: 0.9rem;
+          color: hsl(215, 20%, 65%);
+          line-height: 1.5;
+          margin: 0 0 20px 0;
+        }
+        .empty-btn {
+          margin: 0 auto;
+        }
 
         .modal-overlay {
           position: fixed;

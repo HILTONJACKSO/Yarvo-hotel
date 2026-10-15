@@ -28,7 +28,7 @@ export class InventoryController {
   }
 
   @Delete(':id')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   deleteInventoryItem(@Param('id') id: string, @Req() req: any) {
     return this.inventoryService.deleteInventoryItem(id, req.user?.id);
   }
