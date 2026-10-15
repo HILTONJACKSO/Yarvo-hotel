@@ -46,9 +46,18 @@ export class PropertiesService {
       throw new NotFoundException(`Property with ID ${id} not found`);
     }
 
+    const data: any = { ...updatePropertyDto };
+    if (data.receiptSettings !== undefined && typeof data.receiptSettings === 'string') {
+      try {
+        data.receiptSettings = JSON.parse(data.receiptSettings);
+      } catch (e) {
+        // preserve existing if invalid JSON
+      }
+    }
+
     return this.prisma.property.update({
       where: { id },
-      data: updatePropertyDto,
+      data,
     });
   }
 }

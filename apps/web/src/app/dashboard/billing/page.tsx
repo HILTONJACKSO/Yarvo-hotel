@@ -7,13 +7,15 @@ import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
 import { useToast } from "@/components/ui/toast-provider";
 import { useAuth } from "@/lib/auth-provider";
 import { useCurrency } from "@/lib/currency";
+import { getDefaultReceiptInvoiceSettings } from "@/lib/receipt-invoice-helper";
 import { ShoppingCart, Edit, Trash2, Receipt } from "lucide-react";
 
 export default function BillingPage() {
   const { user } = useAuth();
   const { format, currencySymbol } = useCurrency();
   const property = useLiveQuery(() => db.properties.toCollection().first());
-  const hotelName = property?.name || user?.propertyName || 'KWALEE BEACH RESORT';
+  const receiptSettings = getDefaultReceiptInvoiceSettings(property);
+  const hotelName = receiptSettings.businessName;
   const [discountAmount, setDiscountAmount] = useState('');
   const [discountDescription, setDiscountDescription] = useState('');
   const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
@@ -106,18 +108,22 @@ export default function BillingPage() {
       <html><head><title>Bill ${mode}</title></head>
       <body style="margin:0; padding:20px; font-family:'Courier New', Courier, monospace; color:#000; background:#fff; max-width: 380px; margin: 0 auto;">
         <div style="text-align:center; margin-bottom:20px;">
-          <img src="https://kwaleebeachresort.com/kwalee-logo.png" style="max-width:120px; margin-bottom:10px;" />
-          <div style="font-size:20px; font-weight:bold; margin-bottom:4px; color:#000;">${hotelName}</div>
-          <div style="font-size:12px; color:#000;">www.kwaleebeachresort.com</div>
-          <div style="font-size:12px; color:#000;">info@kwaleebeachresort.com</div>
-          <div style="font-size:12px; color:#000;">+231 774 340 843 / +231 881 774 350</div>
-          <div style="font-size:12px; color:#000;">Kpakpa Kon, Marshall, Lower Margibi County, Liberia</div>
+          ${receiptSettings.showLogo && receiptSettings.logoUrl ? `<img src="${receiptSettings.logoUrl}" style="max-width:120px; max-height:60px; object-fit:contain; margin-bottom:10px; display:block; margin:0 auto 10px auto;" />` : ''}
+          <div style="font-size:20px; font-weight:bold; margin-bottom:4px; color:#000;">${receiptSettings.businessName}</div>
+          ${receiptSettings.tagline ? `<div style="font-size:12px; font-style:italic; color:#444; margin-bottom:4px;">${receiptSettings.tagline}</div>` : ''}
+          ${receiptSettings.website ? `<div style="font-size:12px; color:#000;">${receiptSettings.website}</div>` : ''}
+          ${receiptSettings.email ? `<div style="font-size:12px; color:#000;">${receiptSettings.email}</div>` : ''}
+          ${receiptSettings.phone ? `<div style="font-size:12px; color:#000;">${receiptSettings.phone}</div>` : ''}
+          ${receiptSettings.address ? `<div style="font-size:12px; color:#000;">${receiptSettings.address}</div>` : ''}
+          ${receiptSettings.taxNumber ? `<div style="font-size:12px; font-weight:bold; color:#000;">TIN: ${receiptSettings.taxNumber}</div>` : ''}
         </div>
-        <div style="text-align:center; font-size:14px; font-weight:bold; margin:20px 0; color:#000;">${mode === 'RECEIPT' ? 'ROOM RECEIPT' : 'ROOM INVOICE'}</div>
+        <div style="text-align:center; font-size:14px; font-weight:bold; margin:20px 0; color:#000;">
+          ${mode === 'RECEIPT' ? receiptSettings.receipt.title : receiptSettings.invoice.title}
+        </div>
         <div style="border-bottom:1px dashed #000; margin:12px 0;"></div>
         
         <div style="font-size:12px; margin-bottom:4px; display:flex; justify-content:space-between; color:#000;">
-          <span style="color:#666;">Invoice No:</span><span>FL-${selectedBill.id.substring(0,6).toUpperCase()}</span>
+          <span style="color:#666;">Invoice No:</span><span>${mode === 'RECEIPT' ? receiptSettings.receipt.prefix : receiptSettings.invoice.prefix}${selectedBill.id.substring(0,6).toUpperCase()}</span>
         </div>
         <div style="font-size:12px; margin-bottom:4px; display:flex; justify-content:space-between; color:#000;">
           <span style="color:#666;">Date:</span><span>${new Date().toLocaleDateString()}</span>
@@ -150,7 +156,7 @@ export default function BillingPage() {
           <span>BALANCE DUE</span><span>${format(Number(bal))}</span>
         </div>
 
-        ${mode === 'INVOICE' ? `
+        ${mode === 'INVOICE' && receiptSettings.invoice.showSignatureLine ? `
         <div style="margin-top:50px; text-align:center;">
           <div style="border-top:1px solid #000; width:200px; margin:0 auto 8px auto;"></div>
           <p style="font-size:12px; margin:0; color:#000;">Guest Signature</p>
@@ -158,15 +164,14 @@ export default function BillingPage() {
         ` : ''}
         
         <div style="text-align:center; font-size:11px; margin-top:40px; color:#333; line-height:1.5;">
-          <p style="color:#000; margin:0;"><strong>THANK YOU FOR CHOOSING KWALEE BEACH RESORT!</strong><br/>PLEASE COME AGAIN!</p>
+          <p style="color:#000; margin:0; white-space:pre-line;">${mode === 'RECEIPT' ? receiptSettings.receipt.footerNote : receiptSettings.invoice.footerNote}</p>
         </div>
         
+        ${(mode === 'RECEIPT' ? receiptSettings.receipt.terms : receiptSettings.invoice.terms) ? `
         <div style="text-align:left; font-size:10px; margin-top:20px; color:#000; line-height:1.4; border-top:1px dashed #000; padding-top:10px;">
           <strong>PAYMENT TERMS & CONDITIONS:</strong><br/>
-          Payment is due immediately upon receipt of this invoice unless otherwise agreed. All prices are subject to applicable charges. Any additional orders or services will be added to the final bill.
-          <br/><br/>
-          Thank you for choosing Kwalee Beach Resort.
-        </div>
+          <span style="white-space:pre-line;">${mode === 'RECEIPT' ? receiptSettings.receipt.terms : receiptSettings.invoice.terms}</span>
+        </div>` : ''}
       </body>
       </html>
     `;

@@ -9,6 +9,7 @@ import domtoimage from 'dom-to-image-more';
 import { useToast } from '@/components/ui/toast-provider';
 import { useCurrency } from '@/lib/currency';
 import { useAuth } from '@/lib/auth-provider';
+import { getDefaultReceiptInvoiceSettings, generateThermalReceiptHtml } from '@/lib/receipt-invoice-helper';
 const API_URL = '';
 
 type PosOrder = {
@@ -241,7 +242,8 @@ export default function CashierPage() {
   const { user } = useAuth();
   const { format, currencySymbol } = useCurrency();
   const property = useLiveQuery(() => db.properties.toCollection().first());
-  const hotelName = property?.name || user?.propertyName || 'KWALEE BEACH RESORT';
+  const receiptSettings = getDefaultReceiptInvoiceSettings(property);
+  const hotelName = receiptSettings.businessName;
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const { showToast } = useToast();
   const orders: any[] = useLiveQuery(() => db.posOrders.toArray())?.filter(o => o.status === 'SERVED' || o.status === 'OPEN') || [];
@@ -340,7 +342,7 @@ export default function CashierPage() {
     const printViaIframe = (mode: 'RECEIPT' | 'INVOICE') => {
     if (!selectedOrder) return;
     const iframe = document.createElement('iframe');
-        iframe.style.position = 'absolute';
+    iframe.style.position = 'absolute';
     iframe.style.left = '-9999px';
     iframe.style.top = '-9999px';
     iframe.style.width = '100%';
@@ -351,106 +353,55 @@ export default function CashierPage() {
     const doc = iframe.contentWindow?.document;
     if (!doc) return;
 
-    let itemsHtml = '';
-    selectedOrder.items.forEach((item: any) => {
-      const isReturned = item.status === 'RETURNED';
-      const displayName = isReturned ? `(Returned) ${item.menuItem.name}` : item.menuItem.name;
-      const displayPrice = isReturned 
-          ? format(0)
-          : format(Number(item.menuItem.price) * item.quantity);
-          
-      itemsHtml += `
-        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; ${isReturned ? 'color: #dc2626;' : ''}">
-          <div><span style="margin-right: 8px;">${item.quantity}x</span><span>${displayName}</span></div>
-          <span>${displayPrice}</span>
-        </div>
-      `;
-    });
-
-    const signatureBlock = mode === 'INVOICE' ? `
-      <div style="margin-top: 50px; text-align: center;">
-        <div style="border-top: 1px solid #000; width: 200px; margin: 0 auto 8px auto;"></div>
-        <p style="font-size: 12px; margin: 0;">Customer Signature</p>
-      </div>
-    ` : '';
-
     const orderTotal = Number(selectedOrder.totalAmount);
     const finalTotal = Math.max(0, orderTotal - calculatedDiscount);
-    // Assuming 10% GST included in the price for display purposes
     const subtotal = orderTotal / 1.10;
     const gst = orderTotal - subtotal;
 
-    doc.write(`
-      <html>
-        <head>
-          <title>Print ${mode}</title>
-          <style>
-            body { font-family: 'Courier New', Courier, monospace; color: #000; max-width: 380px; margin: 0 auto; padding: 20px; }
-            .header-container { text-align: center; margin-bottom: 20px; }
-            .header-container img { max-width: 120px; margin-bottom: 10px; display: block; margin: 0 auto; }
-            .header-title { font-size: 20px; font-weight: bold; margin: 0 0 4px 0; }
-            .header-info { font-size: 12px; margin: 0; line-height: 1.4; }
-            
-            p.sub { text-align: center; font-size: 14px; font-weight: bold; margin: 20px 0; }
-            .divider { border-bottom: 1px dashed #000; margin: 12px 0; opacity: 0.4; }
-            .meta { font-size: 12px; margin-bottom: 4px; display: flex; justify-content: space-between; }
-            .meta span:first-child { color: #666; }
-            
-            .summary-row { font-size: 14px; display: flex; justify-content: space-between; margin-top: 8px; }
-            .totals { font-size: 18px; font-weight: bold; display: flex; justify-content: space-between; margin-top: 12px; }
-            
-            .footer { text-align: center; font-size: 11px; margin-top: 40px; color: #333; line-height: 1.5; }
-            .footer-terms { text-align: left; font-size: 10px; margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px; color: #555; }
-          </style>
-        </head>
-        <body>
-          <div class="header-container">
-            <img src="https://kwaleebeachresort.com/kwalee-logo.png" alt="Logo" />
-            <div class="header-title">${hotelName}</div>
-            <div class="header-info">www.kwaleebeachresort.com</div>
-            <div class="header-info">+231 774 340 843 / +231 881 774 350</div>
-            <div class="header-info">Kpakpa Kon, Marshall, Lower Margibi County, Liberia</div>
-          </div>
-          
-          <div class="divider"></div>
-          <p class="sub">${mode === 'INVOICE' ? 'CUSTOMER INVOICE' : 'CUSTOMER RECEIPT'}</p>
-          
-          <div class="meta"><span>ORDER ID</span> <span>#${selectedOrder.id.substring(0,8).toUpperCase()}</span></div>
-          <div class="meta"><span>LOCATION</span> <span>${selectedOrder.folio?.reservation?.room ? `Room ${selectedOrder.folio.reservation.room.number}` : selectedOrder.table?.number || 'Walk-in'}</span></div>
-          <div class="meta"><span>DATE</span> <span>${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</span></div>
-          
-          <div class="divider"></div>
-          
-          ${itemsHtml}
-          
-          <div class="divider"></div>
-          
-          <div class="summary-row"><span>Subtotal</span><span>${format(orderTotal)}</span></div>
-          <div class="summary-row"><span style="font-size: 11px; color: #555;">GST Included (10%)</span><span style="font-size: 11px; color: #555;">${format(gst)}</span></div>
-          ${calculatedDiscount > 0 ? `<div class="summary-row" style="color: #dc2626;"><span>Discount</span><span>-${format(calculatedDiscount)}</span></div>` : ''}
-          <div class="totals"><span>TOTAL</span><span>${format(finalTotal)}</span></div>
-          
-          ${signatureBlock}
+    const formattedItems = selectedOrder.items.map((item: any) => {
+      const isReturned = item.status === 'RETURNED';
+      const displayName = item.menuItem.name;
+      const displayPrice = isReturned 
+          ? format(0)
+          : format(Number(item.menuItem.price) * item.quantity);
+      return {
+        name: displayName,
+        quantity: item.quantity,
+        price: format(Number(item.menuItem.price)),
+        total: displayPrice,
+        isReturned
+      };
+    });
 
-          <div class="footer">
-            <p><strong>THANK YOU FOR CHOOSING KWALEE BEACH RESORT!</strong><br/>PLEASE COME AGAIN!</p>
-            <p>Served by: ${selectedOrder.user ? `${selectedOrder.user.firstName} ${selectedOrder.user.lastName}` : 'Staff'}</p>
-          </div>
-          
-          <div class="footer-terms">
-            <strong>PAYMENT TERMS & CONDITIONS:</strong><br/>
-            Payment is due immediately upon receipt of this invoice unless otherwise agreed. All prices are subject to applicable charges. Any additional orders or services will be added to the final bill.
-            <br/><br/>
-            Thank you for choosing Kwalee Beach Restaurant.
-          </div>
-        </body>
-      </html>
-    `);
+    const destinationLabel = selectedOrder.folio?.reservation?.room 
+      ? `Room ${selectedOrder.folio.reservation.room.number}` 
+      : (selectedOrder.table?.number ? `Table ${selectedOrder.table.number}` : 'Walk-in');
+
+    const serverName = selectedOrder.user ? `${selectedOrder.user.firstName} ${selectedOrder.user.lastName}` : 'Staff';
+
+    const thermalHtml = generateThermalReceiptHtml({
+      settings: receiptSettings,
+      orderId: selectedOrder.id,
+      orderDate: `${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+      destinationLabel,
+      serverName,
+      items: formattedItems,
+      subtotal: format(subtotal),
+      tax: format(gst),
+      taxLabel: 'GST / Tax (10% Included)',
+      discount: calculatedDiscount > 0 ? format(calculatedDiscount) : undefined,
+      total: format(finalTotal),
+      isInvoiceMode: mode === 'INVOICE',
+    });
+
+    doc.write(thermalHtml);
     doc.close();
     iframe.contentWindow?.focus();
     setTimeout(() => {
       iframe.contentWindow?.print();
-      setTimeout(() => { document.body.removeChild(iframe); }, 1000);
+      setTimeout(() => { 
+        if (document.body.contains(iframe)) document.body.removeChild(iframe); 
+      }, 1000);
     }, 250);
   };
 
@@ -866,23 +817,32 @@ export default function CashierPage() {
               </button>
             </div>
 
-            {/* ORIGINAL KWALEE BEACH RESORT RECEIPTS */}
+            {/* DYNAMIC BRANDED RECEIPTS & INVOICES */}
             <div className="print-only-container">
               <div id="kwalee-receipt" className="kwalee-receipt">
                 <div className="header-container">
-                  <img src="https://kwaleebeachresort.com/kwalee-logo.png" alt="Logo" style={{ maxWidth: '120px', marginBottom: '10px', display: 'block', margin: '0 auto' }} />
-                  <div className="header-title">{hotelName}</div>
-                  <div className="header-info">www.kwaleebeachresort.com</div>
-                  <div className="header-info">+231 774 340 843 / +231 881 774 350</div>
-                  <div className="header-info">Kpakpa Kon, Marshall, Lower Margibi County, Liberia</div>
+                  {receiptSettings.showLogo && receiptSettings.logoUrl && (
+                    <img src={receiptSettings.logoUrl} alt="Logo" style={{ maxWidth: '120px', maxHeight: '60px', objectFit: 'contain', marginBottom: '8px', display: 'block', margin: '0 auto' }} />
+                  )}
+                  <div className="header-title">{receiptSettings.businessName}</div>
+                  {receiptSettings.tagline && <div className="header-info" style={{ fontStyle: 'italic', marginBottom: '2px' }}>{receiptSettings.tagline}</div>}
+                  {receiptSettings.website && <div className="header-info">{receiptSettings.website}</div>}
+                  {receiptSettings.phone && <div className="header-info">{receiptSettings.phone}</div>}
+                  {receiptSettings.address && <div className="header-info">{receiptSettings.address}</div>}
+                  {receiptSettings.taxNumber && <div className="header-info" style={{ fontWeight: 'bold' }}>TIN: {receiptSettings.taxNumber}</div>}
                 </div>
                 
                 <div className="divider"></div>
-                <p className="sub">CUSTOMER RECEIPT</p>
+                <p className="sub">{receiptSettings.receipt.title}</p>
                 
-                <div className="meta"><span>ORDER ID</span> <span>#{selectedOrder.id.substring(0,8).toUpperCase()}</span></div>
-                <div className="meta"><span>LOCATION</span> <span>{selectedOrder.folio?.reservation?.room ? `Room ${selectedOrder.folio.reservation.room.number}` : selectedOrder.table?.number || 'Walk-in'}</span></div>
+                <div className="meta"><span>RECEIPT NO</span> <span>#{receiptSettings.receipt.prefix}{selectedOrder.id.substring(0,8).toUpperCase()}</span></div>
+                {receiptSettings.receipt.showTableNumber && (
+                  <div className="meta"><span>LOCATION</span> <span>{selectedOrder.folio?.reservation?.room ? `Room ${selectedOrder.folio.reservation.room.number}` : selectedOrder.table?.number || 'Walk-in'}</span></div>
+                )}
                 <div className="meta"><span>DATE</span> <span>{new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}</span></div>
+                {receiptSettings.receipt.showServerName && selectedOrder.user && (
+                  <div className="meta"><span>CASHIER</span> <span>{selectedOrder.user.firstName} {selectedOrder.user.lastName}</span></div>
+                )}
                 
                 <div className="divider"></div>
                 
@@ -903,36 +863,46 @@ export default function CashierPage() {
                 <div className="divider"></div>
                 
                 <div className="summary-row"><span>Subtotal</span><span>{format(Number(selectedOrder.totalAmount))}</span></div>
-                <div className="summary-row"><span style={{ fontSize: '11px', color: '#555' }}>GST Included (10%)</span><span style={{ fontSize: '11px', color: '#555' }}>{format((Number(selectedOrder.totalAmount)) - (Number(selectedOrder.totalAmount) / 1.10))}</span></div>
+                {receiptSettings.receipt.showTaxBreakdown && (
+                  <div className="summary-row"><span style={{ fontSize: '11px', color: '#555' }}>GST / Tax Included (10%)</span><span style={{ fontSize: '11px', color: '#555' }}>{format((Number(selectedOrder.totalAmount)) - (Number(selectedOrder.totalAmount) / 1.10))}</span></div>
+                )}
                 {calculatedDiscount > 0 && <div className="summary-row" style={{ color: '#dc2626' }}><span>Discount</span><span>-{format(calculatedDiscount)}</span></div>}
                 <div className="totals"><span>TOTAL</span><span>{format(finalTotal)}</span></div>
                 
-                <div className="footer">
-                  <p><strong>THANK YOU FOR CHOOSING KWALEE BEACH RESORT!</strong><br/>PLEASE COME AGAIN!</p>
-                  <p>Served by: {selectedOrder.user ? `${selectedOrder.user.firstName} ${selectedOrder.user.lastName}` : 'Staff'}</p>
-                </div>
+                {receiptSettings.receipt.footerNote && (
+                  <div className="footer">
+                    <p style={{ whiteSpace: 'pre-line' }}>{receiptSettings.receipt.footerNote}</p>
+                    {receiptSettings.receipt.showServerName && (
+                      <p>Served by: {selectedOrder.user ? `${selectedOrder.user.firstName} ${selectedOrder.user.lastName}` : 'Staff'}</p>
+                    )}
+                  </div>
+                )}
                 
-                <div className="footer-terms">
-                  <strong>PAYMENT TERMS & CONDITIONS:</strong><br/>
-                  Payment is due immediately upon receipt of this invoice unless otherwise agreed. All prices are subject to applicable charges. Any additional orders or services will be added to the final bill.
-                  <br/><br/>
-                  Thank you for choosing Kwalee Beach Restaurant.
-                </div>
+                {receiptSettings.receipt.terms && (
+                  <div className="footer-terms">
+                    <strong>TERMS & CONDITIONS:</strong><br/>
+                    <span style={{ whiteSpace: 'pre-line' }}>{receiptSettings.receipt.terms}</span>
+                  </div>
+                )}
               </div>
 
               <div id="kwalee-invoice" className="kwalee-receipt">
                 <div className="header-container">
-                  <img src="https://kwaleebeachresort.com/kwalee-logo.png" alt="Logo" style={{ maxWidth: '120px', marginBottom: '10px', display: 'block', margin: '0 auto' }} />
-                  <div className="header-title">{hotelName}</div>
-                  <div className="header-info">www.kwaleebeachresort.com</div>
-                  <div className="header-info">+231 774 340 843 / +231 881 774 350</div>
-                  <div className="header-info">Kpakpa Kon, Marshall, Lower Margibi County, Liberia</div>
+                  {receiptSettings.showLogo && receiptSettings.logoUrl && (
+                    <img src={receiptSettings.logoUrl} alt="Logo" style={{ maxWidth: '120px', maxHeight: '60px', objectFit: 'contain', marginBottom: '8px', display: 'block', margin: '0 auto' }} />
+                  )}
+                  <div className="header-title">{receiptSettings.businessName}</div>
+                  {receiptSettings.tagline && <div className="header-info" style={{ fontStyle: 'italic', marginBottom: '2px' }}>{receiptSettings.tagline}</div>}
+                  {receiptSettings.website && <div className="header-info">{receiptSettings.website}</div>}
+                  {receiptSettings.phone && <div className="header-info">{receiptSettings.phone}</div>}
+                  {receiptSettings.address && <div className="header-info">{receiptSettings.address}</div>}
+                  {receiptSettings.taxNumber && <div className="header-info" style={{ fontWeight: 'bold' }}>TIN: {receiptSettings.taxNumber}</div>}
                 </div>
                 
                 <div className="divider"></div>
-                <p className="sub">CUSTOMER INVOICE</p>
+                <p className="sub">{receiptSettings.invoice.title}</p>
                 
-                <div className="meta"><span>ORDER ID</span> <span>#{selectedOrder.id.substring(0,8).toUpperCase()}</span></div>
+                <div className="meta"><span>INVOICE NO</span> <span>#{receiptSettings.invoice.prefix}{selectedOrder.id.substring(0,8).toUpperCase()}</span></div>
                 <div className="meta"><span>LOCATION</span> <span>{selectedOrder.folio?.reservation?.room ? `Room ${selectedOrder.folio.reservation.room.number}` : selectedOrder.table?.number || 'Walk-in'}</span></div>
                 <div className="meta"><span>DATE</span> <span>{new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}</span></div>
                 
@@ -955,26 +925,30 @@ export default function CashierPage() {
                 <div className="divider"></div>
                 
                 <div className="summary-row"><span>Subtotal</span><span>{format(Number(selectedOrder.totalAmount))}</span></div>
-                <div className="summary-row"><span style={{ fontSize: '11px', color: '#555' }}>GST Included (10%)</span><span style={{ fontSize: '11px', color: '#555' }}>{format((Number(selectedOrder.totalAmount)) - (Number(selectedOrder.totalAmount) / 1.10))}</span></div>
+                <div className="summary-row"><span style={{ fontSize: '11px', color: '#555' }}>GST / Tax Included (10%)</span><span style={{ fontSize: '11px', color: '#555' }}>{format((Number(selectedOrder.totalAmount)) - (Number(selectedOrder.totalAmount) / 1.10))}</span></div>
                 {calculatedDiscount > 0 && <div className="summary-row" style={{ color: '#dc2626' }}><span>Discount</span><span>-{format(calculatedDiscount)}</span></div>}
                 <div className="totals"><span>TOTAL</span><span>{format(finalTotal)}</span></div>
                 
-                <div style={{ marginTop: '50px', textAlign: 'center' }}>
-                  <div style={{ borderTop: '1px solid #000', width: '200px', margin: '0 auto 8px auto' }}></div>
-                  <p style={{ fontSize: '12px', margin: 0, color: '#000' }}>Customer Signature</p>
-                </div>
+                {receiptSettings.invoice.showSignatureLine && (
+                  <div style={{ marginTop: '40px', textAlign: 'center' }}>
+                    <div style={{ borderTop: '1px solid #000', width: '200px', margin: '0 auto 8px auto' }}></div>
+                    <p style={{ fontSize: '12px', margin: 0, color: '#000' }}>Customer Signature</p>
+                  </div>
+                )}
 
-                <div className="footer">
-                  <p><strong>THANK YOU FOR CHOOSING KWALEE BEACH RESORT!</strong><br/>PLEASE COME AGAIN!</p>
-                  <p>Served by: {selectedOrder.user ? `${selectedOrder.user.firstName} ${selectedOrder.user.lastName}` : 'Staff'}</p>
-                </div>
+                {receiptSettings.invoice.footerNote && (
+                  <div className="footer">
+                    <p style={{ whiteSpace: 'pre-line' }}>{receiptSettings.invoice.footerNote}</p>
+                    <p>Served by: {selectedOrder.user ? `${selectedOrder.user.firstName} ${selectedOrder.user.lastName}` : 'Staff'}</p>
+                  </div>
+                )}
                 
-                <div className="footer-terms">
-                  <strong>PAYMENT TERMS & CONDITIONS:</strong><br/>
-                  Payment is due immediately upon receipt of this invoice unless otherwise agreed. All prices are subject to applicable charges. Any additional orders or services will be added to the final bill.
-                  <br/><br/>
-                  Thank you for choosing Kwalee Beach Restaurant.
-                </div>
+                {receiptSettings.invoice.terms && (
+                  <div className="footer-terms">
+                    <strong>PAYMENT TERMS & CONDITIONS:</strong><br/>
+                    <span style={{ whiteSpace: 'pre-line' }}>{receiptSettings.invoice.terms}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

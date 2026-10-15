@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/lib/db';
+import { getDefaultReceiptInvoiceSettings } from '@/lib/receipt-invoice-helper';
 import { Modal } from '../ui/Modal';
 import { useToast } from '../ui/toast-provider';
 import { Loader2 } from 'lucide-react';
@@ -14,6 +17,8 @@ interface Props {
 
 export function CheckOutModal({ isOpen, onClose, onSuccess, reservation }: Props) {
   const { showToast } = useToast();
+  const property = useLiveQuery(() => db.properties.toCollection().first());
+  const receiptSettings = getDefaultReceiptInvoiceSettings(property);
   const [statement, setStatement] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   
@@ -99,9 +104,9 @@ export function CheckOutModal({ isOpen, onClose, onSuccess, reservation }: Props
     }
   };
 
-    const handlePrint = () => {
+  const handlePrint = () => {
     const iframe = document.createElement('iframe');
-        iframe.style.position = 'absolute';
+    iframe.style.position = 'absolute';
     iframe.style.left = '-9999px';
     iframe.style.top = '-9999px';
     iframe.style.width = '100%';
@@ -144,14 +149,16 @@ export function CheckOutModal({ isOpen, onClose, onSuccess, reservation }: Props
       </head>
       <body style="margin:0; padding:20px; font-family:'Courier New', Courier, monospace; color:#000; background:#fff; max-width: 380px; margin: 0 auto;">
         <div style="text-align:center; margin-bottom:20px;">
-          <img src="/kwalee-logo.png" style="max-width:120px; margin-bottom:10px;" />
-          <div style="font-size:20px; font-weight:bold; margin-bottom:4px; color:#000;">KWALEE BEACH RESORT</div>
-          <div style="font-size:12px; color:#000;">www.kwaleebeachresort.com</div>
-          <div style="font-size:12px; color:#000;">info@kwaleebeachresort.com</div>
-          <div style="font-size:12px; color:#000;">+231 774 340 843 / +231 881 774 350</div>
-          <div style="font-size:12px; color:#000;">Kpakpa Kon, Marshall, Lower Margibi County, Liberia</div>
+          ${receiptSettings.showLogo && receiptSettings.logoUrl ? `<img src="${receiptSettings.logoUrl}" style="max-width:120px; max-height:60px; object-fit:contain; margin-bottom:10px; display:block; margin:0 auto 10px auto;" />` : ''}
+          <div style="font-size:20px; font-weight:bold; margin-bottom:4px; color:#000;">${receiptSettings.businessName}</div>
+          ${receiptSettings.tagline ? `<div style="font-size:12px; font-style:italic; color:#444; margin-bottom:4px;">${receiptSettings.tagline}</div>` : ''}
+          ${receiptSettings.website ? `<div style="font-size:12px; color:#000;">${receiptSettings.website}</div>` : ''}
+          ${receiptSettings.email ? `<div style="font-size:12px; color:#000;">${receiptSettings.email}</div>` : ''}
+          ${receiptSettings.phone ? `<div style="font-size:12px; color:#000;">${receiptSettings.phone}</div>` : ''}
+          ${receiptSettings.address ? `<div style="font-size:12px; color:#000;">${receiptSettings.address}</div>` : ''}
+          ${receiptSettings.taxNumber ? `<div style="font-size:12px; font-weight:bold; color:#000;">TIN: ${receiptSettings.taxNumber}</div>` : ''}
         </div>
-        <div style="text-align:center; font-size:14px; font-weight:bold; margin:20px 0; color:#000;">ROOM RECEIPT</div>
+        <div style="text-align:center; font-size:14px; font-weight:bold; margin:20px 0; color:#000;">${receiptSettings.receipt.title}</div>
         <div style="border-bottom:1px dashed #000; margin:12px 0;"></div>
         
         <div style="font-size:12px; margin-bottom:4px; display:flex; justify-content:space-between; color:#000;">
@@ -175,7 +182,7 @@ export function CheckOutModal({ isOpen, onClose, onSuccess, reservation }: Props
           <span>Subtotal (Charges)</span><span>$${totalCharges.toFixed(2)}</span>
         </div>
         <div style="font-size:12px; display:flex; justify-content:space-between; margin-top:4px; color:#000;">
-          <span style="color:#555;">GST Included (10%)</span><span style="color:#555;">$${gst.toFixed(2)}</span>
+          <span style="color:#555;">GST Included (10%)</span><span>$${gst.toFixed(2)}</span>
         </div>
         ${totalDiscounts > 0 ? `<div style="font-size:12px; display:flex; justify-content:space-between; margin-top:4px; color:#dc2626;">
           <span>Total Discounts</span><span>-$${totalDiscounts.toFixed(2)}</span>
@@ -189,8 +196,14 @@ export function CheckOutModal({ isOpen, onClose, onSuccess, reservation }: Props
         </div>
         
         <div style="margin-top:40px; text-align:center; font-size:11px; color:#333; line-height:1.5;">
-          <p style="color:#000; margin:0;"><strong>THANK YOU FOR CHOOSING KWALEE BEACH RESORT!</strong><br/>PLEASE COME AGAIN!</p>
+          <p style="color:#000; margin:0; white-space:pre-line;">${receiptSettings.receipt.footerNote}</p>
         </div>
+
+        ${receiptSettings.receipt.terms ? `
+        <div style="text-align:left; font-size:10px; margin-top:20px; color:#000; line-height:1.4; border-top:1px dashed #000; padding-top:10px;">
+          <strong>TERMS & CONDITIONS:</strong><br/>
+          <span style="white-space:pre-line;">${receiptSettings.receipt.terms}</span>
+        </div>` : ''}
       </body>
       </html>
     `);
@@ -199,7 +212,9 @@ export function CheckOutModal({ isOpen, onClose, onSuccess, reservation }: Props
     iframe.contentWindow?.focus();
     setTimeout(() => {
       iframe.contentWindow?.print();
-      setTimeout(() => { document.body.removeChild(iframe); }, 1000);
+      setTimeout(() => { 
+        if (document.body.contains(iframe)) document.body.removeChild(iframe); 
+      }, 1000);
     }, 250);
   };
 
@@ -227,7 +242,7 @@ export function CheckOutModal({ isOpen, onClose, onSuccess, reservation }: Props
             </div>
             <div className="fs-row fs-total">
               <span className="fs-label">Outstanding Balance:</span>
-              <span className="fs-value ${balance > 0 ? 'text-danger' : 'text-success'}">
+              <span className={`fs-value ${balance > 0 ? 'text-danger' : 'text-success'}`}>
                 ${balance.toFixed(2)}
               </span>
             </div>
@@ -312,8 +327,8 @@ export function CheckOutModal({ isOpen, onClose, onSuccess, reservation }: Props
           {/* PRINT ONLY SECTION */}
           <div className="print-only-receipt">
             <div className="receipt-header">
-              <h2>Kwalee Hotel</h2>
-              <p>Monrovia, Liberia</p>
+              <h2>{receiptSettings.businessName}</h2>
+              <p>{receiptSettings.address}</p>
               <h3>Guest Folio</h3>
             </div>
             <div className="receipt-info">
@@ -347,7 +362,7 @@ export function CheckOutModal({ isOpen, onClose, onSuccess, reservation }: Props
               </tfoot>
             </table>
             <div className="receipt-footer">
-              <p>Thank you for choosing Kwalee Hotel!</p>
+              <p>{receiptSettings.receipt.footerNote}</p>
             </div>
           </div>
 
@@ -396,4 +411,3 @@ export function CheckOutModal({ isOpen, onClose, onSuccess, reservation }: Props
     </Modal>
   );
 }
-

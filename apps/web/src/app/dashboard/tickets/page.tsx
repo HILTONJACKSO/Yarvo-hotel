@@ -4,12 +4,17 @@ import { useState, useEffect } from 'react';
 import { Ticket, Waves, Umbrella, Search, CheckCircle, Plus, Settings, Trash2, Minus, ShoppingCart } from 'lucide-react';
 import { useAuth } from '@/lib/auth-provider';
 import { useCurrency } from '@/lib/currency';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/lib/db';
+import { getDefaultReceiptInvoiceSettings } from '@/lib/receipt-invoice-helper';
 
 export default function TicketsPage() {
   const [stats, setStats] = useState<any>({ totalOrders: 0, totalRevenue: 0 });
 
   const { user } = useAuth();
   const { format, currencySymbol } = useCurrency();
+  const property = useLiveQuery(() => db.properties.toCollection().first());
+  const receiptSettings = getDefaultReceiptInvoiceSettings(property);
   const [tickets, setTickets] = useState<any[]>([]);
   const [tiers, setTiers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
