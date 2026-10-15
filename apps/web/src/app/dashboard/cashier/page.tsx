@@ -575,19 +575,32 @@ export default function CashierPage() {
         payload.payments = payments;
       }
 
-      await db.syncQueue.add({
-        url: `/api/v1/pos/orders/${orderId}/checkout`,
-        method: 'POST',
-        payload,
-        createdAt: Date.now(),
-        status: 'PENDING',
-        retryCount: 0
-      });
-      if (navigator.onLine) syncOfflineMutations();
+      if (navigator.onLine) {
+        const res = await fetch(`/api/v1/pos/orders/${orderId}/checkout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.message || `Checkout failed (${res.status})`);
+        }
+      } else {
+        await db.syncQueue.add({
+          url: `/api/v1/pos/orders/${orderId}/checkout`,
+          method: 'POST',
+          payload,
+          createdAt: Date.now(),
+          status: 'PENDING',
+          retryCount: 0
+        });
+      }
 
       showToast(isRoomOrder ? 'Charged to Room Folio successfully' : 'Payment processed successfully', 'success', 'Paid');
       setSelectedOrder(null);
-      fetchOrders();
+      await fetchOrders();
     } catch (err: any) {
       showToast(err.message || 'Failed to process payment', 'error');
     } finally {

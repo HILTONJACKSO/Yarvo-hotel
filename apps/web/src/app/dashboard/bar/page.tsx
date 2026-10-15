@@ -36,28 +36,42 @@ export default function BarPage() {
 
   const fetchOrders = async () => {
     try {
-      if (navigator.onLine) await downloadLatestData();
+      if (navigator.onLine) {
+        await downloadLatestData();
+        try {
+          const res = await fetch('/api/v1/pos/stats/bar', { credentials: 'include' });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.totalOrders !== undefined) setStats(data);
+            else if (data.data?.totalOrders !== undefined) setStats(data.data);
+          }
+        } catch (e) {
+          console.error('Failed to fetch bar stats:', e);
+        }
+      }
       const allOrders = await db.posOrders.toArray();
       setOrders(allOrders);
 
-      // Compute stats
-      const today = new Date().toISOString().split('T')[0];
-      const todayOrders = allOrders.filter(o => (o.createdAt || "").startsWith(today));
-      let totalBarOrders = 0;
-      let totalBarRev = 0;
-      todayOrders.forEach((o: any) => {
-        let hasBar = false;
-        (o.items || []).forEach((item: any) => {
-          if (item.menuItem?.type === 'DRINK' || item.menuItem?.type === 'BAR') {
-            hasBar = true;
-            if (item.status === 'SERVED') {
-               totalBarRev += (item.quantity || 1) * Number(item.menuItem.price || 0);
+      // Local fallback calculation if offline
+      if (!navigator.onLine) {
+        const today = new Date().toISOString().split('T')[0];
+        const todayOrders = allOrders.filter(o => (o.createdAt || "").startsWith(today));
+        let totalBarOrders = 0;
+        let totalBarRev = 0;
+        todayOrders.forEach((o: any) => {
+          let hasBar = false;
+          (o.items || []).forEach((item: any) => {
+            if (item.menuItem?.type === 'DRINK' || item.menuItem?.type === 'BAR') {
+              hasBar = true;
+              if (item.status === 'SERVED' || item.status === 'READY') {
+                 totalBarRev += (item.quantity || 1) * Number(item.menuItem.price || 0);
+              }
             }
-          }
+          });
+          if (hasBar) totalBarOrders++;
         });
-        if (hasBar) totalBarOrders++;
-      });
-      setStats({ totalOrders: totalBarOrders, totalRevenue: totalBarRev });
+        setStats({ totalOrders: totalBarOrders, totalRevenue: totalBarRev });
+      }
     } catch (err) {
       console.error(err);
     }
@@ -65,6 +79,8 @@ export default function BarPage() {
 
   useEffect(() => {
     fetchOrders();
+    const interval = setInterval(fetchOrders, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const updateStatus = async (itemId: string, newStatus: string) => {
@@ -221,6 +237,9 @@ export default function BarPage() {
                     )}
                     {item.status === 'COOKING' && (
                       <button onClick={() => updateStatus(item.id, 'READY')} className="ready-btn">Mark Ready</button>
+                    )}
+                    {item.status === 'READY' && (
+                      <button onClick={() => updateStatus(item.id, 'SERVED')} style={{ background: 'hsl(142, 76%, 36%)', color: 'white' }}>Serve Drink</button>
                     )}
                     {item.status === 'RETURN_REQUESTED' && item.returnRequest && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', marginTop: '8px' }}>

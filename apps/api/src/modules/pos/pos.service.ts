@@ -182,13 +182,15 @@ export class PosService {
 
   // ─── ORDERS ─────────────────────────────────────────────────────────────
   async getDailyDepartmentStats(type: 'FOOD' | 'DRINK', propertyId?: string) {
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
+    const now = new Date();
+    const localMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const utcMidnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
+    const startOfDay = new Date(Math.min(localMidnight.getTime(), utcMidnight.getTime()));
 
     const items = await this.prisma.posOrderItem.findMany({
       where: {
         createdAt: { gte: startOfDay },
-        ...(propertyId ? { order: { propertyId } } : {}),
+        ...(propertyId ? { order: { OR: [{ propertyId }, { propertyId: null }] } } : {}),
         menuItem: {
           type: type === 'FOOD' ? 'FOOD' : { in: ['DRINK', 'BAR'] }
         },
@@ -214,8 +216,10 @@ export class PosService {
 
   
   async getDailyWaitstaffStats(userId: string) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const now = new Date();
+    const localMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const utcMidnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
+    const today = new Date(Math.min(localMidnight.getTime(), utcMidnight.getTime()));
 
     const items = await this.prisma.posOrderItem.findMany({
       where: {
@@ -241,21 +245,36 @@ export class PosService {
   }
 
   async getDailyCashierStats(propertyId?: string) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const now = new Date();
+    const localMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const utcMidnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
+    const startOfDay = new Date(Math.min(localMidnight.getTime(), utcMidnight.getTime()));
 
-    // Get all orders settled today
+    const propertyFilter = propertyId ? { OR: [{ propertyId }, { propertyId: null }] } : {};
+
+    // 1. Get all orders settled today
     const settledOrders = await this.prisma.posOrder.findMany({
       where: {
         status: { in: ['PAID', 'BILLED_TO_ROOM'] },
-        updatedAt: { gte: today },
-        ...(propertyId ? { propertyId } : {}),
+        updatedAt: { gte: startOfDay },
+        ...propertyFilter,
       }
     });
 
     const totalOrders = settledOrders.length;
-    // Calculate total actual revenue strictly from what was paid or billed to room
-    const totalRevenue = settledOrders.reduce((sum, order) => sum + Number(order.totalAmount || 0), 0);
+    const ordersRevenue = settledOrders.reduce((sum, order) => sum + Number(order.totalAmount || 0), 0);
+
+    // 2. Payments aggregate as safety check
+    const paymentsAgg = await this.prisma.posPayment.aggregate({
+      _sum: { amount: true },
+      where: {
+        createdAt: { gte: startOfDay },
+        ...(propertyId ? { OR: [{ propertyId }, { order: { propertyId } }, { propertyId: null }] } : {}),
+      }
+    });
+    const paymentsRevenue = paymentsAgg._sum.amount ? Number(paymentsAgg._sum.amount) : 0;
+
+    const totalRevenue = Math.max(ordersRevenue, paymentsRevenue);
 
     return { totalOrders, totalRevenue };
   }
@@ -745,12 +764,15 @@ export class PosService {
 
     if (!order) throw new NotFoundException('Order not found');
 
-    // Enforce workflow: cashier can only settle orders where all active items are SERVED
-    const hasUnserved = order.items.some(i => !['SERVED', 'RETURNED'].includes(i.status));
-    if (hasUnserved) {
-      throw new ForbiddenException(
-        'Order cannot be settled yet. All items must be marked ready by the kitchen/bar, and delivered by the waitstaff first.'
-      );
+    // Auto-mark any active items as SERVED when cashier settles the order
+    const unservedItems = order.items.filter(i => !['SERVED', 'RETURNED'].includes(i.status));
+    if (unservedItems.length > 0) {
+      await this.prisma.posOrderItem.updateMany({
+        where: {
+          id: { in: unservedItems.map(i => i.id) }
+        },
+        data: { status: 'SERVED' }
+      });
     }
 
     let subtotal = 0;
@@ -800,6 +822,7 @@ export class PosService {
           category: 'F_AND_B',
           amount: totalAmount,
           description: `POS Order #${order.id.substring(0, 8).toUpperCase()}`,
+          propertyId: order.propertyId || null,
         }
       });
 
@@ -811,33 +834,48 @@ export class PosService {
 
       return this.prisma.posOrder.update({
         where: { id: orderId },
-        data: { status: 'BILLED_TO_ROOM', folioId: folioIdToUse, totalAmount, discountAmount: appliedDiscount, ...(data.discountReason ? { discountReason: data.discountReason } : {}) }
+        data: { 
+          status: 'BILLED_TO_ROOM', 
+          folioId: folioIdToUse, 
+          totalAmount, 
+          discountAmount: appliedDiscount, 
+          ...(data.discountReason ? { discountReason: data.discountReason } : {}) 
+        }
       });
     }
 
-    // Otherwise, process POS split payments
-    if (data.payments && data.payments.length > 0) {
-      await this.prisma.$transaction(async (tx) => {
-        for (const p of data.payments!) {
+    // Process POS payments
+    const paymentsToRecord = (data.payments && data.payments.length > 0)
+      ? data.payments
+      : [{ method: 'PAYMENT_CASH', amount: totalAmount }];
+
+    await this.prisma.$transaction(async (tx) => {
+      for (const p of paymentsToRecord) {
+        if (Number(p.amount) > 0) {
           await tx.posPayment.create({
             data: {
               orderId,
               amount: p.amount,
-              method: p.method
+              method: p.method || 'PAYMENT_CASH',
+              propertyId: order.propertyId || null
             }
           });
         }
-        await tx.posOrder.update({
-          where: { id: orderId },
-          data: { status: 'PAID', totalAmount, discountAmount: appliedDiscount, ...(data.discountReason ? { discountReason: data.discountReason } : {}) }
-        });
+      }
+      await tx.posOrder.update({
+        where: { id: orderId },
+        data: { 
+          status: 'PAID', 
+          totalAmount, 
+          discountAmount: appliedDiscount, 
+          ...(data.discountReason ? { discountReason: data.discountReason } : {}) 
+        }
       });
-      return this.prisma.posOrder.findUnique({ where: { id: orderId } });
-    }
+    });
 
-    return this.prisma.posOrder.update({
+    return this.prisma.posOrder.findUnique({
       where: { id: orderId },
-      data: { status: 'PAID', totalAmount, discountAmount: appliedDiscount, ...(data.discountReason ? { discountReason: data.discountReason } : {}) }
+      include: { items: { include: { menuItem: true } }, payments: true }
     });
   }
 

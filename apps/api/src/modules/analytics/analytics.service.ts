@@ -71,13 +71,27 @@ export class AnalyticsService {
       },
     });
 
-    const posRevenueItems = await this.prisma.posPayment.aggregate({
+    const posRevenuePayments = await this.prisma.posPayment.aggregate({
       _sum: { amount: true },
       where: {
         createdAt: { gte: startOfToday, lte: endOfToday },
-        ...(propertyId ? { propertyId } : {}),
+        ...(propertyId ? { OR: [{ propertyId }, { order: { propertyId } }, { propertyId: null }] } : {}),
       },
     });
+
+    const paidPosOrders = await this.prisma.posOrder.aggregate({
+      _sum: { totalAmount: true },
+      where: {
+        status: 'PAID',
+        updatedAt: { gte: startOfToday, lte: endOfToday },
+        ...(propertyId ? { OR: [{ propertyId }, { propertyId: null }] } : {}),
+      }
+    });
+
+    const posRevenue = Math.max(
+      posRevenuePayments._sum.amount?.toNumber() || 0,
+      paidPosOrders._sum.totalAmount?.toNumber() || 0
+    );
 
     // 5. Outstanding Revenue (Unpaid open folio balances + unpaid company balances + unpaid POS orders)
     const openFolios = await this.prisma.folio.aggregate({
@@ -102,7 +116,9 @@ export class AnalyticsService {
     });
     const posOutstanding = (openPosOrders._sum.totalAmount?.toNumber() || 0) - (openPosOrders._sum.discountAmount?.toNumber() || 0);
 
-    const todaysRevenue = (revenueItems._sum.amount?.toNumber() || 0) + (ticketRevenueItems._sum.price?.toNumber() || 0) + (posRevenueItems._sum.amount?.toNumber() || 0);
+    const todaysRevenue = (revenueItems._sum.amount?.toNumber() || 0) + 
+      (ticketRevenueItems._sum.price?.toNumber() || 0) + 
+      posRevenue;
     const outstandingRevenue = (openFolios._sum.balance?.toNumber() || 0) + (companyBalances._sum.balance?.toNumber() || 0) + posOutstanding;
 
     return {
@@ -137,6 +153,12 @@ export class AnalyticsService {
       select: { amount: true, createdAt: true },
     });
 
+    // Also get paid POS orders if posPayments is empty or missing
+    const paidOrders = await this.prisma.posOrder.findMany({
+      where: { status: 'PAID', updatedAt: { gte: startOfPeriod, lte: endOfPeriod } },
+      select: { totalAmount: true, updatedAt: true, payments: { select: { id: true } } }
+    });
+
     // Ticket sales
     const tickets = await this.prisma.ticket.findMany({
       where: { issueDate: { gte: startOfPeriod, lte: endOfPeriod }, status: { in: ['VALID', 'USED'] } },
@@ -162,6 +184,13 @@ export class AnalyticsService {
     posPayments.forEach((payment) => {
       const dateStr = payment.createdAt.toISOString().split('T')[0];
       if (dailyRevenue[dateStr] !== undefined) dailyRevenue[dateStr] += payment.amount.toNumber();
+    });
+
+    paidOrders.forEach((o) => {
+      if (!o.payments || o.payments.length === 0) {
+        const dateStr = o.updatedAt.toISOString().split('T')[0];
+        if (dailyRevenue[dateStr] !== undefined) dailyRevenue[dateStr] += o.totalAmount.toNumber();
+      }
     });
 
     tickets.forEach((ticket) => {
