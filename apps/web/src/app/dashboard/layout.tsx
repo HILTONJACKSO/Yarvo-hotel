@@ -44,11 +44,11 @@ const NAV_ITEMS: NavItem[] = [
   { icon: Home, label: 'Dashboard', href: '/dashboard', id: 'nav-dashboard', allowedRoles: ['admin', 'ceo', 'manager'] },
   { icon: CalendarCheck, label: 'Reservations', href: '/dashboard/reservations', id: 'nav-reservations', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'front_desk'], requiredFeature: 'FRONT_DESK' },
   { icon: Users, label: 'Guests', href: '/dashboard/guests', id: 'nav-guests', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'front_desk'], requiredFeature: 'FRONT_DESK' },
-  { icon: Building2, label: 'Companies', href: '/dashboard/companies', id: 'nav-companies', allowedRoles: ['admin', 'manager', 'front_desk'], requiredFeature: 'STAFF_MANAGEMENT' },
+  { icon: Building2, label: 'Companies', href: '/dashboard/companies', id: 'nav-companies', allowedRoles: ['admin', 'ceo', 'manager', 'front_desk'], requiredFeature: 'STAFF_MANAGEMENT' },
   { icon: Users, label: 'Staff', href: '/dashboard/staff', id: 'nav-staff', allowedRoles: ['admin', 'ceo', 'manager', 'staff_waiter'], requiredFeature: 'STAFF_MANAGEMENT' },
   { type: 'divider' },
-  { icon: BedDouble, label: 'Rooms', href: '/dashboard/rooms', id: 'nav-rooms', allowedRoles: ['admin', 'ceo'], requiredFeature: 'FRONT_DESK' },
-  { icon: Tags, label: 'Room Types', href: '/dashboard/room-types', id: 'nav-room-types', allowedRoles: ['admin', 'ceo'], requiredFeature: 'FRONT_DESK' },
+  { icon: BedDouble, label: 'Rooms', href: '/dashboard/rooms', id: 'nav-rooms', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'front_desk'], requiredFeature: 'FRONT_DESK' },
+  { icon: Tags, label: 'Room Types', href: '/dashboard/room-types', id: 'nav-room-types', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor'], requiredFeature: 'FRONT_DESK' },
   { icon: ConciergeBell, label: 'Front Desk', href: '/dashboard/front-desk', id: 'nav-frontdesk', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'front_desk', 'housekeeping'], requiredFeature: 'FRONT_DESK' },
   { icon: Sparkles, label: 'Housekeeping', href: '/dashboard/housekeeping', id: 'nav-housekeeping', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'front_desk', 'housekeeping'], requiredFeature: 'OPERATIONS' },
   { icon: Wrench, label: 'Maintenance', href: '/dashboard/maintenance', id: 'nav-maintenance', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'front_desk'], requiredFeature: 'OPERATIONS' },
@@ -73,7 +73,7 @@ const NAV_ITEMS: NavItem[] = [
   { type: 'divider' },
   { icon: Wallet, label: 'POS Cashier', href: '/dashboard/cashier', id: 'nav-cashier', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'cashier', 'front_desk'], requiredFeature: 'POS' },
   { type: 'divider' },
-  { icon: Settings, label: 'Settings', href: '/dashboard/settings', id: 'nav-settings', allowedRoles: ['admin', 'ceo'] },
+  { icon: Settings, label: 'Settings', href: '/dashboard/settings', id: 'nav-settings', allowedRoles: ['admin', 'ceo', 'manager'] },
 ];
 
 

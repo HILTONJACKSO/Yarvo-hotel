@@ -79,6 +79,7 @@ export function EditRoomTypeModal({ isOpen, onClose, onSuccess, roomType }: Prop
       const res = await fetch(`/api/v1/room-types/${roomType.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(payload),
       });
       

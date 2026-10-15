@@ -65,6 +65,7 @@ export function AddRoomTypeModal({ isOpen, onClose, onSuccess }: Props) {
       const res = await fetch('/api/v1/room-types', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(payload),
       });
       

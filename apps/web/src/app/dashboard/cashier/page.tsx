@@ -9,7 +9,7 @@ import domtoimage from 'dom-to-image-more';
 import { useToast } from '@/components/ui/toast-provider';
 import { useCurrency } from '@/lib/currency';
 import { useAuth } from '@/lib/auth-provider';
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = '';
 
 type PosOrder = {
   id: string;

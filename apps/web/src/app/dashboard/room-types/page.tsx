@@ -32,7 +32,7 @@ export default function RoomTypesPage() {
 
   const fetchRoomTypes = () => {
     setLoading(true);
-    fetch('/api/v1/room-types')
+    fetch('/api/v1/room-types', { credentials: 'include' })
       .then(async (res) => {
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Failed to fetch');
@@ -58,7 +58,7 @@ export default function RoomTypesPage() {
     setIsDeleting(true);
     setDeleteError(null);
     try {
-      const res = await fetch(`/api/v1/room-types/${roomToDelete.id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/v1/room-types/${roomToDelete.id}`, { method: 'DELETE', credentials: 'include' });
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
         throw new Error(json.message || 'Failed to delete room type');

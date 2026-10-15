@@ -49,7 +49,15 @@ export function AddRoomModal({ isOpen, onClose, onSuccess, initialData }: Props)
     const fetchRoomTypes = async () => {
       setLoadingData(true);
       try {
-        const types = await db.roomTypes.toArray();
+        let types = await db.roomTypes.toArray();
+        if (!types || types.length === 0) {
+          const res = await fetch('/api/v1/room-types', { credentials: 'include' });
+          if (res.ok) {
+            const data = await res.json();
+            types = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
+            if (types.length > 0) await db.roomTypes.bulkPut(types);
+          }
+        }
         setRoomTypes(types || []);
       } catch (err) {
         console.error('Failed to load room types', err);

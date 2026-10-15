@@ -8,7 +8,7 @@ import { useToast } from '@/components/ui/toast-provider';
 import { useAuth } from '@/lib/auth-provider';
 import { useCurrency } from '@/lib/currency';
 import { MultiImageUpload } from '@/components/ui/MultiImageUpload';
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = '';
 
 type PosCategory = { id: string; name: string };
 type PosMenuItem = { id: string; name: string; price: string | number; isAvailable: boolean; categoryId: string; type: string; image?: string; images?: string[]; recipes?: { inventoryItemId: string }[] };
@@ -77,6 +77,28 @@ export default function PosPage() {
 
   useEffect(() => {
     fetchData();
+
+    // Periodic sync every 4s so changes on other devices appear automatically
+    const interval = setInterval(() => {
+      if (navigator.onLine && document.visibilityState === 'visible') {
+        downloadLatestData().catch(console.error);
+      }
+    }, 4000);
+
+    const onSyncTrigger = () => {
+      if (navigator.onLine) {
+        downloadLatestData().catch(console.error);
+      }
+    };
+
+    window.addEventListener('focus', onSyncTrigger);
+    document.addEventListener('visibilitychange', onSyncTrigger);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onSyncTrigger);
+      document.removeEventListener('visibilitychange', onSyncTrigger);
+    };
   }, []);
 
   const fetchData = async () => {

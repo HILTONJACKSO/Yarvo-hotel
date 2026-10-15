@@ -29,13 +29,13 @@ export class RoomsController {
   constructor(private readonly roomsService: RoomsService) {}
 
   @Post()
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   @ApiOperation({ summary: 'Create a new room' })
   @ApiResponse({ status: 201, description: 'Room successfully created.' })
   @ApiResponse({ status: 400, description: 'RoomType not found.' })
   @ApiResponse({ status: 409, description: 'Room number already exists.' })
   create(@Body() createRoomDto: CreateRoomDto, @CurrentUser() user: any) {
-    return this.roomsService.create(createRoomDto, user?.id);
+    return this.roomsService.create(createRoomDto, user?.id, user?.propertyId);
   }
 
   @Get()
@@ -48,11 +48,13 @@ export class RoomsController {
     @Query('status') status?: RoomStatus,
     @Query('floor') floor?: string,
     @Query('roomTypeId') roomTypeId?: string,
+    @CurrentUser() user?: any,
   ) {
     return this.roomsService.findAll(
       status,
       floor ? parseInt(floor, 10) : undefined,
       roomTypeId,
+      user?.propertyId,
     );
   }
 
@@ -63,11 +65,12 @@ export class RoomsController {
   getCalendar(
     @Query('start') start: string,
     @Query('end') end: string,
+    @CurrentUser() user?: any,
   ) {
     if (!start || !end) {
       throw new BadRequestException('start and end dates are required');
     }
-    return this.roomsService.getRoomCalendar(start, end);
+    return this.roomsService.getRoomCalendar(start, end, user?.propertyId);
   }
 
   @Get(':id')
@@ -79,7 +82,7 @@ export class RoomsController {
   }
 
   @Patch(':id')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   @ApiOperation({ summary: 'Update a room details' })
   @ApiResponse({ status: 200, description: 'Room successfully updated.' })
   update(@Param('id') id: string, @Body() updateRoomDto: UpdateRoomDto, @CurrentUser() user: any) {
@@ -110,7 +113,7 @@ export class RoomsController {
   }
 
   @Delete(':id')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Soft delete a room' })
   @ApiResponse({ status: 204, description: 'Room successfully deleted.' })

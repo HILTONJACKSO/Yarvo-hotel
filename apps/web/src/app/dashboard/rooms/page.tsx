@@ -91,7 +91,7 @@ export default function RoomsPage() {
     <div className="page-container">
       <div className="page-header">
         <h2>Rooms</h2>
-        {user?.roles?.some((role: string) => ['ADMIN', 'SUPER_ADMIN', 'CEO'].includes(role?.toUpperCase?.() || (role as any)?.name?.toUpperCase?.())) && (
+        {user?.roles?.some((role: string) => ['ADMIN', 'SUPER_ADMIN', 'CEO', 'MANAGER'].includes(role?.toUpperCase?.() || (role as any)?.name?.toUpperCase?.())) && (
           <button className="btn-primary" onClick={() => setIsModalOpen(true)}>Add Room</button>
         )}
       </div>
@@ -163,7 +163,7 @@ export default function RoomsPage() {
                     </td>
                     <td className="actions-cell">
                       <div className="flex-actions">
-                        {user?.roles?.some(role => ['ADMIN', 'SUPER_ADMIN'].includes(role.toUpperCase())) && (
+                        {user?.roles?.some(role => ['ADMIN', 'SUPER_ADMIN', 'CEO', 'MANAGER'].includes(role?.toUpperCase?.() || (role as any)?.name?.toUpperCase?.())) && (
                           <button className="btn-danger-outline-small" onClick={() => setRoomToDelete(room)}>Delete</button>
                         )}
                         <button className="action-btn" onClick={() => setRoomToEdit(room)}>Edit</button>

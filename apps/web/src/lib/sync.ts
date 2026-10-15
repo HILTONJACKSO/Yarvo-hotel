@@ -84,52 +84,116 @@ export async function syncOfflineMutations() {
   }
 }
 
+function extractArray(resData: any): any[] {
+  if (!resData) return [];
+  if (Array.isArray(resData.data)) return resData.data;
+  if (Array.isArray(resData)) return resData;
+  return [];
+}
+
 // Function to fetch latest data from server and populate Dexie
 export async function downloadLatestData() {
   try {
     // 1. Fetch Rooms
-    const roomsRes = await fetch('/api/v1/rooms');
+    const roomsRes = await fetch('/api/v1/rooms', { credentials: 'include' });
     if (roomsRes.ok) {
       const data = await roomsRes.json();
-      if (data.data) {
-        await db.rooms.bulkPut(data.data);
+      const serverRooms = extractArray(data);
+      if (serverRooms.length > 0 || (data.data && Array.isArray(data.data))) {
+        const serverIds = new Set(serverRooms.map((r: any) => r.id));
+        const localRooms = await db.rooms.toArray();
+        for (const lr of localRooms) {
+          if (!serverIds.has(lr.id)) {
+            await db.rooms.delete(lr.id);
+          }
+        }
+        if (serverRooms.length > 0) {
+          await db.rooms.bulkPut(serverRooms);
+        }
       }
     }
 
     // 2. Fetch Reservations
-    const resRes = await fetch('/api/v1/reservations');
+    const resRes = await fetch('/api/v1/reservations', { credentials: 'include' });
     if (resRes.ok) {
       const data = await resRes.json();
-      if (data.data) {
-        await db.reservations.bulkPut(data.data);
+      const serverRes = extractArray(data);
+      if (serverRes.length > 0) {
+        await db.reservations.bulkPut(serverRes);
       }
     }
 
     // 3. Fetch Guests 
-    const guestRes = await fetch('/api/v1/guests?limit=1000');
+    const guestRes = await fetch('/api/v1/guests?limit=1000', { credentials: 'include' });
     if (guestRes.ok) {
       const data = await guestRes.json();
-      if (data.data) {
-        await db.guests.bulkPut(data.data);
+      const serverGuests = extractArray(data);
+      if (serverGuests.length > 0) {
+        await db.guests.bulkPut(serverGuests);
       }
     }
 
     // 4. Fetch POS Data
     const [ptRes, pcRes, pmRes, poRes, psRes] = await Promise.all([
-      fetch('/api/v1/pos/tables'),
-      fetch('/api/v1/pos/categories'),
-      fetch('/api/v1/pos/menu-items?limit=1000'),
-      fetch('/api/v1/pos/orders'), // Currently active orders
-      fetch('/api/v1/pos/served-orders') // Served orders for cashier
+      fetch('/api/v1/pos/tables', { credentials: 'include' }),
+      fetch('/api/v1/pos/categories', { credentials: 'include' }),
+      fetch('/api/v1/pos/menu-items?limit=1000', { credentials: 'include' }),
+      fetch('/api/v1/pos/orders', { credentials: 'include' }), // Currently active orders
+      fetch('/api/v1/pos/served-orders', { credentials: 'include' }) // Served orders for cashier
     ]);
 
-    if (ptRes.ok) { const d = await ptRes.json(); if (d.data) await db.posTables.bulkPut(d.data); }
-    if (pcRes.ok) { const d = await pcRes.json(); if (d.data) await db.posCategories.bulkPut(d.data); }
-    if (pmRes.ok) { const d = await pmRes.json(); if (d.data) await db.posMenuItems.bulkPut(d.data); }
+    // 4a. Tables Reconciliation
+    if (ptRes.ok) {
+      const d = await ptRes.json();
+      const serverTables = extractArray(d);
+      const serverIds = new Set(serverTables.map((t: any) => t.id));
+      const localTables = await db.posTables.toArray();
+      for (const lt of localTables) {
+        if (!serverIds.has(lt.id)) {
+          await db.posTables.delete(lt.id);
+        }
+      }
+      if (serverTables.length > 0) {
+        await db.posTables.bulkPut(serverTables);
+      }
+    }
+
+    // 4b. Categories Reconciliation
+    if (pcRes.ok) {
+      const d = await pcRes.json();
+      const serverCats = extractArray(d);
+      const serverIds = new Set(serverCats.map((c: any) => c.id));
+      const localCats = await db.posCategories.toArray();
+      for (const lc of localCats) {
+        if (!serverIds.has(lc.id)) {
+          await db.posCategories.delete(lc.id);
+        }
+      }
+      if (serverCats.length > 0) {
+        await db.posCategories.bulkPut(serverCats);
+      }
+    }
+
+    // 4c. Menu Items Reconciliation
+    if (pmRes.ok) {
+      const d = await pmRes.json();
+      const serverItems = extractArray(d);
+      const serverIds = new Set(serverItems.map((m: any) => m.id));
+      const localItems = await db.posMenuItems.toArray();
+      for (const li of localItems) {
+        if (!serverIds.has(li.id)) {
+          await db.posMenuItems.delete(li.id);
+        }
+      }
+      if (serverItems.length > 0) {
+        await db.posMenuItems.bulkPut(serverItems);
+      }
+    }
     
+    // 4d. POS Orders
     const serverOrders: any[] = [];
-    if (poRes.ok) { const d = await poRes.json(); if (d.data) serverOrders.push(...d.data); }
-    if (psRes.ok) { const d = await psRes.json(); if (d.data) serverOrders.push(...d.data); }
+    if (poRes.ok) { const d = await poRes.json(); serverOrders.push(...extractArray(d)); }
+    if (psRes.ok) { const d = await psRes.json(); serverOrders.push(...extractArray(d)); }
     
     if (poRes.ok || psRes.ok) {
       if (serverOrders.length > 0) {
@@ -150,83 +214,98 @@ export async function downloadLatestData() {
 
     // 5. Fetch Inventory & Taxes
     const [invRes, taxRes] = await Promise.all([
-      fetch('/api/v1/inventory?limit=1000'),
-      fetch('/api/v1/taxes')
+      fetch('/api/v1/inventory?limit=1000', { credentials: 'include' }),
+      fetch('/api/v1/taxes', { credentials: 'include' })
     ]);
-    if (invRes.ok) { const d = await invRes.json(); if (d.data) await db.inventory.bulkPut(d.data); }
-    if (taxRes.ok) { const d = await taxRes.json(); if (d.data) await db.taxes.bulkPut(Array.isArray(d.data) ? d.data : []); }
+    if (invRes.ok) { const d = await invRes.json(); const items = extractArray(d); if (items.length > 0) await db.inventory.bulkPut(items); }
+    if (taxRes.ok) { const d = await taxRes.json(); const taxes = extractArray(d); if (taxes.length > 0) await db.taxes.bulkPut(taxes); }
     
     
     // 6. Fetch Work Orders
-    const woRes = await fetch('/api/v1/work-orders');
+    const woRes = await fetch('/api/v1/work-orders', { credentials: 'include' });
     if (woRes.ok) {
       const d = await woRes.json();
-      if (d.data || Array.isArray(d)) {
-        await db.workOrders.bulkPut(d.data || d);
+      const orders = extractArray(d);
+      if (orders.length > 0) {
+        await db.workOrders.bulkPut(orders);
       }
     }
 
     
     // 7. Fetch Folios
-    const foliosRes = await fetch('/api/v1/folios?status=OPEN');
+    const foliosRes = await fetch('/api/v1/folios?status=OPEN', { credentials: 'include' });
     if (foliosRes.ok) {
       const d = await foliosRes.json();
-      if (d.data || Array.isArray(d)) {
-        await db.folios.bulkPut(d.data || d);
+      const folios = extractArray(d);
+      if (folios.length > 0) {
+        await db.folios.bulkPut(folios);
       }
     }
 
     
     // 8. Fetch Room Types
-    const roomTypesRes = await fetch('/api/v1/room-types');
+    const roomTypesRes = await fetch('/api/v1/room-types', { credentials: 'include' });
     if (roomTypesRes.ok) {
       const d = await roomTypesRes.json();
-      if (d.data || Array.isArray(d)) {
-        await db.roomTypes.bulkPut(d.data || d);
+      const serverRoomTypes = extractArray(d);
+      const serverIds = new Set(serverRoomTypes.map((rt: any) => rt.id));
+      const localRoomTypes = await db.roomTypes.toArray();
+      for (const lrt of localRoomTypes) {
+        if (!serverIds.has(lrt.id)) {
+          await db.roomTypes.delete(lrt.id);
+        }
+      }
+      if (serverRoomTypes.length > 0) {
+        await db.roomTypes.bulkPut(serverRoomTypes);
       }
     }
 
     
     // 9. Fetch Event Spaces and Bookings
-    const spacesRes = await fetch('/api/v1/events/spaces');
+    const spacesRes = await fetch('/api/v1/events/spaces', { credentials: 'include' });
     if (spacesRes.ok) {
       const d = await spacesRes.json();
-      if (d.data || Array.isArray(d)) {
-        await db.eventSpaces.bulkPut(d.data || d);
+      const spaces = extractArray(d);
+      if (spaces.length > 0) {
+        await db.eventSpaces.bulkPut(spaces);
       }
     }
-    const bookingsRes = await fetch('/api/v1/events/bookings');
+    const bookingsRes = await fetch('/api/v1/events/bookings', { credentials: 'include' });
     if (bookingsRes.ok) {
       const d = await bookingsRes.json();
-      if (d.data || Array.isArray(d)) {
-        await db.eventBookings.bulkPut(d.data || d);
+      const bookings = extractArray(d);
+      if (bookings.length > 0) {
+        await db.eventBookings.bulkPut(bookings);
       }
     }
 
     
     // 10. Fetch Property
-    const propsRes = await fetch('/api/v1/properties');
+    const propsRes = await fetch('/api/v1/properties', { credentials: 'include' });
     if (propsRes.ok) {
       const d = await propsRes.json();
-      if (d.data || d) {
-        await db.properties.put(d.data || d);
+      const prop = d.data || d;
+      if (prop && prop.id) {
+        await db.properties.put(prop);
       }
     }
 
     
     // 11. Fetch Companies
-    const compRes = await fetch('/api/v1/companies');
+    const compRes = await fetch('/api/v1/companies', { credentials: 'include' });
     if (compRes.ok) {
       const d = await compRes.json();
-      if (d.data) await db.companies.bulkPut(d.data);
+      const comps = extractArray(d);
+      if (comps.length > 0) await db.companies.bulkPut(comps);
     }
 
     
     // 12. Fetch Expenses
-    const expRes = await fetch('/api/v1/expenses');
+    const expRes = await fetch('/api/v1/expenses', { credentials: 'include' });
     if (expRes.ok) {
       const d = await expRes.json();
-      if (d.data) await db.expenses.bulkPut(d.data);
+      const exps = extractArray(d);
+      if (exps.length > 0) await db.expenses.bulkPut(exps);
     }
 
     console.log('Background sync (download) complete.');
