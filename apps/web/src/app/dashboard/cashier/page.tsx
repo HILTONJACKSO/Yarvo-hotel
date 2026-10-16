@@ -399,17 +399,6 @@ export default function CashierPage() {
 
   const printViaIframe = (mode: 'RECEIPT' | 'INVOICE') => {
     if (!selectedOrder) return;
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'absolute';
-    iframe.style.left = '-9999px';
-    iframe.style.top = '-9999px';
-    iframe.style.width = '100%';
-    iframe.style.height = '100%';
-    iframe.style.border = 'none';
-    document.body.appendChild(iframe);
-
-    const doc = iframe.contentWindow?.document;
-    if (!doc) return;
 
     const orderTotal = Number(selectedOrder.totalAmount);
     const finalTotal = Math.max(0, orderTotal - calculatedDiscount);
@@ -452,21 +441,63 @@ export default function CashierPage() {
       isInvoiceMode: mode === 'INVOICE',
     });
 
+    const isMobile = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile) {
+      const printWin = window.open('', '_blank');
+      if (printWin) {
+        printWin.document.write(thermalHtml);
+        printWin.document.close();
+        printWin.focus();
+        setTimeout(() => {
+          try {
+            printWin.print();
+          } catch (e) {
+            console.error('Mobile print error:', e);
+          }
+        }, 500);
+        return;
+      }
+    }
+
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.left = '-9999px';
+    iframe.style.top = '-9999px';
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) {
+      downloadReceiptPdf(selectedOrder.id, mode === 'INVOICE');
+      return;
+    }
+
+    doc.open();
     doc.write(thermalHtml);
     doc.close();
     iframe.contentWindow?.focus();
     setTimeout(() => {
-      iframe.contentWindow?.print();
+      try {
+        iframe.contentWindow?.print();
+      } catch (e) {
+        downloadReceiptPdf(selectedOrder.id, mode === 'INVOICE');
+      }
       setTimeout(() => { 
         if (document.body.contains(iframe)) document.body.removeChild(iframe); 
-      }, 1000);
+      }, 1500);
     }, 250);
+  };
+
+  const getEffectiveRoles = () => {
+    const list = user?.roles || currentUser?.roles || [];
+    return list.map((r: any) => (typeof r === 'string' ? r : r?.name || '').toUpperCase());
   };
 
   const handlePrintInvoice = async (orderId: string) => {
     if (!selectedOrder) return;
-    const getRoles = (user: any) => user?.roles?.map((r: any) => (r.name || r).toUpperCase()) || [];
-    const roles = getRoles(currentUser);
+    const roles = getEffectiveRoles();
     const isAdmin = roles.some((r: string) => ['SUPER_ADMIN', 'ADMIN', 'CEO'].includes(r));
     const isManager = roles.includes('MANAGER');
     const isStaff = roles.some((r: string) => ['WAITSTAFF', 'CASHIER', 'BAR', 'KITCHEN', 'POS_CASHIER'].includes(r));
@@ -485,15 +516,14 @@ export default function CashierPage() {
     printViaIframe('INVOICE');
     setSelectedOrder((prev: any) => prev ? { ...prev, invoicePrintCount: (prev.invoicePrintCount || 0) + 1 } : null);
     try {
-      await fetch(`${API_URL}/api/v1/pos/orders/${orderId}/increment-print`, { method: 'POST', credentials: 'include' });
+      await fetch(`/api/v1/pos/orders/${orderId}/increment-print`, { method: 'POST', credentials: 'include' });
       fetchOrders();
     } catch(e) {}
   };
 
   const handlePrintReceipt = async (orderId: string) => {
     if (!selectedOrder) return;
-    const getRoles = (user: any) => user?.roles?.map((r: any) => (r.name || r).toUpperCase()) || [];
-    const roles = getRoles(currentUser);
+    const roles = getEffectiveRoles();
     const isAdmin = roles.some((r: string) => ['SUPER_ADMIN', 'ADMIN', 'CEO'].includes(r));
     const isManager = roles.includes('MANAGER');
     const isStaff = roles.some((r: string) => ['WAITSTAFF', 'CASHIER', 'BAR', 'KITCHEN', 'POS_CASHIER'].includes(r));
@@ -512,7 +542,7 @@ export default function CashierPage() {
     printViaIframe('RECEIPT');
     setSelectedOrder((prev: any) => prev ? { ...prev, receiptPrintCount: (prev.receiptPrintCount || 0) + 1 } : null);
     try {
-      await fetch(`${API_URL}/api/v1/pos/orders/${orderId}/increment-receipt-print`, { method: 'POST', credentials: 'include' });
+      await fetch(`/api/v1/pos/orders/${orderId}/increment-receipt-print`, { method: 'POST', credentials: 'include' });
       fetchOrders();
     } catch(e) {}
   };
@@ -520,8 +550,7 @@ export default function CashierPage() {
     const downloadReceiptPdf = async (orderId: string, isInvoice: boolean = false) => {
       if (!selectedOrder) return;
       
-      const getRoles = (user: any) => user?.roles?.map((r: any) => (r.name || r).toUpperCase()) || [];
-      const roles = getRoles(currentUser);
+      const roles = getEffectiveRoles();
       const isAdmin = roles.some((r: string) => ['SUPER_ADMIN', 'ADMIN', 'CEO'].includes(r));
       const isManager = roles.includes('MANAGER');
       const isStaff = roles.some((r: string) => ['WAITSTAFF', 'CASHIER', 'BAR', 'KITCHEN', 'POS_CASHIER'].includes(r));
@@ -589,7 +618,7 @@ export default function CashierPage() {
         pdf.save(`${isInvoice ? 'Invoice' : 'Receipt'}_${selectedOrder.id.substring(0,8)}.pdf`);
         const endpoint = isInvoice ? 'increment-print' : 'increment-receipt-print';
         setSelectedOrder((prev: any) => prev ? { ...prev, [isInvoice ? 'invoicePrintCount' : 'receiptPrintCount']: (prev[isInvoice ? 'invoicePrintCount' : 'receiptPrintCount'] || 0) + 1 } : null);
-        await fetch(`${API_URL}/api/v1/pos/orders/${orderId}/${endpoint}`, { method: 'POST', credentials: 'include' });
+        await fetch(`/api/v1/pos/orders/${orderId}/${endpoint}`, { method: 'POST', credentials: 'include' });
         fetchOrders();
       } catch (err) {
         console.error('PDF generation error:', err);
@@ -597,8 +626,40 @@ export default function CashierPage() {
       }
     };
 
-    const canSettle = currentUser?.roles?.some((r: any) => ['SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'CASHIER', 'FRONT_DESK'].includes(r.name?.toUpperCase() || r.toUpperCase() || r));
+    const effectiveRoles = getEffectiveRoles();
+    const canSettle = effectiveRoles.some((r: any) => ['SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'CASHIER', 'FRONT_DESK'].includes(r));
+    const canManageReturns = effectiveRoles.some((r: any) => ['SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'SUPERVISOR'].includes(r));
   
+    const handleInlineApproveReturn = async (itemId: string, approved: boolean) => {
+      try {
+        showToast(approved ? 'Approving return...' : 'Rejecting return...', 'info');
+        const res = await fetch(`/api/v1/pos/order-items/${itemId}/approve-return`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ approved })
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.message || 'Failed to update return');
+        }
+
+        showToast(approved ? 'Return approved successfully' : 'Return rejected', 'success', 'Success');
+        
+        if (selectedOrder) {
+          const newStatus = approved ? 'RETURNED' : 'SERVED';
+          const updatedItems = selectedOrder.items.map((i: any) => i.id === itemId ? { ...i, status: newStatus } : i);
+          const updatedOrder = { ...selectedOrder, items: updatedItems };
+          setSelectedOrder(updatedOrder);
+          await db.posOrders.put(updatedOrder);
+        }
+        await downloadLatestData();
+        await fetchOrders();
+      } catch (err: any) {
+        showToast(err.message || 'Failed to process return', 'error');
+      }
+    };
+
     const handleCheckout = async (orderId: string) => {
     if (isProcessing || !selectedOrder) return;
     
@@ -644,6 +705,13 @@ export default function CashierPage() {
 
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
+          if (res.status === 404) {
+            await db.posOrders.delete(orderId);
+            setSelectedOrder(null);
+            await fetchOrders();
+            showToast('Order was already settled or cleared on the server. Removing stale entry.', 'info', 'Order Cleared');
+            return;
+          }
           throw new Error(errData.message || `Checkout failed (${res.status})`);
         }
       } else {
@@ -675,7 +743,7 @@ export default function CashierPage() {
     }
   };
 
-  if (currentUser?.roles?.some((r: any) => ['WAITSTAFF', 'STAFF_WAITER'].includes(r.name?.toUpperCase() || r.toUpperCase() || r))) {
+  if (effectiveRoles.length > 0 && !canSettle && effectiveRoles.some((r: any) => ['WAITSTAFF', 'STAFF_WAITER'].includes(r))) {
     return (
       <div className="cashier-layout">
         <div style={{ marginTop: "24px", padding: "16px", background: "rgba(255, 0, 0, 0.1)", color: "#ff6b6b", borderRadius: "8px", border: "1px solid #ff6b6b" }}>
@@ -739,7 +807,7 @@ export default function CashierPage() {
             cursor: 'pointer'
           }}
         >
-          ✓ Ready for Payment ({orders.filter(o => o.status === 'SERVED' || isOrderFullyServed(o)).length})
+          âœ“ Ready for Payment ({orders.filter(o => o.status === 'SERVED' || isOrderFullyServed(o)).length})
         </button>
         <button
           type="button"
@@ -755,7 +823,7 @@ export default function CashierPage() {
             cursor: 'pointer'
           }}
         >
-          ⏳ In Kitchen / Bar ({orders.filter(o => o.status !== 'SERVED' && !isOrderFullyServed(o)).length})
+          â³ In Kitchen / Bar ({orders.filter(o => o.status !== 'SERVED' && !isOrderFullyServed(o)).length})
         </button>
         <button
           type="button"
@@ -826,7 +894,7 @@ export default function CashierPage() {
                       color: isServed ? '#4ade80' : '#facc15',
                       border: isServed ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(234, 179, 8, 0.3)'
                     }}>
-                      {isServed ? '✓ Ready to Pay' : '⏳ In Kitchen/Bar'}
+                      {isServed ? 'âœ“ Ready to Pay' : 'â³ In Kitchen/Bar'}
                     </span>
                   </div>
                 </div>
@@ -851,7 +919,7 @@ export default function CashierPage() {
             {!isOrderFullyServed(selectedOrder) ? (
               <div style={{ background: 'rgba(234, 179, 8, 0.12)', border: '1px solid rgba(234, 179, 8, 0.35)', borderRadius: '6px', padding: '10px 14px', marginBottom: '14px', color: '#facc15', fontSize: '0.85rem' }}>
                 <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span>⚠️</span>
+                  <span>âš ï¸</span>
                   <span>Order Not Fully Served Yet</span>
                 </div>
                 <p style={{ margin: '4px 0 0 0', color: '#fef08a', fontSize: '0.8rem', lineHeight: '1.4' }}>
@@ -860,7 +928,7 @@ export default function CashierPage() {
               </div>
             ) : (
               <div style={{ background: 'rgba(34, 197, 94, 0.12)', border: '1px solid rgba(34, 197, 94, 0.35)', borderRadius: '6px', padding: '8px 12px', marginBottom: '14px', color: '#4ade80', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span>✓</span>
+                <span>âœ“</span>
                 <span>All items served to table. Ready for settlement.</span>
               </div>
             )}
@@ -889,11 +957,55 @@ export default function CashierPage() {
                         background: isReturned ? 'rgba(239, 68, 68, 0.2)' : isReturnRequested ? 'rgba(234, 179, 8, 0.2)' : isServed ? 'rgba(34, 197, 94, 0.2)' : isReady ? 'rgba(59, 130, 246, 0.2)' : 'rgba(148, 163, 184, 0.15)',
                         color: isReturned ? '#f87171' : isReturnRequested ? '#facc15' : isServed ? '#4ade80' : isReady ? '#60a5fa' : '#94a3b8'
                       }}>
-                        {isReturned ? '↩ Returned' : isReturnRequested ? '⚠️ Return Pending' : isServed ? '✓ Served' : isReady ? '🔔 Ready' : isCooking ? '🍳 Cooking' : '⏳ In Prep'}
+                        {isReturned ? 'â†© Returned' : isReturnRequested ? 'âš ï¸ Return Pending' : isServed ? 'âœ“ Served' : isReady ? 'ðŸ”” Ready' : isCooking ? 'ðŸ³ Cooking' : 'â³ In Prep'}
                       </span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '8px' }}>
                       <span className="price" style={{ fontWeight: 600 }}>{isReturned ? format(0) : format(Number(item.menuItem.price) * item.quantity)}</span>
+                      {isReturnRequested && canManageReturns && (
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleInlineApproveReturn(item.id, true);
+                            }}
+                            style={{
+                              background: '#16a34a',
+                              color: 'white',
+                              border: 'none',
+                              padding: '2px 8px',
+                              fontSize: '0.75rem',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontWeight: 700
+                            }}
+                            title="Approve return for this item"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleInlineApproveReturn(item.id, false);
+                            }}
+                            style={{
+                              background: '#dc2626',
+                              color: 'white',
+                              border: 'none',
+                              padding: '2px 8px',
+                              fontSize: '0.75rem',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontWeight: 700
+                            }}
+                            title="Reject return for this item"
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      )}
                       {!isReturned && !isReturnRequested && selectedOrder.status !== 'PAID' && (
                         <button
                           type="button"
@@ -986,7 +1098,7 @@ export default function CashierPage() {
                       <span style={{ color: 'hsl(215, 20%, 65%)' }}>{p.method.replace('PAYMENT_', '')}</span>
                       <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                         <span style={{ color: 'white', fontWeight: 600 }}>{format(p.amount)}</span>
-                        <button type="button" onClick={() => removePayment(idx)} style={{ background: 'none', border: 'none', color: 'hsl(0, 84%, 60%)', cursor: 'pointer', fontSize: '1rem' }}>×</button>
+                        <button type="button" onClick={() => removePayment(idx)} style={{ background: 'none', border: 'none', color: 'hsl(0, 84%, 60%)', cursor: 'pointer', fontSize: '1rem' }}>Ã—</button>
                       </div>
                     </div>
                   ))}
@@ -1033,11 +1145,17 @@ export default function CashierPage() {
 
             ) : (<div style={{ marginTop: "24px", padding: "16px", background: "rgba(255, 0, 0, 0.1)", color: "#ff6b6b", borderRadius: "8px", border: "1px solid #ff6b6b" }}><strong>Access Denied:</strong> You are not authorized to settle Restaurant or Bar bills. Please contact a Cashier or Manager.</div>)}
             <div className="payment-actions">
-              <button className="btn-secondary" onClick={() => handlePrintInvoice(selectedOrder.id)}>
+              <button className="btn-secondary" onClick={() => handlePrintInvoice(selectedOrder.id)} title="Print or preview invoice">
                 Print Invoice
               </button>
-              <button className="btn-secondary" onClick={() => handlePrintReceipt(selectedOrder.id)}>
+              <button className="btn-secondary" onClick={() => handlePrintReceipt(selectedOrder.id)} title="Print or preview receipt">
                 Print Receipt
+              </button>
+              <button className="btn-secondary" onClick={() => downloadReceiptPdf(selectedOrder.id, true)} title="Download Invoice as PDF (best for mobile)">
+                PDF Invoice
+              </button>
+              <button className="btn-secondary" onClick={() => downloadReceiptPdf(selectedOrder.id, false)} title="Download Receipt as PDF (best for mobile)">
+                PDF Receipt
               </button>
               <button 
                 className="btn-pay" 

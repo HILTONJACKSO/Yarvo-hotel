@@ -11,7 +11,7 @@ export class InventoryService {
 
   async getInventoryItems(propertyId?: string) {
     const items = await this.prisma.inventoryItem.findMany({
-      where: propertyId ? { propertyId } : {},
+      where: propertyId ? { OR: [{ propertyId }, { propertyId: null }] } : {},
       orderBy: { name: 'asc' },
     });
 

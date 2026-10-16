@@ -158,9 +158,9 @@ export default function ReturnsPage() {
       <div className="flex gap-4 mb-6 border-b border-slate-700">
         <button onClick={() => setActiveTab('RETURNS')} className={`pb-3 px-4 font-bold flex items-center gap-2 ${activeTab === 'RETURNS' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'}`}>
           Returns
-          {returns.filter(r => r.status === 'PENDING_APPROVAL' || r.status === 'PENDING_CONFIRMATION').length > 0 && (
+          {returns.filter(r => r.status === 'PENDING_APPROVAL' || r.status === 'PENDING_CONFIRMATION' || r.status === 'RETURN_REQUESTED').length > 0 && (
             <span className="px-2 py-0.5 text-xs bg-rose-500 text-white rounded-full font-bold animate-pulse">
-              {returns.filter(r => r.status === 'PENDING_APPROVAL' || r.status === 'PENDING_CONFIRMATION').length}
+              {returns.filter(r => r.status === 'PENDING_APPROVAL' || r.status === 'PENDING_CONFIRMATION' || r.status === 'RETURN_REQUESTED').length}
             </span>
           )}
         </button>
@@ -171,7 +171,7 @@ export default function ReturnsPage() {
         <div className="returns-grid">
           {returns.length === 0 && <p className="no-data">No return requests found.</p>}
         {returns.map(req => {
-          const isPending = req.status === 'PENDING_APPROVAL' || req.status === 'PENDING_CONFIRMATION';
+          const isPending = req.status === 'PENDING_APPROVAL' || req.status === 'PENDING_CONFIRMATION' || req.status === 'RETURN_REQUESTED';
           return (
           <div key={req.id} className="return-card">
             <div className="r-header">

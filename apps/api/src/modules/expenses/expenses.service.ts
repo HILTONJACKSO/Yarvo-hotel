@@ -22,7 +22,7 @@ export class ExpensesService {
 
   async findAll(start?: string, end?: string, propertyId?: string) {
     const where: any = {
-      ...(propertyId ? { propertyId } : {}),
+      ...(propertyId ? { OR: [{ propertyId }, { propertyId: null }] } : {}),
     };
     if (start && end) {
       where.date = {

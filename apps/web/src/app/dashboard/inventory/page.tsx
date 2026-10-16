@@ -374,10 +374,12 @@ export default function InventoryPage() {
 
   if (loading) return <div className="p-8 text-white">Loading inventory...</div>;
 
-  const filteredItems = items.filter(item => 
-    item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    item.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredItems = items
+    .filter(item => 
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      item.category.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 
   return (
     <div className="inventory-layout">

@@ -193,6 +193,12 @@ export class PosController {
   approveReturn(@Param('returnId') returnId: string, @Body('approved') approved: boolean, @Req() req: any) {
     return this.posService.approveReturn(returnId, req.user.id, approved);
   }
+
+  @Post('order-items/:itemId/approve-return')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'SUPERVISOR', 'CASHIER', 'FRONT_DESK')
+  approveReturnByItemId(@Param('itemId') itemId: string, @Body('approved') approved: boolean, @Req() req: any) {
+    return this.posService.approveReturnByItemId(itemId, req.user.id, approved);
+  }
 }
 
 

@@ -29,6 +29,27 @@ export default function ExpensesPage() {
 
   const fetchExpenses = useCallback(async (start?: string, end?: string) => {
     try {
+      if (typeof navigator !== 'undefined' && navigator.onLine) {
+        let query = '';
+        if (start && end) query = `?start=${start}&end=${end}`;
+        try {
+          const res = await fetch(`/api/v1/expenses${query}`, {
+            credentials: 'include'
+          });
+          if (res.ok) {
+            const data = await res.json();
+            const serverExps = data.data || [];
+            setExpenses(serverExps);
+            if (serverExps.length > 0) {
+              await db.expenses.bulkPut(serverExps);
+            }
+            return;
+          }
+        } catch (fetchErr) {
+          console.warn('Online expenses fetch failed, falling back to local database:', fetchErr);
+        }
+      }
+
       let offlineExps = await db.expenses.toArray();
       if (start && end) {
         const dStart = new Date(start).getTime();
@@ -39,18 +60,6 @@ export default function ExpensesPage() {
         });
       }
       setExpenses(offlineExps as any[]);
-      
-      if (navigator.onLine) {
-        let query = '';
-        if (start && end) query = `?start=${start}&end=${end}`;
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/expenses${query}`, {
-          credentials: 'include'
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setExpenses(data.data);
-        }
-      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -108,26 +117,45 @@ export default function ExpensesPage() {
         ...formData,
         amount: parseFloat(formData.amount),
       };
-      const newExp = { id: 'temp_' + Date.now(), ...payload };
-      await db.expenses.put(newExp as any);
-      
-      await db.syncQueue.add({
-        url: '/api/v1/expenses',
-        method: 'POST',
-        payload,
-        createdAt: Date.now(),
-        status: 'PENDING',
-        retryCount: 0
-      });
-      if (navigator.onLine) syncOfflineMutations();
+
+      if (typeof navigator !== 'undefined' && navigator.onLine) {
+        const res = await fetch('/api/v1/expenses', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          const resData = await res.json();
+          const createdExp = resData.data || resData;
+          if (createdExp && createdExp.id) {
+            await db.expenses.put(createdExp);
+          }
+        } else {
+          throw new Error('Failed to save expense to server');
+        }
+      } else {
+        const newExp = { id: 'temp_' + Date.now(), ...payload };
+        await db.expenses.put(newExp as any);
+        
+        await db.syncQueue.add({
+          url: '/api/v1/expenses',
+          method: 'POST',
+          payload,
+          createdAt: Date.now(),
+          status: 'PENDING',
+          retryCount: 0
+        });
+      }
 
       setIsModalOpen(false);
       setFormData({
         amount: '', category: 'UTILITIES', date: new Date().toISOString().split('T')[0], description: '', referenceCode: ''
       });
-      fetchExpenses();
+      await fetchExpenses();
     } catch (err) {
       console.error(err);
+      alert('Error recording expense. Please try again.');
     }
   };
 
@@ -135,17 +163,22 @@ export default function ExpensesPage() {
     if (!confirm('Are you sure you want to delete this expense?')) return;
     try {
       await db.expenses.delete(id);
-      await db.syncQueue.add({
-        url: `/api/v1/expenses/${id}`,
-        method: 'DELETE',
-        payload: null,
-        createdAt: Date.now(),
-        status: 'PENDING',
-        retryCount: 0
-      });
-      if (navigator.onLine) syncOfflineMutations();
-
-      fetchExpenses();
+      if (typeof navigator !== 'undefined' && navigator.onLine) {
+        await fetch(`/api/v1/expenses/${id}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+      } else {
+        await db.syncQueue.add({
+          url: `/api/v1/expenses/${id}`,
+          method: 'DELETE',
+          payload: null,
+          createdAt: Date.now(),
+          status: 'PENDING',
+          retryCount: 0
+        });
+      }
+      await fetchExpenses();
     } catch (err) {
       console.error(err);
     }

@@ -33,23 +33,23 @@ export default function TicketsPage() {
   const [discountType, setDiscountType] = useState<'PERCENT' | 'FLAT'>('PERCENT');
 
   const fetchTicketsAndTiers = async () => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/tickets/stats/daily`, { credentials: 'include' }).then(res => res.json()).then(data => setStats(data?.data || data)).catch(console.error);
+    fetch('/api/v1/tickets/stats/daily', { credentials: 'include' }).then(res => res.json()).then(data => setStats(data?.data || data)).catch(console.error);
 
     setIsLoading(true);
     try {
       const [ticketsRes, tiersRes] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/tickets`, { credentials: 'include' }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/tickets/tiers`, { credentials: 'include' })
+        fetch('/api/v1/tickets', { credentials: 'include' }),
+        fetch('/api/v1/tickets/tiers', { credentials: 'include' })
       ]);
       
       if (ticketsRes.ok) {
         const tData = await ticketsRes.json();
-        setTickets(tData.data);
+        setTickets(tData.data || []);
       }
       
       if (tiersRes.ok) {
         const tierData = await tiersRes.json();
-        setTiers(tierData.data);
+        setTiers(tierData.data || []);
       }
     } catch (err) {
       console.error(err);
@@ -64,7 +64,7 @@ export default function TicketsPage() {
 
   const handleMarkUsed = async (id: string) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/tickets/${id}/use`, {
+      const res = await fetch(`/api/v1/tickets/${id}/use`, {
         method: 'PATCH',
         credentials: 'include'
       });
@@ -77,7 +77,7 @@ export default function TicketsPage() {
   };
   const handleMarkReturned = async (id: string) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/tickets/${id}/return`, {
+      const res = await fetch(`/api/v1/tickets/${id}/return`, {
         method: 'PATCH',
         credentials: 'include'
       });
@@ -92,7 +92,7 @@ export default function TicketsPage() {
   const handleCreateTier = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/tickets/tiers`, {
+      const res = await fetch('/api/v1/tickets/tiers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newTierName, price: parseFloat(newTierPrice) }),
@@ -109,8 +109,9 @@ export default function TicketsPage() {
   };
 
   const handleDeleteTier = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this ticket type?')) return;
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/tickets/tiers/${id}`, {
+      const res = await fetch(`/api/v1/tickets/tiers/${id}`, {
         method: 'DELETE',
         credentials: 'include'
       });
@@ -281,7 +282,7 @@ export default function TicketsPage() {
       }
 
       const promises = ticketPayloads.map(payload => 
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/tickets`, {
+        fetch('/api/v1/tickets', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -380,7 +381,7 @@ export default function TicketsPage() {
           >
             History
           </button>
-          {user?.roles?.some((role: string) => ['ADMIN', 'SUPER_ADMIN'].includes(role?.toUpperCase?.() || (role as any)?.name?.toUpperCase?.())) && (
+          {user?.roles?.some((role: any) => ['ADMIN', 'SUPER_ADMIN', 'CEO', 'MANAGER'].includes(typeof role === 'string' ? role.toUpperCase() : role?.name?.toUpperCase())) && (
             <button
               onClick={() => setActiveTab('SETTINGS')}
               className={`px-4 py-2 rounded-md font-medium text-sm transition-all flex items-center gap-2 ${
@@ -623,7 +624,7 @@ export default function TicketsPage() {
                         </td>
                         <td className="p-4 text-slate-200">{ticket.guestName || 'Walk-in Guest'}</td>
                         <td className="p-4 text-emerald-400 font-medium">
-                          ${Number(ticket.price).toFixed(2)}
+                          {format(Number(ticket.price))}
                         </td>
                         <td className="p-4">
                           <span className={`px-2 py-1 rounded text-xs font-medium ${
@@ -671,7 +672,7 @@ export default function TicketsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-400 mb-1">Default Price ($)</label>
+                <label className="block text-sm font-medium text-slate-400 mb-1">Default Price ({currencySymbol})</label>
                 <input 
                   type="number"
                   step="0.01"
@@ -712,7 +713,7 @@ export default function TicketsPage() {
                   tiers.map((tier) => (
                     <tr key={tier.id} className="hover:bg-slate-800/30">
                       <td className="p-4 text-slate-200 font-medium">{tier.name}</td>
-                      <td className="p-4 text-emerald-400">${Number(tier.price).toFixed(2)}</td>
+                      <td className="p-4 text-emerald-400">{format(Number(tier.price))}</td>
                       <td className="p-4 text-right">
                         <button 
                           onClick={() => handleDeleteTier(tier.id)}

@@ -204,9 +204,10 @@ export async function downloadLatestData() {
       const localOrders = await db.posOrders.toArray();
       for (const lo of localOrders) {
         if ((lo.status === 'SERVED' || lo.status === 'OPEN') && !serverIds.has(lo.id)) {
-          const isPending = await db.syncQueue.where('url').equals(`/api/v1/pos/orders/${lo.id}/checkout`).count();
-          if (isPending === 0) {
-            await db.posOrders.update(lo.id, { status: 'PAID' });
+          await db.posOrders.delete(lo.id);
+          const pendingCheckout = await db.syncQueue.where('url').equals(`/api/v1/pos/orders/${lo.id}/checkout`).toArray();
+          for (const item of pendingCheckout) {
+            if (item.id) await db.syncQueue.delete(item.id);
           }
         }
       }

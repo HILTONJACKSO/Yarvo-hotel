@@ -980,7 +980,7 @@ export class PosService {
     const where: any = {};
     if (start && end) {
       where.OR = [
-        { status: { in: ['PENDING_APPROVAL', 'PENDING_CONFIRMATION'] } },
+        { status: { in: ['PENDING_APPROVAL', 'PENDING_CONFIRMATION', 'RETURN_REQUESTED'] } },
         {
           createdAt: {
             gte: new Date(start),
@@ -1155,6 +1155,32 @@ export class PosService {
       }
 
     return updatedReturn;
+  }
+
+  async approveReturnByItemId(itemId: string, userId: string, approved: boolean) {
+    const returnReq = await this.prisma.posReturnRequest.findFirst({ 
+      where: { orderItemId: itemId },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    if (!returnReq) {
+      if (approved) {
+        await this.prisma.posOrderItem.update({
+          where: { id: itemId },
+          data: { status: 'RETURNED' }
+        });
+        const it = await this.prisma.posOrderItem.findUnique({ where: { id: itemId } });
+        if (it) await this.recalculateOrderTotal(it.orderId);
+      } else {
+        await this.prisma.posOrderItem.update({
+          where: { id: itemId },
+          data: { status: 'SERVED' }
+        });
+      }
+      return { success: true };
+    }
+
+    return this.approveReturn(returnReq.id, userId, approved);
   }
 }
 
