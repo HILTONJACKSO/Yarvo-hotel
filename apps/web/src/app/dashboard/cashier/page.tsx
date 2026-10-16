@@ -248,6 +248,11 @@ export default function CashierPage() {
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const { showToast } = useToast();
   const orders: any[] = useLiveQuery(() => db.posOrders.toArray())?.filter(o => o.status === 'SERVED' || o.status === 'OPEN') || [];
+  const isOrderFullyServed = (order: any) => {
+    if (!order || !order.items || order.items.length === 0) return false;
+    return order.items.every((i: any) => ['SERVED', 'DELIVERED', 'RETURNED', 'CANCELLED'].includes(i.status));
+  };
+  const [filterTab, setFilterTab] = useState<'READY' | 'PREPARING' | 'ALL'>('READY');
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [printMode, setPrintMode] = useState<'RECEIPT' | 'INVOICE'>('RECEIPT');
@@ -597,6 +602,11 @@ export default function CashierPage() {
     const handleCheckout = async (orderId: string) => {
     if (isProcessing || !selectedOrder) return;
     
+    if (!isOrderFullyServed(selectedOrder)) {
+      showToast('Cannot settle order: All items must be delivered by waitstaff first.', 'error');
+      return;
+    }
+
     const isRoomOrder = Boolean(selectedOrder.folioId || selectedOrder.folio?.reservation?.room || selectedOrder.folio?.id);
     const currentTotal = payments.reduce((sum, p) => sum + p.amount, 0);
     const orderTotal = Number(selectedOrder.totalAmount);
@@ -612,13 +622,6 @@ export default function CashierPage() {
     try {
       const targetFolioId = selectedOrder.folioId || selectedOrder.folio?.id;
       const nextStatus = isRoomOrder ? 'BILLED_TO_ROOM' : 'PAID';
-
-      const order = await db.posOrders.get(orderId);
-      if (order) {
-          order.status = nextStatus;
-          order.discountAmount = calculatedDiscount;
-          await db.posOrders.put(order);
-      }
       
       const payload: any = { 
         discountAmount: calculatedDiscount,
@@ -652,6 +655,14 @@ export default function CashierPage() {
           status: 'PENDING',
           retryCount: 0
         });
+      }
+
+      // Update local IndexedDB only upon success
+      const order = await db.posOrders.get(orderId);
+      if (order) {
+        order.status = nextStatus;
+        order.discountAmount = calculatedDiscount;
+        await db.posOrders.put(order);
       }
 
       showToast(isRoomOrder ? 'Charged to Room Folio successfully' : 'Payment processed successfully', 'success', 'Paid');
@@ -712,33 +723,116 @@ export default function CashierPage() {
         <h2>POS Cashier</h2>
       <p className="subtitle">Process payments for tables that have been served.</p>
       
+      {/* Order Status Filters */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+        <button
+          type="button"
+          onClick={() => setFilterTab('READY')}
+          style={{
+            padding: '6px 14px',
+            borderRadius: '6px',
+            border: filterTab === 'READY' ? '1px solid hsl(142, 76%, 36%)' : '1px solid hsl(217, 20%, 25%)',
+            background: filterTab === 'READY' ? 'rgba(34, 197, 94, 0.2)' : 'hsl(222, 35%, 15%)',
+            color: filterTab === 'READY' ? '#4ade80' : 'hsl(215, 20%, 65%)',
+            fontWeight: 600,
+            fontSize: '0.85rem',
+            cursor: 'pointer'
+          }}
+        >
+          ✓ Ready for Payment ({orders.filter(o => o.status === 'SERVED' || isOrderFullyServed(o)).length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setFilterTab('PREPARING')}
+          style={{
+            padding: '6px 14px',
+            borderRadius: '6px',
+            border: filterTab === 'PREPARING' ? '1px solid hsl(38, 92%, 50%)' : '1px solid hsl(217, 20%, 25%)',
+            background: filterTab === 'PREPARING' ? 'rgba(234, 179, 8, 0.2)' : 'hsl(222, 35%, 15%)',
+            color: filterTab === 'PREPARING' ? '#facc15' : 'hsl(215, 20%, 65%)',
+            fontWeight: 600,
+            fontSize: '0.85rem',
+            cursor: 'pointer'
+          }}
+        >
+          ⏳ In Kitchen / Bar ({orders.filter(o => o.status !== 'SERVED' && !isOrderFullyServed(o)).length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setFilterTab('ALL')}
+          style={{
+            padding: '6px 14px',
+            borderRadius: '6px',
+            border: filterTab === 'ALL' ? '1px solid hsl(215, 20%, 55%)' : '1px solid hsl(217, 20%, 25%)',
+            background: filterTab === 'ALL' ? 'hsl(222, 35%, 25%)' : 'hsl(222, 35%, 15%)',
+            color: filterTab === 'ALL' ? 'white' : 'hsl(215, 20%, 65%)',
+            fontWeight: 600,
+            fontSize: '0.85rem',
+            cursor: 'pointer'
+          }}
+        >
+          All Active ({orders.length})
+        </button>
+      </div>
+
       <div className="cashier-content">
         <div className="orders-list">
-          {orders.length === 0 && <div className="no-orders">No orders waiting for payment.</div>}
-          {orders.map(order => (
-            <div 
-              key={order.id} 
-              className={`order-card ${selectedOrder?.id === order.id ? 'selected' : ''}`}
-              onClick={() => setSelectedOrder(order)}
-            >
-              <div className="card-header">
-                <h3>
-                  {order.folio?.reservation?.room 
-                    ? `Room ${order.folio.reservation.room.number}` 
-                    : order.table?.number 
-                      ? `Table ${order.table.number}` 
-                      : 'Walk-in'}
-                </h3>
-                <span className="amount">{format(Number(order.totalAmount))}</span>
-              </div>
-              {order.folio?.reservation?.guest && (
-                <p style={{ color: 'hsl(215, 20%, 65%)', fontSize: '0.85rem', marginTop: '-4px', marginBottom: '8px' }}>
-                  {order.folio.reservation.guest.firstName} {order.folio.reservation.guest.lastName}
-                </p>
-              )}
-              <p className="items-count">{order.items.length} items</p>
-            </div>
-          ))}
+          {(() => {
+            const readyList = orders.filter(o => o.status === 'SERVED' || isOrderFullyServed(o));
+            const preparingList = orders.filter(o => o.status !== 'SERVED' && !isOrderFullyServed(o));
+            const displayed = filterTab === 'READY' ? readyList : (filterTab === 'PREPARING' ? preparingList : orders);
+            
+            if (displayed.length === 0) {
+              return (
+                <div className="no-orders">
+                  {filterTab === 'READY' 
+                    ? 'No tables waiting for payment. All active orders are currently being prepared or delivered.' 
+                    : (filterTab === 'PREPARING' ? 'No orders currently in the kitchen or bar.' : 'No active orders.')}
+                </div>
+              );
+            }
+
+            return displayed.map(order => {
+              const isServed = order.status === 'SERVED' || isOrderFullyServed(order);
+              return (
+                <div 
+                  key={order.id} 
+                  className={`order-card ${selectedOrder?.id === order.id ? 'selected' : ''}`}
+                  onClick={() => setSelectedOrder(order)}
+                >
+                  <div className="card-header">
+                    <h3>
+                      {order.folio?.reservation?.room 
+                        ? `Room ${order.folio.reservation.room.number}` 
+                        : order.table?.number 
+                          ? `Table ${order.table.number}` 
+                          : 'Walk-in'}
+                    </h3>
+                    <span className="amount">{format(Number(order.totalAmount))}</span>
+                  </div>
+                  {order.folio?.reservation?.guest && (
+                    <p style={{ color: 'hsl(215, 20%, 65%)', fontSize: '0.85rem', marginTop: '-4px', marginBottom: '8px' }}>
+                      {order.folio.reservation.guest.firstName} {order.folio.reservation.guest.lastName}
+                    </p>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
+                    <p className="items-count" style={{ margin: 0 }}>{order.items?.length || 0} items</p>
+                    <span style={{
+                      fontSize: '0.7rem',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      fontWeight: 600,
+                      background: isServed ? 'rgba(34, 197, 94, 0.15)' : 'rgba(234, 179, 8, 0.15)',
+                      color: isServed ? '#4ade80' : '#facc15',
+                      border: isServed ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(234, 179, 8, 0.3)'
+                    }}>
+                      {isServed ? '✓ Ready to Pay' : '⏳ In Kitchen/Bar'}
+                    </span>
+                  </div>
+                </div>
+              );
+            });
+          })()}
         </div>
 
         {selectedOrder && (
@@ -752,17 +846,50 @@ export default function CashierPage() {
                     : 'Walk-in'}
               </h3>
             </div>
+
+            {/* Preparation / Delivery Status Banner */}
+            {!isOrderFullyServed(selectedOrder) ? (
+              <div style={{ background: 'rgba(234, 179, 8, 0.12)', border: '1px solid rgba(234, 179, 8, 0.35)', borderRadius: '6px', padding: '10px 14px', marginBottom: '14px', color: '#facc15', fontSize: '0.85rem' }}>
+                <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>⚠️</span>
+                  <span>Order Not Fully Served Yet</span>
+                </div>
+                <p style={{ margin: '4px 0 0 0', color: '#fef08a', fontSize: '0.8rem', lineHeight: '1.4' }}>
+                  Items must be prepared by the kitchen or bar and delivered by the waitstaff before payment can be accepted.
+                </p>
+              </div>
+            ) : (
+              <div style={{ background: 'rgba(34, 197, 94, 0.12)', border: '1px solid rgba(34, 197, 94, 0.35)', borderRadius: '6px', padding: '8px 12px', marginBottom: '14px', color: '#4ade80', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>✓</span>
+                <span>All items served to table. Ready for settlement.</span>
+              </div>
+            )}
             
             <div className="receipt">
                 {selectedOrder.items.map((item: any) => {
                   const isReturned = item.status === 'RETURNED';
                   const isReturnRequested = item.status === 'RETURN_REQUESTED';
+                  const isServed = item.status === 'SERVED' || item.status === 'DELIVERED';
+                  const isReady = item.status === 'READY';
+                  const isCooking = item.status === 'COOKING' || item.status === 'PREPARING';
                   return (
                   <div key={item.id} className={`receipt-item ${isReturned ? 'text-rose-400' : ''}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
                       <span className="qty" style={{ fontWeight: 'bold' }}>{item.quantity}x</span>
                       <span className="name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {isReturned ? '(Returned) ' : isReturnRequested ? '(Return Pending) ' : ''}{item.menuItem.name}
+                        {item.menuItem.name}
+                      </span>
+                      <span style={{
+                        fontSize: '0.65rem',
+                        padding: '1px 6px',
+                        borderRadius: '3px',
+                        fontWeight: 600,
+                        marginLeft: '4px',
+                        whiteSpace: 'nowrap',
+                        background: isReturned ? 'rgba(239, 68, 68, 0.2)' : isReturnRequested ? 'rgba(234, 179, 8, 0.2)' : isServed ? 'rgba(34, 197, 94, 0.2)' : isReady ? 'rgba(59, 130, 246, 0.2)' : 'rgba(148, 163, 184, 0.15)',
+                        color: isReturned ? '#f87171' : isReturnRequested ? '#facc15' : isServed ? '#4ade80' : isReady ? '#60a5fa' : '#94a3b8'
+                      }}>
+                        {isReturned ? '↩ Returned' : isReturnRequested ? '⚠️ Return Pending' : isServed ? '✓ Served' : isReady ? '🔔 Ready' : isCooking ? '🍳 Cooking' : '⏳ In Prep'}
                       </span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '8px' }}>
@@ -914,14 +1041,16 @@ export default function CashierPage() {
               </button>
               <button 
                 className="btn-pay" 
-                disabled={isProcessing || (!Boolean(selectedOrder.folioId || selectedOrder.folio?.reservation?.room || selectedOrder.folio?.id) && payments.reduce((sum, p) => sum + p.amount, 0) < finalTotal - 0.01)} 
+                disabled={isProcessing || !isOrderFullyServed(selectedOrder) || (!Boolean(selectedOrder.folioId || selectedOrder.folio?.reservation?.room || selectedOrder.folio?.id) && payments.reduce((sum, p) => sum + p.amount, 0) < finalTotal - 0.01)} 
                 onClick={() => handleCheckout(selectedOrder.id)}
               >
                 {isProcessing 
                   ? 'Processing...' 
-                  : Boolean(selectedOrder.folioId || selectedOrder.folio?.reservation?.room || selectedOrder.folio?.id)
-                    ? `Charge to Room Folio (${format(finalTotal)})`
-                    : 'Complete Payment'}
+                  : !isOrderFullyServed(selectedOrder)
+                    ? 'Awaiting Waitstaff Delivery'
+                    : Boolean(selectedOrder.folioId || selectedOrder.folio?.reservation?.room || selectedOrder.folio?.id)
+                      ? `Charge to Room Folio (${format(finalTotal)})`
+                      : 'Complete Payment'}
               </button>
             </div>
 

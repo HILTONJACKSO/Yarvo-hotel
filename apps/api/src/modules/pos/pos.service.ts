@@ -695,32 +695,17 @@ export class PosService {
       include: { order: { include: { items: { include: { menuItem: { include: { taxes: true } } } } } } }
     });
 
-    if (status === 'SERVED') {
-      const allServed = item.order.items.every(i => ['SERVED', 'RETURNED'].includes(i.status));
+    if (status === 'SERVED' || status === 'DELIVERED') {
+      const orderItems = await this.prisma.posOrderItem.findMany({
+        where: { orderId: item.orderId }
+      });
+      const allServed = orderItems.every(i => ['SERVED', 'DELIVERED', 'RETURNED', 'CANCELLED'].includes(i.status));
       if (allServed) {
-        let subtotal = 0;
-        let calculatedTax = 0;
-        item.order.items.forEach(i => {
-          const itemTotal = Number(i.menuItem.price) * i.quantity;
-          subtotal += itemTotal;
-          let totalPercentage = 0;
-          let totalFlat = 0;
-          
-          (i.menuItem as any).taxes?.forEach((tax: any) => {
-            if (tax.isActive) {
-              if (tax.type === 'PERCENTAGE') totalPercentage += Number(tax.rate);
-              else if (tax.type === 'FLAT_AMOUNT') totalFlat += Number(tax.rate) * i.quantity;
-            }
-          });
-          const itemBeforeTax = (itemTotal - totalFlat) / (1 + totalPercentage / 100);
-          calculatedTax += (itemTotal - itemBeforeTax);
-        });
-        
         await this.prisma.posOrder.update({
-            where: { id: item.orderId },
-            data: { status: 'SERVED' }
-          });
-          await this.recalculateOrderTotal(item.orderId);
+          where: { id: item.orderId },
+          data: { status: 'SERVED' }
+        });
+        await this.recalculateOrderTotal(item.orderId);
       }
     }
 
@@ -728,30 +713,27 @@ export class PosService {
   }
 
   async deliverAllOrderItems(orderId: string) {
-    // 1. Update all pending/preparing/ready items to SERVED
+    // 1. Update all pending/preparing/cooking/ready items to SERVED
     await this.prisma.posOrderItem.updateMany({
       where: {
         orderId,
-        status: { in: ['READY', 'PREPARING', 'PENDING'] }
+        status: { in: ['READY', 'PREPARING', 'COOKING', 'PENDING'] }
       },
       data: { status: 'SERVED' }
     });
 
-    // 2. Check if all items in the order are now SERVED or RETURNED
-    const order = await this.prisma.posOrder.findUnique({
-      where: { id: orderId },
-      include: { items: { include: { menuItem: { include: { taxes: true } } } } }
+    // 2. Check if all items in the order are now SERVED, DELIVERED, or RETURNED
+    const orderItems = await this.prisma.posOrderItem.findMany({
+      where: { orderId }
     });
 
-    if (order) {
-      const allServed = order.items.every(i => ['SERVED', 'RETURNED'].includes(i.status));
-      if (allServed) {
-        await this.prisma.posOrder.update({
-          where: { id: orderId },
-          data: { status: 'SERVED' }
-        });
-        await this.recalculateOrderTotal(orderId);
-      }
+    const allServed = orderItems.every(i => ['SERVED', 'DELIVERED', 'RETURNED', 'CANCELLED'].includes(i.status));
+    if (allServed) {
+      await this.prisma.posOrder.update({
+        where: { id: orderId },
+        data: { status: 'SERVED' }
+      });
+      await this.recalculateOrderTotal(orderId);
     }
 
     return { success: true };
@@ -765,15 +747,26 @@ export class PosService {
 
     if (!order) throw new NotFoundException('Order not found');
 
-    // Auto-mark any active items as SERVED when cashier settles the order
-    const unservedItems = order.items.filter(i => !['SERVED', 'RETURNED'].includes(i.status));
+    // Strict restaurant rule: All items must be prepared and delivered by waitstaff first
+    const unservedItems = order.items.filter(
+      (i) => !['SERVED', 'DELIVERED', 'RETURNED', 'CANCELLED'].includes(i.status),
+    );
     if (unservedItems.length > 0) {
-      await this.prisma.posOrderItem.updateMany({
-        where: {
-          id: { in: unservedItems.map(i => i.id) }
-        },
-        data: { status: 'SERVED' }
-      });
+      const hasReturnPending = unservedItems.some((i) => i.status === 'RETURN_REQUESTED');
+      if (hasReturnPending) {
+        throw new BadRequestException(
+          'Cannot complete payment: Order has a pending return request that must be approved or rejected by management first.',
+        );
+      }
+      const hasReady = unservedItems.some((i) => i.status === 'READY');
+      if (hasReady) {
+        throw new BadRequestException(
+          'Cannot complete payment: Items are marked ready at the kitchen/bar and must be delivered by waitstaff first.',
+        );
+      }
+      throw new BadRequestException(
+        'Cannot complete payment: Order has not been served yet. All items must pass through the kitchen or bar and be delivered by waitstaff first.',
+      );
     }
 
     let subtotal = 0;
