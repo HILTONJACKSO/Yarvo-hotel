@@ -36,7 +36,8 @@ export default function BarPage() {
 
   const fetchOrders = async () => {
     try {
-      if (navigator.onLine) {
+      const pendingCount = await db.syncQueue.count();
+      if (navigator.onLine && pendingCount === 0) {
         await downloadLatestData();
         try {
           const res = await fetch('/api/v1/pos/stats/bar', { credentials: 'include' });
@@ -85,33 +86,67 @@ export default function BarPage() {
 
   const updateStatus = async (itemId: string, newStatus: string) => {
     try {
+      // 1. Immediately update React state for instant UI reaction (0ms)
+      setOrders(prev => prev.map(o => ({
+        ...o,
+        items: (o.items || []).map(i => i.id === itemId ? { ...i, status: newStatus } : i)
+      })));
+
+      // 2. Update Dexie
       const allOrders = await db.posOrders.toArray();
       let foundOrder = null;
-      let targetItem = null;
       for (const order of allOrders) {
-         const it = order.items.find((i: any) => i.id === itemId);
+         const it = order.items?.find((i: any) => i.id === itemId);
          if (it) {
-            targetItem = it;
+            it.status = newStatus;
             foundOrder = order;
             break;
          }
       }
-      if (foundOrder && targetItem) {
-          targetItem.status = newStatus;
+      if (foundOrder) {
           await db.posOrders.put(foundOrder);
       }
-      
-      await db.syncQueue.add({
-        url: `/api/v1/pos/order-items/${itemId}/status`,
-        method: 'PATCH',
-        payload: { status: newStatus },
-        createdAt: Date.now(),
-        status: 'PENDING',
-        retryCount: 0
-      });
-      if (navigator.onLine) syncOfflineMutations();
 
-      fetchOrders();
+      // 3. Send to API if online, or add to offline queue
+      if (navigator.onLine) {
+        try {
+          const res = await fetch(`/api/v1/pos/order-items/${itemId}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ status: newStatus })
+          });
+          if (!res.ok) {
+            await db.syncQueue.add({
+              url: `/api/v1/pos/order-items/${itemId}/status`,
+              method: 'PATCH',
+              payload: { status: newStatus },
+              createdAt: Date.now(),
+              status: 'PENDING',
+              retryCount: 0
+            });
+          }
+        } catch (e) {
+          await db.syncQueue.add({
+            url: `/api/v1/pos/order-items/${itemId}/status`,
+            method: 'PATCH',
+            payload: { status: newStatus },
+            createdAt: Date.now(),
+            status: 'PENDING',
+            retryCount: 0
+          });
+        }
+      } else {
+        await db.syncQueue.add({
+          url: `/api/v1/pos/order-items/${itemId}/status`,
+          method: 'PATCH',
+          payload: { status: newStatus },
+          createdAt: Date.now(),
+          status: 'PENDING',
+          retryCount: 0
+        });
+      }
+
       showToast('Status updated', 'success', 'Success');
     } catch (err) {
       showToast('Failed to update status', 'error', 'Error');

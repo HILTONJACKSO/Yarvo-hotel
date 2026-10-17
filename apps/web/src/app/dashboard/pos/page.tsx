@@ -247,6 +247,7 @@ export default function PosPage() {
   };
 
   const handleEditMenuItem = (item: PosMenuItem) => {
+    downloadLatestData().catch(console.error);
     setEditMenuItemId(item.id);
     setNewMenuItem({
       name: item.name,
@@ -388,8 +389,9 @@ export default function PosPage() {
   });
   const cartSubtotal = cartTotal - cartTaxes;
 
-  const linkedInventoryIds = new Set(menuItems.flatMap(m => m.recipes?.map(r => r.inventoryItemId) || []));
-  const availableInventoryItems = inventoryItems.filter(inv => inv.category !== 'HOUSEKEEPING' && inv.category !== 'MAINTENANCE' && !linkedInventoryIds.has(inv.id));
+  const sortedInventoryItems = [...inventoryItems].sort((a, b) => 
+    a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+  );
 
 
   const handleCreateGuest = async () => {
@@ -503,7 +505,7 @@ export default function PosPage() {
             </div>
             <div className="flex gap-2">
             {canEditPos && <button className="btn-secondary btn-sm" onClick={() => setShowAddCategory(true)}>+ Category</button>}
-            {canEditPos && <button className="btn-secondary btn-sm" onClick={() => setShowAddMenuItem(true)}>+ Menu Item</button>}
+            {canEditPos && <button className="btn-secondary btn-sm" onClick={() => { downloadLatestData().catch(console.error); setShowAddMenuItem(true); }}>+ Menu Item</button>}
           </div>
         </div>
         <div className="category-scroll">
@@ -825,7 +827,14 @@ export default function PosPage() {
                 <label>Inventory Link (Optional)</label>
                 <select className="form-select" value={newMenuItem.inventoryItemId} onChange={e => setNewMenuItem({...newMenuItem, inventoryItemId: e.target.value})}>
                   <option value="">-- None --</option>
-                  {availableInventoryItems.map(inv => <option key={inv.id} value={inv.id}>{inv.name}</option>)}
+                  {sortedInventoryItems.map(inv => {
+                    const linkedOther = menuItems.find(m => m.id !== editMenuItemId && m.recipes?.some(r => r.inventoryItemId === inv.id));
+                    return (
+                      <option key={inv.id} value={inv.id}>
+                        {inv.name} ({inv.stockLevel || 0} {inv.unit} in stock){linkedOther ? ` [Linked to: ${linkedOther.name}]` : ''}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
                             <div className="form-group">

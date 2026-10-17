@@ -143,6 +143,27 @@ export class PosController {
     return this.posService.checkoutOrder(id, data);
   }
 
+  @Post('orders/:id/apply-discount')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'CASHIER', 'POS_CASHIER')
+  applyDiscount(
+    @Param('id') id: string,
+    @Body() data: { amount: number; value: number; type: 'PERCENT' | 'FLAT'; reason?: string },
+    @Req() req: any
+  ) {
+    const roles = req.user?.roles || (req.user?.role ? [req.user.role] : []);
+    return this.posService.applyDiscount(id, data, req.user?.id, roles);
+  }
+
+  @Post('orders/:id/reverse-discount')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
+  reverseDiscount(
+    @Param('id') id: string,
+    @Req() req: any
+  ) {
+    const roles = req.user?.roles || (req.user?.role ? [req.user.role] : []);
+    return this.posService.reverseDiscount(id, req.user?.id, roles);
+  }
+
   @Post('orders/:id/increment-print')
   incrementInvoicePrint(@Param('id') id: string) {
     return this.posService.incrementInvoicePrint(id);

@@ -81,16 +81,35 @@ export default function WaitstaffPage() {
 
       // 2. Queue the atomic deliver-all batch mutation
       const finalOrderId = targetOrder?.id || orderId;
-      await db.syncQueue.add({
-        url: `/api/v1/pos/orders/${finalOrderId}/deliver-all`,
-        method: 'POST',
-        payload: { itemIds },
-        createdAt: Date.now(),
-        status: 'PENDING',
-        retryCount: 0
-      });
-
-      if (navigator.onLine) syncOfflineMutations();
+      if (navigator.onLine) {
+        try {
+          const res = await fetch(`/api/v1/pos/orders/${finalOrderId}/deliver-all`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ itemIds })
+          });
+          if (!res.ok) throw new Error('deliver-all failed on server');
+        } catch (e) {
+          await db.syncQueue.add({
+            url: `/api/v1/pos/orders/${finalOrderId}/deliver-all`,
+            method: 'POST',
+            payload: { itemIds },
+            createdAt: Date.now(),
+            status: 'PENDING',
+            retryCount: 0
+          });
+        }
+      } else {
+        await db.syncQueue.add({
+          url: `/api/v1/pos/orders/${finalOrderId}/deliver-all`,
+          method: 'POST',
+          payload: { itemIds },
+          createdAt: Date.now(),
+          status: 'PENDING',
+          retryCount: 0
+        });
+      }
 
       showToast('All items marked as delivered', 'success', 'Success');
     } catch (err) {
@@ -118,15 +137,35 @@ export default function WaitstaffPage() {
           await db.posOrders.put(foundOrder);
       }
 
-      await db.syncQueue.add({
-        url: `/api/v1/pos/order-items/${itemId}/status`,
-        method: 'PATCH',
-        payload: { status: 'SERVED' },
-        createdAt: Date.now(),
-        status: 'PENDING',
-        retryCount: 0
-      });
-      if (navigator.onLine) syncOfflineMutations();
+      if (navigator.onLine) {
+        try {
+          const res = await fetch(`/api/v1/pos/order-items/${itemId}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ status: 'SERVED' })
+          });
+          if (!res.ok) throw new Error('status update failed');
+        } catch (e) {
+          await db.syncQueue.add({
+            url: `/api/v1/pos/order-items/${itemId}/status`,
+            method: 'PATCH',
+            payload: { status: 'SERVED' },
+            createdAt: Date.now(),
+            status: 'PENDING',
+            retryCount: 0
+          });
+        }
+      } else {
+        await db.syncQueue.add({
+          url: `/api/v1/pos/order-items/${itemId}/status`,
+          method: 'PATCH',
+          payload: { status: 'SERVED' },
+          createdAt: Date.now(),
+          status: 'PENDING',
+          retryCount: 0
+        });
+      }
 
       showToast('Item served to customer', 'success', 'Success');
     } catch (err) {

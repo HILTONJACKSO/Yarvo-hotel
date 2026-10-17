@@ -76,15 +76,44 @@ export default function KitchenPage() {
           await db.posOrders.put(foundOrder);
       }
 
-      await db.syncQueue.add({
-        url: `/api/v1/pos/order-items/${itemId}/status`,
-        method: 'PATCH',
-        payload: { status: newStatus },
-        createdAt: Date.now(),
-        status: 'PENDING',
-        retryCount: 0
-      });
-      if (navigator.onLine) syncOfflineMutations();
+      if (navigator.onLine) {
+        try {
+          const res = await fetch(`/api/v1/pos/order-items/${itemId}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ status: newStatus })
+          });
+          if (!res.ok) {
+            await db.syncQueue.add({
+              url: `/api/v1/pos/order-items/${itemId}/status`,
+              method: 'PATCH',
+              payload: { status: newStatus },
+              createdAt: Date.now(),
+              status: 'PENDING',
+              retryCount: 0
+            });
+          }
+        } catch (e) {
+          await db.syncQueue.add({
+            url: `/api/v1/pos/order-items/${itemId}/status`,
+            method: 'PATCH',
+            payload: { status: newStatus },
+            createdAt: Date.now(),
+            status: 'PENDING',
+            retryCount: 0
+          });
+        }
+      } else {
+        await db.syncQueue.add({
+          url: `/api/v1/pos/order-items/${itemId}/status`,
+          method: 'PATCH',
+          payload: { status: newStatus },
+          createdAt: Date.now(),
+          status: 'PENDING',
+          retryCount: 0
+        });
+      }
 
       showToast('Status updated', 'success', 'Success');
     } catch (err) {

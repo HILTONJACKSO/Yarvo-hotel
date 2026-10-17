@@ -171,6 +171,15 @@ export class InventoryService {
   async deleteInventoryItem(id: string, userId?: string) {
     return this.prisma.$transaction(async (tx) => {
       const oldRecord = await tx.inventoryItem.findUnique({ where: { id } });
+      if (!oldRecord) {
+        throw new NotFoundException('Inventory item not found');
+      }
+
+      // Explicitly delete any recipe links referencing this inventory item
+      await tx.inventoryRecipe.deleteMany({
+        where: { inventoryItemId: id }
+      });
+
       const deletedItem = await tx.inventoryItem.delete({
         where: { id }
       });

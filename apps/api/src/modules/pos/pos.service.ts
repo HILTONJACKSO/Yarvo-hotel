@@ -873,6 +873,177 @@ export class PosService {
     });
   }
 
+  async applyDiscount(
+    orderId: string, 
+    data: { amount: number; value: number; type: 'PERCENT' | 'FLAT'; reason?: string },
+    userId?: string,
+    userRoles?: string[]
+  ) {
+    const order = await this.prisma.posOrder.findUnique({
+      where: { id: orderId },
+      include: { items: { include: { menuItem: { include: { taxes: true } } } } }
+    });
+    if (!order) throw new NotFoundException('Order not found');
+
+    const rawRoles = userRoles || [];
+    const roles = rawRoles.map((r: any) => 
+      (typeof r === 'string' ? r : r?.name || '').toUpperCase()
+    );
+    const isCeoOrAdmin = roles.some(r => ['CEO', 'ADMIN', 'SUPER_ADMIN'].includes(r));
+    const isManager = roles.includes('MANAGER');
+
+    let metadata: any = {};
+    if (order.discountReason) {
+      try {
+        metadata = JSON.parse(order.discountReason);
+      } catch {
+        metadata = { reason: order.discountReason, modifiedCount: 0 };
+      }
+    }
+
+    const currentDiscount = Number(order.discountAmount || 0);
+    const isAlreadyDiscounted = currentDiscount > 0;
+
+    // Strict Role Permission Rules:
+    // 1. Cashier CANNOT reverse or alter an already applied discount
+    // 2. Manager can modify it ONLY ONCE (modifiedCount < 1)
+    // 3. CEO/Admin can modify it UNLIMITED times
+    if (isAlreadyDiscounted) {
+      if (!isCeoOrAdmin && !isManager) {
+        throw new ForbiddenException('Cashiers are not permitted to alter an applied discount.');
+      }
+      if (isManager && !isCeoOrAdmin) {
+        const modifiedCount = Number(metadata.modifiedCount || 0);
+        if (modifiedCount >= 1) {
+          throw new ForbiddenException('Managers can only modify a discount once. Please contact CEO or Admin for further revisions.');
+        }
+      }
+    }
+
+    // Validate discount amount does not exceed order subtotal
+    let subtotal = 0;
+    order.items.forEach(i => {
+      if (i.status === 'RETURNED' || i.status === 'RETURN_REQUESTED') return;
+      subtotal += Number(i.menuItem.price) * i.quantity;
+    });
+
+    const discountAmount = Math.min(subtotal, Math.max(0, Number(data.amount)));
+    const newModifiedCount = isAlreadyDiscounted ? ((Number(metadata.modifiedCount) || 0) + 1) : 0;
+    const newMetadata = {
+      amount: discountAmount,
+      value: data.value,
+      type: data.type,
+      reason: data.reason || 'Discount applied',
+      appliedBy: userId,
+      appliedRole: isCeoOrAdmin ? 'CEO/ADMIN' : isManager ? 'MANAGER' : 'CASHIER',
+      modifiedCount: newModifiedCount,
+      updatedAt: new Date().toISOString()
+    };
+
+    const updated = await this.prisma.posOrder.update({
+      where: { id: orderId },
+      data: {
+        discountAmount,
+        discountReason: JSON.stringify(newMetadata)
+      },
+      include: {
+        table: true,
+        items: { include: { menuItem: { include: { taxes: true } } } },
+        payments: true,
+        user: true,
+        folio: { include: { reservation: { include: { guest: true, room: true } } } }
+      }
+    });
+
+    if (userId) {
+      await this.auditLogsService.logAction({
+        userId,
+        action: isAlreadyDiscounted ? 'MODIFY_DISCOUNT' : 'APPLY_DISCOUNT',
+        entity: 'PosOrder',
+        entityId: orderId,
+        oldValues: { discountAmount: currentDiscount },
+        newValues: { discountAmount, metadata: newMetadata }
+      }).catch(console.error);
+    }
+
+    return updated;
+  }
+
+  async reverseDiscount(orderId: string, userId?: string, userRoles?: string[]) {
+    const order = await this.prisma.posOrder.findUnique({
+      where: { id: orderId }
+    });
+    if (!order) throw new NotFoundException('Order not found');
+
+    const rawRoles = userRoles || [];
+    const roles = rawRoles.map((r: any) => 
+      (typeof r === 'string' ? r : r?.name || '').toUpperCase()
+    );
+    const isCeoOrAdmin = roles.some(r => ['CEO', 'ADMIN', 'SUPER_ADMIN'].includes(r));
+    const isManager = roles.includes('MANAGER');
+
+    // Strict Role Permission Rules:
+    // 1. Cashier CANNOT reverse an applied discount
+    // 2. Manager can reverse it ONLY ONCE (modifiedCount < 1)
+    // 3. CEO/Admin can reverse it UNLIMITED times
+    if (!isCeoOrAdmin && !isManager) {
+      throw new ForbiddenException('Cashiers are not permitted to reverse an applied discount.');
+    }
+
+    let metadata: any = {};
+    if (order.discountReason) {
+      try {
+        metadata = JSON.parse(order.discountReason);
+      } catch {
+        metadata = { reason: order.discountReason, modifiedCount: 0 };
+      }
+    }
+
+    if (isManager && !isCeoOrAdmin) {
+      const modifiedCount = Number(metadata.modifiedCount || 0);
+      if (modifiedCount >= 1) {
+        throw new ForbiddenException('Managers can only modify or reverse a discount once. Please contact CEO or Admin for further revisions.');
+      }
+    }
+
+    const newModifiedCount = (Number(metadata.modifiedCount) || 0) + 1;
+    const newMetadata = {
+      reversed: true,
+      reversedBy: userId,
+      reversedRole: isCeoOrAdmin ? 'CEO/ADMIN' : 'MANAGER',
+      modifiedCount: newModifiedCount,
+      updatedAt: new Date().toISOString()
+    };
+
+    const updated = await this.prisma.posOrder.update({
+      where: { id: orderId },
+      data: {
+        discountAmount: 0,
+        discountReason: JSON.stringify(newMetadata)
+      },
+      include: {
+        table: true,
+        items: { include: { menuItem: { include: { taxes: true } } } },
+        payments: true,
+        user: true,
+        folio: { include: { reservation: { include: { guest: true, room: true } } } }
+      }
+    });
+
+    if (userId) {
+      await this.auditLogsService.logAction({
+        userId,
+        action: 'REVERSE_DISCOUNT',
+        entity: 'PosOrder',
+        entityId: orderId,
+        oldValues: { discountAmount: Number(order.discountAmount || 0) },
+        newValues: { discountAmount: 0, metadata: newMetadata }
+      }).catch(console.error);
+    }
+
+    return updated;
+  }
+
   async deleteOrder(id: string) {
     const existing = await this.prisma.posOrder.findUnique({ where: { id } });
     if (!existing) {

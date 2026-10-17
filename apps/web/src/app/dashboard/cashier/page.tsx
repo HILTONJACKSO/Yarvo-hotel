@@ -11,12 +11,14 @@ import { useCurrency } from '@/lib/currency';
 import { useAuth } from '@/lib/auth-provider';
 import { getDefaultReceiptInvoiceSettings, generateThermalReceiptHtml } from '@/lib/receipt-invoice-helper';
 import ReturnItemModal from '@/components/pos/ReturnItemModal';
+import { Check, Clock, AlertTriangle, RotateCcw, X, Lock, Unlock, ShieldCheck, CheckCircle2, Tag, Percent } from 'lucide-react';
 const API_URL = '';
 
 type PosOrder = {
   id: string;
   totalAmount: string;
   discountAmount?: number | string;
+  discountReason?: string;
   status: string;
   table?: { number: string };
   folio?: {
@@ -271,23 +273,150 @@ export default function CashierPage() {
   const [paymentMethod, setPaymentMethod] = useState('PAYMENT_CASH');
   const [discountValue, setDiscountValue] = useState('');
   const [discountType, setDiscountType] = useState<'PERCENT' | 'FLAT'>('PERCENT');
+  const [isApplyingDiscount, setIsApplyingDiscount] = useState(false);
+  const [isReversingDiscount, setIsReversingDiscount] = useState(false);
 
   useEffect(() => {
     if (selectedOrder) {
       setPayments([]);
+      const existingDiscount = Number(selectedOrder.discountAmount || 0);
+      let meta: any = null;
+      if (selectedOrder.discountReason) {
+        try { meta = JSON.parse(selectedOrder.discountReason); } catch {}
+      }
+
+      if (existingDiscount > 0) {
+        setDiscountValue(meta?.value !== undefined ? String(meta.value) : String(existingDiscount));
+        setDiscountType(meta?.type === 'FLAT' ? 'FLAT' : (meta?.type === 'PERCENT' ? 'PERCENT' : 'FLAT'));
+      } else {
         setDiscountValue('');
         setDiscountType('PERCENT');
-        setPaymentAmount(selectedOrder.totalAmount);
+      }
+
+      const orderTotal = Math.max(0, Number(selectedOrder.totalAmount) - existingDiscount);
+      setPaymentAmount(orderTotal > 0 ? orderTotal.toFixed(2) : '');
       setPaymentMethod('PAYMENT_CASH');
     }
-  }, [selectedOrder?.id]);
+  }, [selectedOrder?.id, selectedOrder?.discountAmount, selectedOrder?.discountReason]);
 
-  const calculatedDiscount = selectedOrder 
-    ? ((selectedOrder.status === 'PAID' || selectedOrder.status === 'BILLED_TO_ROOM')
-        ? Number(selectedOrder.discountAmount || 0)
-        : (discountType === 'PERCENT' ? (Number(selectedOrder.totalAmount) * (Number(discountValue || 0) / 100)) : Number(discountValue || 0)))
+  const isDiscountApplied = Number(selectedOrder?.discountAmount || 0) > 0;
+  let discountMeta: any = null;
+  if (selectedOrder?.discountReason) {
+    try { discountMeta = JSON.parse(selectedOrder.discountReason); } catch {}
+  }
+  const discountModifiedCount = Number(discountMeta?.modifiedCount || 0);
+
+  const calculatedDiscount = isDiscountApplied
+    ? Number(selectedOrder?.discountAmount || 0)
     : 0;
+
+  const previewDiscount = (!isDiscountApplied && discountValue && parseFloat(discountValue) > 0 && selectedOrder)
+    ? (discountType === 'PERCENT'
+        ? (Number(selectedOrder.totalAmount) * (parseFloat(discountValue) / 100))
+        : parseFloat(discountValue))
+    : 0;
+
   const finalTotal = selectedOrder ? Math.max(0, Number(selectedOrder.totalAmount) - calculatedDiscount) : 0;
+
+  const handleApplyDiscount = async () => {
+    if (!selectedOrder) return;
+    const val = parseFloat(discountValue);
+    if (isNaN(val) || val <= 0) {
+      showToast('Please enter a valid discount amount greater than 0', 'error');
+      return;
+    }
+
+    const orderSubtotal = Number(selectedOrder.totalAmount || 0);
+    const amount = discountType === 'PERCENT' ? (orderSubtotal * (val / 100)) : val;
+
+    if (amount > orderSubtotal) {
+      showToast('Discount cannot exceed the total order amount', 'error');
+      return;
+    }
+
+    try {
+      setIsApplyingDiscount(true);
+      const res = await fetch(`/api/v1/pos/orders/${selectedOrder.id}/apply-discount`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          amount,
+          value: val,
+          type: discountType,
+          reason: `Discount of ${val}${discountType === 'PERCENT' ? '%' : currencySymbol}`
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to apply discount');
+      }
+
+      const updated = await res.json();
+      const updatedOrder = updated.data || updated;
+
+      setSelectedOrder(updatedOrder);
+      await db.posOrders.put(updatedOrder);
+
+      const remaining = Math.max(0, Number(updatedOrder.totalAmount) - Number(updatedOrder.discountAmount || 0) - payments.reduce((s, p) => s + p.amount, 0));
+      setPaymentAmount(remaining > 0 ? remaining.toFixed(2) : '');
+
+      showToast(`Discount of ${format(amount)} applied and saved!`, 'success', 'Discount Confirmed');
+      fetchOrders();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to apply discount', 'error', 'Error');
+    } finally {
+      setIsApplyingDiscount(false);
+    }
+  };
+
+  const handleReverseDiscount = async () => {
+    if (!selectedOrder) return;
+    const roles = getEffectiveRoles();
+    const isCeoOrAdmin = roles.some((r: string) => ['SUPER_ADMIN', 'ADMIN', 'CEO'].includes(r));
+    const isManager = roles.includes('MANAGER');
+    const isCashierOnly = !isCeoOrAdmin && !isManager;
+
+    if (isCashierOnly) {
+      showToast('Cashiers are not permitted to reverse or alter discounts.', 'error', 'Access Denied');
+      return;
+    }
+    if (isManager && !isCeoOrAdmin && discountModifiedCount >= 1) {
+      showToast('Managers can only modify or reverse a discount once. Contact CEO/Admin.', 'error', 'Limit Reached');
+      return;
+    }
+
+    try {
+      setIsReversingDiscount(true);
+      const res = await fetch(`/api/v1/pos/orders/${selectedOrder.id}/reverse-discount`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to reverse discount');
+      }
+
+      const updated = await res.json();
+      const updatedOrder = updated.data || updated;
+
+      setSelectedOrder(updatedOrder);
+      await db.posOrders.put(updatedOrder);
+      setDiscountValue('');
+
+      const remaining = Math.max(0, Number(updatedOrder.totalAmount) - payments.reduce((s, p) => s + p.amount, 0));
+      setPaymentAmount(remaining > 0 ? remaining.toFixed(2) : '');
+
+      showToast('Discount successfully reversed and removed.', 'success', 'Discount Removed');
+      fetchOrders();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to reverse discount', 'error', 'Error');
+    } finally {
+      setIsReversingDiscount(false);
+    }
+  };
 
   const handleAddPayment = () => {
     if (!selectedOrder) return;
@@ -668,6 +797,10 @@ export default function CashierPage() {
       return;
     }
 
+        if (!isDiscountApplied && discountValue && parseFloat(discountValue) > 0) {
+      showToast('You have entered an unconfirmed discount. Please click "Apply & Confirm Discount" to lock it, or clear the discount field.', 'error', 'Unconfirmed Discount');
+      return;
+    }
     const isRoomOrder = Boolean(selectedOrder.folioId || selectedOrder.folio?.reservation?.room || selectedOrder.folio?.id);
     const currentTotal = payments.reduce((sum, p) => sum + p.amount, 0);
     const orderTotal = Number(selectedOrder.totalAmount);
@@ -804,10 +937,13 @@ export default function CashierPage() {
             color: filterTab === 'READY' ? '#4ade80' : 'hsl(215, 20%, 65%)',
             fontWeight: 600,
             fontSize: '0.85rem',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px'
           }}
         >
-          âœ“ Ready for Payment ({orders.filter(o => o.status === 'SERVED' || isOrderFullyServed(o)).length})
+          <Check size={14} /> Ready for Payment ({orders.filter(o => o.status === 'SERVED' || isOrderFullyServed(o)).length})
         </button>
         <button
           type="button"
@@ -820,10 +956,13 @@ export default function CashierPage() {
             color: filterTab === 'PREPARING' ? '#facc15' : 'hsl(215, 20%, 65%)',
             fontWeight: 600,
             fontSize: '0.85rem',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px'
           }}
         >
-          â³ In Kitchen / Bar ({orders.filter(o => o.status !== 'SERVED' && !isOrderFullyServed(o)).length})
+          <Clock size={14} /> In Kitchen / Bar ({orders.filter(o => o.status !== 'SERVED' && !isOrderFullyServed(o)).length})
         </button>
         <button
           type="button"
@@ -894,7 +1033,7 @@ export default function CashierPage() {
                       color: isServed ? '#4ade80' : '#facc15',
                       border: isServed ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(234, 179, 8, 0.3)'
                     }}>
-                      {isServed ? 'âœ“ Ready to Pay' : 'â³ In Kitchen/Bar'}
+                      {isServed ? '✓ Ready to Pay' : '⏳ In Kitchen/Bar'}
                     </span>
                   </div>
                 </div>
@@ -919,7 +1058,7 @@ export default function CashierPage() {
             {!isOrderFullyServed(selectedOrder) ? (
               <div style={{ background: 'rgba(234, 179, 8, 0.12)', border: '1px solid rgba(234, 179, 8, 0.35)', borderRadius: '6px', padding: '10px 14px', marginBottom: '14px', color: '#facc15', fontSize: '0.85rem' }}>
                 <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span>âš ï¸</span>
+                  <AlertTriangle size={15} />
                   <span>Order Not Fully Served Yet</span>
                 </div>
                 <p style={{ margin: '4px 0 0 0', color: '#fef08a', fontSize: '0.8rem', lineHeight: '1.4' }}>
@@ -928,7 +1067,7 @@ export default function CashierPage() {
               </div>
             ) : (
               <div style={{ background: 'rgba(34, 197, 94, 0.12)', border: '1px solid rgba(34, 197, 94, 0.35)', borderRadius: '6px', padding: '8px 12px', marginBottom: '14px', color: '#4ade80', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span>âœ“</span>
+                <CheckCircle2 size={15} />
                 <span>All items served to table. Ready for settlement.</span>
               </div>
             )}
@@ -957,7 +1096,7 @@ export default function CashierPage() {
                         background: isReturned ? 'rgba(239, 68, 68, 0.2)' : isReturnRequested ? 'rgba(234, 179, 8, 0.2)' : isServed ? 'rgba(34, 197, 94, 0.2)' : isReady ? 'rgba(59, 130, 246, 0.2)' : 'rgba(148, 163, 184, 0.15)',
                         color: isReturned ? '#f87171' : isReturnRequested ? '#facc15' : isServed ? '#4ade80' : isReady ? '#60a5fa' : '#94a3b8'
                       }}>
-                        {isReturned ? 'â†© Returned' : isReturnRequested ? 'âš ï¸ Return Pending' : isServed ? 'âœ“ Served' : isReady ? 'ðŸ”” Ready' : isCooking ? 'ðŸ³ Cooking' : 'â³ In Prep'}
+                        {isReturned ? 'Returned' : isReturnRequested ? 'Return Pending' : isServed ? 'Served' : isReady ? 'Ready' : isCooking ? 'Cooking' : 'In Prep'}
                       </span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '8px' }}>
@@ -1041,54 +1180,166 @@ export default function CashierPage() {
                     </div>
                   </div>
                 )})}
-              <div className="receipt-total" style={{ borderBottom: calculatedDiscount > 0 ? 'none' : '', paddingBottom: calculatedDiscount > 0 ? '4px' : '' }}>
+              <div className="receipt-total" style={{ borderBottom: isDiscountApplied ? 'none' : '', paddingBottom: isDiscountApplied ? '4px' : '' }}>
                   <span>Subtotal</span>
                   <span>{format(Number(selectedOrder.totalAmount))}</span>
                 </div>
-                {calculatedDiscount > 0 && (
+                {isDiscountApplied && (
                   <div className="receipt-total" style={{ borderTop: 'none', paddingTop: '4px', marginTop: 0, color: 'hsl(142, 76%, 45%)' }}>
-                    <span>Discount</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <CheckCircle2 size={15} /> Discount (Confirmed)
+                    </span>
                     <span>-{format(calculatedDiscount)}</span>
                   </div>
                 )}
-                <div className="receipt-total" style={{ borderTop: calculatedDiscount > 0 ? 'none' : '' }}>
+                <div className="receipt-total" style={{ borderTop: isDiscountApplied ? 'none' : '' }}>
                   <span>Total Amount</span>
                   <span>{format(finalTotal)}</span>
                 </div>
             </div>
 
-            <div className="discount-entry" style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
-                <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                  <label style={{ display: 'block', marginBottom: '8px', color: 'hsl(215, 20%, 65%)', fontSize: '0.875rem' }}>Discount</label>
-                  <input 
-                    type="number" 
-                    min="0"
-                    value={discountValue} 
-                    onChange={e => {
-                        setDiscountValue(e.target.value);
-                        const curDiscount = discountType === 'PERCENT' ? (Number(selectedOrder.totalAmount) * (Number(e.target.value || 0) / 100)) : Number(e.target.value || 0);
-                        setPaymentAmount(Math.max(0, Number(selectedOrder.totalAmount) - curDiscount - payments.reduce((s, p) => s + p.amount, 0)).toFixed(2));
-                    }} 
-                    style={{ width: '100%', padding: '10px', background: 'hsl(222, 35%, 10%)', border: '1px solid hsl(217, 20%, 20%)', color: 'white', borderRadius: '6px' }}
-                  />
-                </div>
-                <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                  <label style={{ display: 'block', marginBottom: '8px', color: 'hsl(215, 20%, 65%)', fontSize: '0.875rem' }}>Type</label>
-                  <select 
-                    value={discountType} 
-                    onChange={e => {
-                        const newType = e.target.value as 'PERCENT' | 'FLAT';
-                        setDiscountType(newType);
-                        const curDiscount = newType === 'PERCENT' ? (Number(selectedOrder.totalAmount) * (Number(discountValue || 0) / 100)) : Number(discountValue || 0);
-                        setPaymentAmount(Math.max(0, Number(selectedOrder.totalAmount) - curDiscount - payments.reduce((s, p) => s + p.amount, 0)).toFixed(2));
-                    }}
-                    style={{ width: '100%', padding: '10px', background: 'hsl(222, 35%, 10%)', border: '1px solid hsl(217, 20%, 20%)', color: 'white', borderRadius: '6px' }}
-                  >
-                    <option value="PERCENT">%</option>
-                    <option value="FLAT">{currencySymbol}</option>
-                  </select>
-                </div>
+            {/* Discount Management Card */}
+            <div className="discount-box" style={{ background: 'hsl(222, 35%, 12%)', border: '1px solid hsl(217, 20%, 22%)', borderRadius: '8px', padding: '14px', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <span style={{ color: 'white', fontWeight: 600, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Tag size={16} color="hsl(43,96%,56%)" /> Discount Management
+                </span>
+                {isDiscountApplied ? (
+                  <span style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: '4px', background: 'rgba(34, 197, 94, 0.2)', color: '#4ade80', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Lock size={12} /> Confirmed & Saved
+                  </span>
+                ) : (
+                  <span style={{ fontSize: '0.75rem', color: 'hsl(215, 20%, 65%)' }}>
+                    Unconfirmed
+                  </span>
+                )}
               </div>
+
+              {isDiscountApplied ? (
+                <div>
+                  <div style={{ background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.25)', borderRadius: '6px', padding: '10px 12px', marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: '#86efac', fontWeight: 600, fontSize: '0.875rem' }}>
+                        Applied Discount: -{format(Number(selectedOrder.discountAmount))}
+                      </span>
+                      <span style={{ fontSize: '0.75rem', color: '#bbf7d0' }}>
+                        ({discountMeta?.type === 'PERCENT' ? `${discountMeta.value}%` : format(discountMeta?.value || selectedOrder.discountAmount)})
+                      </span>
+                    </div>
+                    {discountMeta?.appliedRole && (
+                      <p style={{ margin: '4px 0 0 0', fontSize: '0.75rem', color: 'hsl(215, 20%, 65%)' }}>
+                        Locked by: {discountMeta.appliedRole} {discountMeta.modifiedCount ? `(Revised ${discountMeta.modifiedCount}x)` : ''}
+                      </p>
+                    )}
+                  </div>
+
+                  {(() => {
+                    const roles = getEffectiveRoles();
+                    const isCeoOrAdmin = roles.some((r: string) => ['SUPER_ADMIN', 'ADMIN', 'CEO'].includes(r));
+                    const isManager = roles.includes('MANAGER');
+                    const isCashierOnly = !isCeoOrAdmin && !isManager;
+
+                    if (isCashierOnly) {
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#f87171', fontSize: '0.8rem', background: 'rgba(239, 68, 68, 0.1)', padding: '8px 12px', borderRadius: '6px' }}>
+                          <Lock size={14} />
+                          <span>Discount is locked. Cashiers are not permitted to reverse or edit applied discounts.</span>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {isManager && !isCeoOrAdmin && (
+                          <div style={{ fontSize: '0.78rem', color: discountModifiedCount >= 1 ? '#f87171' : '#facc15' }}>
+                            {discountModifiedCount >= 1 
+                              ? 'Manager modification limit reached (1/1). Only CEO/Admin can make further revisions.' 
+                              : 'Manager Access: 1 revision remaining.'}
+                          </div>
+                        )}
+                        {isCeoOrAdmin && (
+                          <div style={{ fontSize: '0.78rem', color: '#4ade80' }}>
+                            CEO/Admin Access: Unlimited discount revisions permitted.
+                          </div>
+                        )}
+
+                        {(isCeoOrAdmin || (isManager && discountModifiedCount < 1)) && (
+                          <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                            <button
+                              type="button"
+                              onClick={handleReverseDiscount}
+                              disabled={isReversingDiscount}
+                              style={{ flex: 1, padding: '8px 12px', background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.4)', color: '#fca5a5', borderRadius: '6px', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer' }}
+                            >
+                              {isReversingDiscount ? 'Reversing...' : 'Remove / Reverse Discount'}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              ) : (
+                <div>
+                  <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+                    <div style={{ flex: 2 }}>
+                      <input 
+                        type="number" 
+                        min="0"
+                        placeholder="Discount value..."
+                        value={discountValue} 
+                        onChange={e => setDiscountValue(e.target.value)} 
+                        style={{ width: '100%', padding: '9px 12px', background: 'hsl(222, 35%, 8%)', border: '1px solid hsl(217, 20%, 25%)', color: 'white', borderRadius: '6px', fontSize: '0.9rem' }}
+                      />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <select 
+                        value={discountType} 
+                        onChange={e => setDiscountType(e.target.value as 'PERCENT' | 'FLAT')}
+                        style={{ width: '100%', padding: '9px 10px', background: 'hsl(222, 35%, 8%)', border: '1px solid hsl(217, 20%, 25%)', color: 'white', borderRadius: '6px', fontSize: '0.9rem' }}
+                      >
+                        <option value="PERCENT">%</option>
+                        <option value="FLAT">{currencySymbol}</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {discountValue && parseFloat(discountValue) > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(234, 179, 8, 0.1)', border: '1px dashed rgba(234, 179, 8, 0.3)', padding: '6px 10px', borderRadius: '6px', marginBottom: '10px', fontSize: '0.8rem', color: '#facc15' }}>
+                      <span>Discount Preview:</span>
+                      <span style={{ fontWeight: 700 }}>
+                        -{format(discountType === 'PERCENT' ? (Number(selectedOrder.totalAmount) * (parseFloat(discountValue) / 100)) : parseFloat(discountValue))}
+                      </span>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleApplyDiscount}
+                    disabled={isApplyingDiscount || !discountValue || parseFloat(discountValue) <= 0}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      background: (!discountValue || parseFloat(discountValue) <= 0) ? 'hsl(222, 35%, 20%)' : 'hsl(142, 76%, 36%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontWeight: 600,
+                      fontSize: '0.85rem',
+                      cursor: (!discountValue || parseFloat(discountValue) <= 0) ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <CheckCircle2 size={15} />
+                    {isApplyingDiscount ? 'Applying & Locking...' : 'Apply & Confirm Discount'}
+                  </button>
+                </div>
+              )}
+            </div>
               {canSettle ? (<div className="payment-entry-section">
               {payments.length > 0 && (
                 <div className="payments-list" style={{ marginBottom: '16px' }}>
@@ -1098,7 +1349,7 @@ export default function CashierPage() {
                       <span style={{ color: 'hsl(215, 20%, 65%)' }}>{p.method.replace('PAYMENT_', '')}</span>
                       <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                         <span style={{ color: 'white', fontWeight: 600 }}>{format(p.amount)}</span>
-                        <button type="button" onClick={() => removePayment(idx)} style={{ background: 'none', border: 'none', color: 'hsl(0, 84%, 60%)', cursor: 'pointer', fontSize: '1rem' }}>Ã—</button>
+                        <button type="button" onClick={() => removePayment(idx)} style={{ background: 'none', border: 'none', color: 'hsl(0, 84%, 60%)', cursor: 'pointer', fontSize: '1rem', display: 'flex', alignItems: 'center' }}><X size={14} /></button>
                       </div>
                     </div>
                   ))}

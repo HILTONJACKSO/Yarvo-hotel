@@ -813,10 +813,10 @@ model InventoryRecipe {
   id String @id @default(uuid()) @db.Uuid
 
   menuItemId String      @db.Uuid
-  menuItem   PosMenuItem @relation(fields: [menuItemId], references: [id])
+  menuItem   PosMenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
 
   inventoryItemId String        @db.Uuid
-  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
 
   quantity Decimal @db.Decimal(10, 2)
 
