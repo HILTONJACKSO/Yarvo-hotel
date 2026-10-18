@@ -2,13 +2,22 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Building2, BarChart3, ShieldCheck, Hotel, ArrowLeft, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { Building2, BarChart3, ShieldCheck, ArrowLeft } from 'lucide-react';
+
+interface LoginFormData {
+  email: string;
+  password: string;
+}
+
+interface LoginError {
+  message: string;
+}
 
 export default function LoginPage() {
   const router = useRouter();
-  const [formData, setFormData] = useState({ email: '', password: '' });
-  const [error, setError] = useState('');
+  const [formData, setFormData] = useState<LoginFormData>({ email: '', password: '' });
+  const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -56,174 +65,551 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="h-screen w-full bg-[#050B14] text-gray-200 font-sans selection:bg-[#CA9851]/30 overflow-hidden flex flex-col justify-center items-center relative p-4 sm:p-6">
-      {/* Background Effects */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:4rem_4rem]" />
-        <div className="absolute top-[-10%] left-[-10%] w-[45%] h-[45%] rounded-full bg-[#0B1D33]/60 blur-[130px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-[#CA9851]/12 blur-[140px]" />
-      </div>
-
-      <Link href="/" className="absolute top-6 left-6 z-50 text-gray-400 hover:text-[#DFB776] flex items-center gap-2 transition-colors text-sm font-medium">
-        <ArrowLeft size={18} /> Back to Home
+    <div className="login-root">
+      {/* Back to Home link */}
+      <Link href="/" className="back-link">
+        <ArrowLeft size={16} /> Back to Home
       </Link>
 
-      <div className="relative z-10 w-full max-w-5xl my-auto">
-        <div className="w-full flex flex-col md:flex-row bg-[#070F1E] border border-[#CA9851]/20 rounded-[2.5rem] overflow-hidden shadow-2xl">
-          
-          {/* Left Panel - Branding */}
-          <div className="hidden md:flex flex-col justify-between w-1/2 p-10 xl:p-14 bg-gradient-to-br from-[#0B1D33]/50 to-transparent border-r border-[#CA9851]/15 relative">
-            <div className="absolute inset-0 bg-[#CA9851]/5 blur-[100px] rounded-full pointer-events-none" />
-            
-            <div className="relative z-10">
-               <div className="mb-10">
-                 <Link href="/" className="flex items-center gap-3.5 group">
-                   <img 
-                     src="/logo.jpg" 
-                     alt="Kwalee Beach Resort" 
-                     className="h-12 w-12 rounded-full object-cover border-2 border-[#CA9851]/50 shadow-md transition-transform group-hover:scale-105"
-                   />
-                   <div>
-                     <span className="font-serif font-bold text-white tracking-widest text-lg block">
-                       KWALEE
-                     </span>
-                     <span className="text-[10px] uppercase tracking-widest text-[#DFB776] font-medium block">
-                       Beach Resort
-                     </span>
-                   </div>
-                 </Link>
-               </div>
-               
-               <h1 className="text-3xl xl:text-4xl font-extrabold text-white mb-4 leading-tight">
-                 Welcome back to<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-[#E9C78C] via-[#CA9851] to-[#B3823E]">Kwalee Beach Resort</span>.
-               </h1>
-               <p className="text-gray-400 text-sm mb-10 max-w-sm leading-relaxed">
-                 Sign in to access property management, reservations, POS, and operations.
-               </p>
+      {/* Animated background orbs */}
+      <div className="bg-orb bg-orb-1" />
+      <div className="bg-orb bg-orb-2" />
+      <div className="bg-orb bg-orb-3" />
 
-               <div className="space-y-5">
-                 {[
-                   { icon: Building2, title: "Complete Hotel PMS", desc: "Reservations, rooms, and front desk suite" },
-                   { icon: BarChart3, title: "Real-Time Operations", desc: "Live synchronisation between Front Desk & POS" },
-                   { icon: ShieldCheck, title: "Staff Security", desc: "Role-based access control for resort staff" }
-                 ].map((feature, i) => (
-                   <div key={i} className="flex items-start gap-3.5">
-                     <div className="w-9 h-9 rounded-xl bg-[#CA9851]/10 border border-[#CA9851]/25 flex items-center justify-center text-[#DFB776] flex-shrink-0">
-                       <feature.icon size={18} />
-                     </div>
-                     <div>
-                       <h3 className="text-white text-sm font-semibold">{feature.title}</h3>
-                       <p className="text-xs text-gray-400">{feature.desc}</p>
-                     </div>
-                   </div>
-                 ))}
-               </div>
+      <div className="login-container">
+        {/* Left panel — branding */}
+        <div className="login-brand-panel">
+          <div className="brand-content">
+            <div className="brand-logo" style={{ background: 'none', border: 'none' }}>
+              <img src="/logo.jpg" alt="Kwalee Logo" style={{ width: '100%', height: 'auto', objectFit: 'contain', borderRadius: '50%' }} />
+            </div>
+            <h1 className="brand-name">KWALEE</h1>
+            <p className="brand-tagline">Hotel Management System</p>
+
+            <div className="brand-features">
+              <div className="brand-feature">
+                <div className="feature-icon"><Building2 size={20} color="hsl(43,96%,56%)" /></div>
+                <div>
+                  <div className="feature-title">Complete PMS</div>
+                  <div className="feature-desc">Full property management suite</div>
+                </div>
+              </div>
+              <div className="brand-feature">
+                <div className="feature-icon"><BarChart3 size={20} color="hsl(43,96%,56%)" /></div>
+                <div>
+                  <div className="feature-title">Real-Time Analytics</div>
+                  <div className="feature-desc">Live revenue & occupancy reports</div>
+                </div>
+              </div>
+              <div className="brand-feature">
+                <div className="feature-icon"><ShieldCheck size={20} color="hsl(43,96%,56%)" /></div>
+                <div>
+                  <div className="feature-title">Enterprise Security</div>
+                  <div className="feature-desc">Role-based access control</div>
+                </div>
+              </div>
             </div>
 
-            <div className="relative z-10 text-xs text-gray-500 mt-10">
-              &copy; {new Date().getFullYear()} Kwalee Beach Resort. Marshall, Liberia.
+            <div className="brand-footer">
+              Liberia • {new Date().getFullYear()}
             </div>
           </div>
+        </div>
 
-          {/* Right Panel - Form */}
-          <div className="w-full md:w-1/2 p-8 sm:p-12 xl:p-16 flex flex-col justify-center bg-[#070F1E]">
-            {/* Mobile Logo Header */}
-            <div className="md:hidden mb-8 text-center">
-              <Link href="/" className="inline-flex flex-col items-center">
-                <img 
-                  src="/logo.jpg" 
-                  alt="Kwalee Beach Resort" 
-                  className="h-14 w-14 mx-auto rounded-full object-cover border-2 border-[#CA9851]/50 shadow-md mb-2"
-                />
-                <span className="font-serif font-bold text-white tracking-widest text-base">
-                  KWALEE BEACH RESORT
-                </span>
-              </Link>
+        {/* Right panel — form */}
+        <div className="login-form-panel">
+          <div className="form-card">
+            <div className="form-header">
+              <div className="form-logo-sm" style={{ background: 'none', border: 'none' }}><img src="/logo.jpg" alt="Logo" style={{ width: '48px', height: '48px', borderRadius: '50%' }} /></div>
+              <h2 className="form-title">Welcome back</h2>
+              <p className="form-subtitle">Sign in to continue to KWALEE HMS</p>
             </div>
 
-            <div className="mb-8 text-center md:text-left">
-              <h2 className="text-3xl font-extrabold text-white mb-2">Sign In</h2>
-              <p className="text-gray-400 text-sm">Enter your credentials to access your account.</p>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+            <form onSubmit={handleSubmit} className="login-form" id="login-form" noValidate>
               {error && (
-                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-400 text-sm animate-pulse">
-                  <ShieldCheck size={18} />
+                <div className="error-banner" role="alert">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="15" y1="9" x2="9" y2="15" />
+                    <line x1="9" y1="9" x2="15" y2="15" />
+                  </svg>
                   <span>{error}</span>
                 </div>
               )}
 
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-gray-300">Email Address</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-500">
-                    <Mail size={18} />
-                  </div>
+              <div className="field-group">
+                <label className="field-label" htmlFor="email">Email address</label>
+                <div className="field-wrapper">
+                  <svg className="field-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                    <polyline points="22,6 12,13 2,6" />
+                  </svg>
                   <input
+                    id="email"
                     type="email"
+                    autoComplete="email"
                     required
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full bg-[#050B14] border border-white/10 rounded-xl py-3.5 pl-11 pr-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-[#CA9851] focus:ring-1 focus:ring-[#CA9851] transition-all text-sm"
-                    placeholder="Enter your email address"
+                    placeholder="admin@kwalee.com"
+                    className="field-input"
                   />
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <div className="flex justify-between items-center">
-                  <label className="text-sm font-medium text-gray-300">Password</label>
-                  <Link href="#" className="text-xs font-semibold text-[#DFB776] hover:text-[#E9C78C] transition-colors">Forgot password?</Link>
-                </div>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-500">
-                    <Lock size={18} />
-                  </div>
+              <div className="field-group">
+                <label className="field-label" htmlFor="password">Password</label>
+                <div className="field-wrapper">
+                  <svg className="field-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
                   <input
+                    id="password"
                     type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
                     required
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full bg-[#050B14] border border-white/10 rounded-xl py-3.5 pl-11 pr-12 text-white placeholder:text-gray-600 focus:outline-none focus:border-[#CA9851] focus:ring-1 focus:ring-[#CA9851] transition-all text-sm"
                     placeholder="••••••••"
+                    className="field-input"
                   />
                   <button
                     type="button"
+                    id="toggle-password"
+                    className="field-toggle"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-[#DFB776] transition-colors"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    {showPassword ? (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                        <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                        <line x1="1" y1="1" x2="23" y2="23" />
+                      </svg>
+                    ) : (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    )}
                   </button>
                 </div>
               </div>
 
               <button
+                id="login-submit"
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-4 bg-gradient-to-r from-[#DFB776] via-[#CA9851] to-[#B3823E] hover:from-[#E9C78C] hover:to-[#DFB776] text-[#070F1E] rounded-xl font-bold transition-all shadow-[0_0_25px_rgba(202,152,81,0.35)] flex items-center justify-center gap-2 mt-4 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                className="login-btn"
               >
                 {isLoading ? (
-                  <>
-                    <Loader2 size={18} className="animate-spin text-[#070F1E]" />
-                    Authenticating...
-                  </>
+                  <span className="btn-loading">
+                    <svg className="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                    </svg>
+                    Signing in…
+                  </span>
                 ) : (
-                  "Sign In to Yarvo"
+                  <span>Sign In</span>
                 )}
               </button>
             </form>
 
-            <div className="mt-8 text-center text-sm text-gray-400 border-t border-white/10 pt-6">
-              Don't have an account?{' '}
-              <Link href="/signup" className="text-[#DFB776] hover:text-[#E9C78C] font-bold transition-colors">
-                Create a new property
-              </Link>
+            <div className="form-footer">
+              <p className="form-footer-text">
+                Secured by JWT · AES-256 · Argon2id
+              </p>
             </div>
           </div>
-
         </div>
       </div>
+
+      <style>{`
+        .login-root {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: hsl(224, 39%, 4%);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .back-link {
+          position: absolute;
+          top: 24px;
+          left: 24px;
+          z-index: 50;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          color: hsl(215, 20%, 65%);
+          font-size: 0.875rem;
+          font-weight: 500;
+          text-decoration: none;
+          transition: color 0.2s;
+        }
+        .back-link:hover {
+          color: hsl(43, 96%, 56%);
+        }
+
+        /* Animated gradient orbs */
+        .bg-orb {
+          position: absolute;
+          border-radius: 50%;
+          filter: blur(80px);
+          opacity: 0.25;
+          animation: float 8s ease-in-out infinite;
+          pointer-events: none;
+        }
+        .bg-orb-1 {
+          width: 600px; height: 600px;
+          background: radial-gradient(circle, hsl(43,96%,56%), transparent 70%);
+          top: -200px; left: -200px;
+          animation-duration: 10s;
+        }
+        .bg-orb-2 {
+          width: 500px; height: 500px;
+          background: radial-gradient(circle, hsl(217,91%,45%), transparent 70%);
+          bottom: -150px; right: -100px;
+          animation-duration: 8s;
+          animation-delay: -3s;
+        }
+        .bg-orb-3 {
+          width: 300px; height: 300px;
+          background: radial-gradient(circle, hsl(270,60%,50%), transparent 70%);
+          top: 50%; left: 50%;
+          animation-duration: 12s;
+          animation-delay: -5s;
+          opacity: 0.12;
+        }
+
+        @keyframes float {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(20px, -20px) scale(1.05); }
+          66% { transform: translate(-10px, 15px) scale(0.97); }
+        }
+
+        .login-container {
+          display: flex;
+          width: 100%;
+          max-width: 1100px;
+          min-height: 640px;
+          background: hsl(222, 35%, 7%);
+          border: 1px solid hsl(217, 20%, 18%);
+          border-radius: 24px;
+          overflow: hidden;
+          box-shadow: 0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+          position: relative;
+          z-index: 1;
+          margin: 24px;
+        }
+
+        /* Brand panel */
+        .login-brand-panel {
+          flex: 1;
+          background: linear-gradient(135deg, hsl(224, 39%, 7%) 0%, hsl(220, 35%, 10%) 100%);
+          border-right: 1px solid hsl(217, 20%, 14%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 48px;
+          position: relative;
+          overflow: hidden;
+        }
+        .login-brand-panel::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: radial-gradient(ellipse at 30% 50%, hsl(43,96%,56%, 0.06) 0%, transparent 60%);
+        }
+
+        .brand-content {
+          position: relative;
+          z-index: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        .brand-logo {
+          width: 64px;
+          height: 64px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: hsl(43,96%,56%,0.1);
+          border: 1px solid hsl(43,96%,56%,0.2);
+          border-radius: 16px;
+        }
+        .brand-logo svg { width: 40px; height: 40px; }
+
+        .brand-name {
+          font-size: 2.5rem;
+          font-weight: 700;
+          color: hsl(210, 40%, 96%);
+          letter-spacing: -0.03em;
+          line-height: 1;
+          margin: 0;
+        }
+
+        .brand-tagline {
+          color: hsl(43,96%,56%);
+          font-size: 0.875rem;
+          font-weight: 500;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          margin: 0;
+        }
+
+        .brand-features {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          margin-top: 16px;
+          padding-top: 24px;
+          border-top: 1px solid hsl(217, 20%, 18%);
+        }
+
+        .brand-feature {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+        }
+
+        .feature-icon {
+          font-size: 1.25rem;
+          width: 36px;
+          height: 36px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: hsl(217, 20%, 14%);
+          border-radius: 8px;
+          flex-shrink: 0;
+        }
+
+        .feature-title {
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: hsl(210, 40%, 96%);
+        }
+        .feature-desc {
+          font-size: 0.75rem;
+          color: hsl(215, 20%, 55%);
+          margin-top: 2px;
+        }
+
+        .brand-footer {
+          margin-top: 24px;
+          font-size: 0.75rem;
+          color: hsl(215, 16%, 40%);
+        }
+
+        /* Form panel */
+        .login-form-panel {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 48px;
+          background: hsl(222, 35%, 7%);
+        }
+
+        .form-card {
+          width: 100%;
+          max-width: 400px;
+          display: flex;
+          flex-direction: column;
+          gap: 28px;
+        }
+
+        .form-header {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .form-logo-sm {
+          display: none;
+          margin-bottom: 4px;
+        }
+
+        .form-title {
+          font-size: 1.75rem;
+          font-weight: 700;
+          color: hsl(210, 40%, 96%);
+          letter-spacing: -0.025em;
+          margin: 0;
+        }
+
+        .form-subtitle {
+          font-size: 0.875rem;
+          color: hsl(215, 20%, 55%);
+          margin: 0;
+        }
+
+        .login-form {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        .error-banner {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 12px 14px;
+          background: hsl(0, 84%, 60%, 0.12);
+          border: 1px solid hsl(0, 84%, 60%, 0.3);
+          border-radius: 10px;
+          color: hsl(0, 84%, 70%);
+          font-size: 0.875rem;
+          animation: shake 0.4s ease;
+        }
+
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          20% { transform: translateX(-6px); }
+          40% { transform: translateX(6px); }
+          60% { transform: translateX(-4px); }
+          80% { transform: translateX(4px); }
+        }
+
+        .field-group {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .field-label {
+          font-size: 0.8125rem;
+          font-weight: 500;
+          color: hsl(215, 20%, 70%);
+          letter-spacing: 0.01em;
+        }
+
+        .field-wrapper {
+          position: relative;
+          display: flex;
+          align-items: center;
+        }
+
+        .field-icon {
+          position: absolute;
+          left: 14px;
+          color: hsl(215, 20%, 45%);
+          pointer-events: none;
+          transition: color 0.2s;
+          flex-shrink: 0;
+        }
+
+        .field-input {
+          width: 100%;
+          height: 46px;
+          padding: 0 42px 0 42px;
+          background: hsl(220, 30%, 10%);
+          border: 1px solid hsl(217, 20%, 18%);
+          border-radius: 10px;
+          color: hsl(210, 40%, 96%);
+          font-size: 0.9375rem;
+          transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+          outline: none;
+          font-family: inherit;
+        }
+        .field-input::placeholder {
+          color: hsl(215, 16%, 35%);
+        }
+        .field-input:hover {
+          border-color: hsl(215, 20%, 28%);
+        }
+        .field-input:focus {
+          border-color: hsl(43,96%,56%);
+          box-shadow: 0 0 0 3px hsl(43,96%,56%, 0.12);
+          background: hsl(220, 30%, 12%);
+        }
+        .field-input:focus + .field-icon,
+        .field-wrapper:focus-within .field-icon {
+          color: hsl(43,96%,56%);
+        }
+
+        .field-toggle {
+          position: absolute;
+          right: 14px;
+          background: none;
+          border: none;
+          padding: 0;
+          cursor: pointer;
+          color: hsl(215, 20%, 45%);
+          display: flex;
+          align-items: center;
+          transition: color 0.2s;
+        }
+        .field-toggle:hover { color: hsl(43,96%,56%); }
+
+        .login-btn {
+          height: 48px;
+          width: 100%;
+          background: linear-gradient(135deg, hsl(43,96%,56%) 0%, hsl(38,92%,48%) 100%);
+          color: hsl(224, 39%, 6%);
+          border: none;
+          border-radius: 10px;
+          font-size: 0.9375rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+          box-shadow: 0 4px 20px hsl(43,96%,56%,0.25);
+          font-family: inherit;
+          letter-spacing: 0.01em;
+          margin-top: 4px;
+        }
+        .login-btn:hover:not(:disabled) {
+          opacity: 0.92;
+          transform: translateY(-1px);
+          box-shadow: 0 8px 28px hsl(43,96%,56%,0.35);
+        }
+        .login-btn:active:not(:disabled) {
+          transform: translateY(0);
+        }
+        .login-btn:disabled {
+          opacity: 0.65;
+          cursor: not-allowed;
+        }
+
+        .btn-loading {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+        }
+
+        .spinner {
+          animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .form-footer {
+          padding-top: 16px;
+          border-top: 1px solid hsl(217, 20%, 14%);
+          text-align: center;
+        }
+        .form-footer-text {
+          font-size: 0.75rem;
+          color: hsl(215, 16%, 38%);
+          margin: 0;
+          letter-spacing: 0.02em;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+          .login-brand-panel { display: none; }
+          .login-form-panel { padding: 32px 24px; }
+          .form-logo-sm { display: flex; }
+          .login-container { margin: 16px; border-radius: 16px; min-height: auto; }
+        }
+      `}</style>
     </div>
   );
 }
+
