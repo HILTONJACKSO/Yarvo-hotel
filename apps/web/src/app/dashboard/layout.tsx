@@ -176,19 +176,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="sidebar-header">
           <div className="sidebar-logo flex items-center min-w-0">
             {sidebarOpen ? (
-              <img 
-                src="/yarvo-logo-dark-horizontal.png" 
-                alt="Yarvo Hotel" 
-                onError={(e) => {
-                  e.currentTarget.src = "/yarvo-logo-dark.jpg";
-                }}
-                className="h-9 w-auto max-w-[155px] object-contain"
-              />
+              <div className="flex items-center gap-2.5">
+                <img 
+                  src="/logo.jpg" 
+                  alt="Kwalee Beach Resort" 
+                  className="w-7 h-7 rounded-full object-cover border border-[#CA9851]/40 shadow-sm flex-shrink-0"
+                />
+                <span className="font-serif font-bold text-white tracking-widest text-sm truncate">
+                  KWALEE
+                </span>
+              </div>
             ) : (
               <img 
-                src="/favicon-32x32.png" 
-                alt="Yarvo Hotel" 
-                className="w-8 h-8 rounded-lg object-contain shadow-md"
+                src="/logo.jpg" 
+                alt="Kwalee Beach Resort" 
+                className="w-7 h-7 rounded-full object-cover border border-[#CA9851]/40 shadow-sm"
               />
             )}
           </div>

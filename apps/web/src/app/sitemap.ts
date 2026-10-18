@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://yarvohotel.com';
+  const baseUrl = 'https://kwaleebeachresort.com';
   const currentDate = new Date();
 
   return [
@@ -12,21 +12,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1.0,
     },
     {
-      url: `${baseUrl}/signup`,
+      url: `${baseUrl}/stay`,
       lastModified: currentDate,
-      changeFrequency: 'monthly',
+      changeFrequency: 'weekly',
       priority: 0.9,
     },
     {
       url: `${baseUrl}/login`,
       lastModified: currentDate,
       changeFrequency: 'monthly',
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/stay`,
-      lastModified: currentDate,
-      changeFrequency: 'weekly',
       priority: 0.8,
     },
     {

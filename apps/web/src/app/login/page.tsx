@@ -77,30 +77,35 @@ export default function LoginPage() {
             
             <div className="relative z-10">
                <div className="mb-10">
-                 <Link href="/" className="inline-block group">
+                 <Link href="/" className="flex items-center gap-3.5 group">
                    <img 
-                     src="/yarvo-logo-dark-horizontal.png" 
-                     alt="Yarvo Hotel - Smarter Hotel Management" 
-                     onError={(e) => {
-                       e.currentTarget.src = "/yarvo-logo-dark.jpg";
-                     }}
-                     className="h-11 w-auto object-contain transition-transform group-hover:scale-105"
+                     src="/logo.jpg" 
+                     alt="Kwalee Beach Resort" 
+                     className="h-12 w-12 rounded-full object-cover border-2 border-[#CA9851]/50 shadow-md transition-transform group-hover:scale-105"
                    />
+                   <div>
+                     <span className="font-serif font-bold text-white tracking-widest text-lg block">
+                       KWALEE
+                     </span>
+                     <span className="text-[10px] uppercase tracking-widest text-[#DFB776] font-medium block">
+                       Beach Resort
+                     </span>
+                   </div>
                  </Link>
                </div>
                
                <h1 className="text-3xl xl:text-4xl font-extrabold text-white mb-4 leading-tight">
-                 Welcome back to<br />the <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#E9C78C] via-[#CA9851] to-[#B3823E]">Operating System</span>.
+                 Welcome back to<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-[#E9C78C] via-[#CA9851] to-[#B3823E]">Kwalee Beach Resort</span>.
                </h1>
                <p className="text-gray-400 text-sm mb-10 max-w-sm leading-relaxed">
-                 Sign in to access your modules, view live reservations, and manage your property.
+                 Sign in to access property management, reservations, POS, and operations.
                </p>
 
                <div className="space-y-5">
                  {[
-                   { icon: Building2, title: "Modular Architecture", desc: "Access only the features you need" },
-                   { icon: BarChart3, title: "Real-Time Syncing", desc: "Zero latency between PMS and POS" },
-                   { icon: ShieldCheck, title: "Data Isolation", desc: "Enterprise-grade multi-tenancy" }
+                   { icon: Building2, title: "Complete Hotel PMS", desc: "Reservations, rooms, and front desk suite" },
+                   { icon: BarChart3, title: "Real-Time Operations", desc: "Live synchronisation between Front Desk & POS" },
+                   { icon: ShieldCheck, title: "Staff Security", desc: "Role-based access control for resort staff" }
                  ].map((feature, i) => (
                    <div key={i} className="flex items-start gap-3.5">
                      <div className="w-9 h-9 rounded-xl bg-[#CA9851]/10 border border-[#CA9851]/25 flex items-center justify-center text-[#DFB776] flex-shrink-0">
@@ -116,7 +121,7 @@ export default function LoginPage() {
             </div>
 
             <div className="relative z-10 text-xs text-gray-500 mt-10">
-              &copy; {new Date().getFullYear()} Yarvo Hotel. Smarter Hotel Management.
+              &copy; {new Date().getFullYear()} Kwalee Beach Resort. Marshall, Liberia.
             </div>
           </div>
 
@@ -124,15 +129,15 @@ export default function LoginPage() {
           <div className="w-full md:w-1/2 p-8 sm:p-12 xl:p-16 flex flex-col justify-center bg-[#070F1E]">
             {/* Mobile Logo Header */}
             <div className="md:hidden mb-8 text-center">
-              <Link href="/" className="inline-block">
+              <Link href="/" className="inline-flex flex-col items-center">
                 <img 
-                  src="/yarvo-logo-dark-horizontal.png" 
-                  alt="Yarvo Hotel" 
-                  onError={(e) => {
-                    e.currentTarget.src = "/yarvo-logo-dark.jpg";
-                  }}
-                  className="h-9 w-auto mx-auto object-contain"
+                  src="/logo.jpg" 
+                  alt="Kwalee Beach Resort" 
+                  className="h-14 w-14 mx-auto rounded-full object-cover border-2 border-[#CA9851]/50 shadow-md mb-2"
                 />
+                <span className="font-serif font-bold text-white tracking-widest text-base">
+                  KWALEE BEACH RESORT
+                </span>
               </Link>
             </div>
 

@@ -23,26 +23,25 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://yarvohotel.com'),
+  metadataBase: new URL('https://kwaleebeachresort.com'),
   title: {
-    default: 'Yarvo Hotel — Modular Property Management System (PMS)',
-    template: '%s | Yarvo Hotel PMS',
+    default: 'Kwalee Beach Resort | Beach Resort in Liberia',
+    template: '%s | Kwalee Beach Resort',
   },
   description:
-    'Modular Property Management System (PMS) built for modern hotels and resorts. Streamline reservations, guests, front desk, and billing with zero bloat.',
+    'Discover Kwalee Beach Resort — a coastal destination in Liberia offering beach relaxation, poolside experiences, dining, drinks and unforgettable events by the ocean.',
   keywords: [
-    'hotel management system',
-    'property management system',
-    'hotel PMS',
-    'modular hotel software',
-    'hotel reservation software',
-    'front desk management',
-    'hospitality POS',
-    'hotel billing software',
-    'hotel operations'
+    'kwalee beach resort',
+    'liberia beach resort',
+    'marshall liberia',
+    'beach resort liberia',
+    'luxury resort liberia',
+    'oceanfront tents',
+    'beachfront resort liberia',
+    'coastal getaway liberia'
   ],
   alternates: {
-    canonical: 'https://yarvohotel.com',
+    canonical: 'https://kwaleebeachresort.com',
   },
   icons: {
     icon: [
@@ -58,25 +57,25 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://yarvohotel.com',
-    siteName: 'Yarvo Hotel PMS',
-    title: 'Yarvo Hotel — Modular Property Management System (PMS)',
+    url: 'https://kwaleebeachresort.com',
+    siteName: 'Kwalee Beach Resort',
+    title: 'Kwalee Beach Resort | Beach Resort in Liberia',
     description:
-      'Modular Property Management System (PMS) built for modern hotels and resorts. Streamline reservations, guests, front desk, and billing with zero bloat.',
+      'Discover Kwalee Beach Resort — a coastal destination in Liberia offering beach relaxation, poolside experiences, dining, drinks and unforgettable events by the ocean.',
     images: [
       {
         url: '/og-image.jpg',
         width: 1200,
         height: 630,
-        alt: 'Yarvo Hotel — Modular Property Management System',
+        alt: 'Kwalee Beach Resort',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Yarvo Hotel — Modular Property Management System (PMS)',
+    title: 'Kwalee Beach Resort | Beach Resort in Liberia',
     description:
-      'Modular Property Management System (PMS) built for modern hotels and resorts. Streamline reservations, guests, front desk, and billing with zero bloat.',
+      'Discover Kwalee Beach Resort — a coastal destination in Liberia offering beach relaxation, poolside experiences, dining, drinks and unforgettable events by the ocean.',
     images: ['/og-image.jpg'],
   },
 };
@@ -85,49 +84,34 @@ const jsonLd = {
   '@context': 'https://schema.org',
   '@graph': [
     {
-      '@type': 'SoftwareApplication',
-      '@id': 'https://yarvohotel.com/#software',
-      name: 'Yarvo Hotel PMS',
-      operatingSystem: 'All (Cloud-native Web Application)',
-      applicationCategory: 'BusinessApplication',
-      url: 'https://yarvohotel.com',
+      '@type': 'Resort',
+      '@id': 'https://kwaleebeachresort.com/#resort',
+      name: 'Kwalee Beach Resort',
+      url: 'https://kwaleebeachresort.com',
       description:
-        'A strictly modular Property Management System (PMS) designed for boutique hotels, luxury resorts, and multi-property operators.',
-      offers: {
-        '@type': 'Offer',
-        price: '0.00',
-        priceCurrency: 'USD',
-        description: '14-day free trial, no credit card required',
+        'Discover Kwalee Beach Resort — a coastal destination in Liberia offering beach relaxation, poolside experiences, dining, drinks and unforgettable events by the ocean.',
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: 'Marshall',
+        addressRegion: 'Margibi County',
+        addressCountry: 'LR',
       },
-      featureList: [
-        'Modular architecture',
-        'Front desk & reservations management',
-        'Guest CRM & history',
-        'Unified Folio and billing',
-        'Housekeeping & Maintenance tracking',
-        'Integrated POS for restaurant and bar',
-        'Night audit and financial reports',
-      ],
+      telephone: '+231-00-000-000',
     },
     {
       '@type': 'Organization',
-      '@id': 'https://yarvohotel.com/#organization',
-      name: 'Yarvo Hotel',
-      url: 'https://yarvohotel.com',
-      logo: 'https://yarvohotel.com/yarvo-logo-new.png',
-      contactPoint: {
-        '@type': 'ContactPoint',
-        contactType: 'customer support',
-        url: 'https://yarvohotel.com/#contact',
-      },
+      '@id': 'https://kwaleebeachresort.com/#organization',
+      name: 'Kwalee Beach Resort',
+      url: 'https://kwaleebeachresort.com',
+      logo: 'https://kwaleebeachresort.com/logo.jpg',
     },
     {
       '@type': 'WebSite',
-      '@id': 'https://yarvohotel.com/#website',
-      url: 'https://yarvohotel.com',
-      name: 'Yarvo Hotel',
+      '@id': 'https://kwaleebeachresort.com/#website',
+      url: 'https://kwaleebeachresort.com',
+      name: 'Kwalee Beach Resort',
       publisher: {
-        '@id': 'https://yarvohotel.com/#organization',
+        '@id': 'https://kwaleebeachresort.com/#organization',
       },
     },
   ],

@@ -40,10 +40,10 @@ const nextConfig: NextConfig = {
     serverActions: {
       allowedOrigins: [
         'localhost:3000',
-        '72.61.15.24:3050',
-        '72.61.15.24',
-        'yarvohotel.com',
-        'www.yarvohotel.com',
+        'kwaleebeachresort.com',
+        'www.kwaleebeachresort.com',
+        '82.29.175.72',
+        '82.29.175.72:3000',
         ...(process.env.DOMAIN ? [
           process.env.DOMAIN,
           `www.${process.env.DOMAIN}`,
