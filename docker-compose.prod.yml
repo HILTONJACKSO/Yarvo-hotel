@@ -116,11 +116,11 @@ services:
 
 volumes:
   postgres_data:
-    name: bellacasa_postgres_data
+    name: bellacasa_bellacasa_postgres_data
   redis_data:
-    name: bellacasa_redis_data
+    name: bellacasa_bellacasa_redis_data
   uploads:
-    name: bellacasa_uploads
+    name: bellacasa_bellacasa_uploads
 
 networks:
   yarvo_net:
