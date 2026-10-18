@@ -7,7 +7,7 @@ version: '3.9'
 services:
   # ── PostgreSQL ──────────────────────────────────────────────────────────────
   db:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     container_name: bellacasa-db-prod
     restart: always
     environment:
@@ -15,7 +15,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-BellaCasa@DB2026}
       POSTGRES_DB: ${POSTGRES_DB:-bellacasa}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bellacasa} -d ${POSTGRES_DB:-bellacasa}"]
       interval: 10s
