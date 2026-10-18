@@ -56,8 +56,19 @@ export async function syncOfflineMutations() {
         }
 
         if (!res.ok) {
-          // If it's a 4xx error (like Bad Request or Not Found, but NOT 401 Unauthorized), discard it
-          if (res.status !== 401 && res.status >= 400 && res.status < 500) {
+          // If 401 Unauthorized, give it up to 2 retries then quarantine so queue isn't blocked forever
+          if (res.status === 401) {
+            if ((mutation.retryCount || 0) >= 2) {
+              console.error(`Quarantining unauthorized mutation ${mutation.id} (${mutation.url})`);
+              await db.syncQueue.update(mutation.id!, {
+                status: 'FAILED',
+                retryCount: (mutation.retryCount || 0) + 1,
+                error: 'Unauthorized (401)',
+              });
+              continue;
+            }
+          } else if (res.status >= 400 && res.status < 500) {
+            // Discard client-side invalid requests (400, 404, etc.)
             console.error(`Discarding invalid mutation ${mutation.id} due to ${res.status}`);
             await db.syncQueue.delete(mutation.id!);
             continue;
@@ -70,13 +81,24 @@ export async function syncOfflineMutations() {
         
       } catch (err: any) {
         console.error('Sync failed for mutation:', mutation, err);
-        // Increment retry count
-        await db.syncQueue.update(mutation.id!, {
-          retryCount: mutation.retryCount + 1,
-          error: err.message,
-        });
-        // Stop syncing this batch if we hit a network error to preserve order
-        break; 
+        const newRetryCount = (mutation.retryCount || 0) + 1;
+        if (newRetryCount >= 4) {
+          console.warn(`Quarantining repeatedly failing mutation ${mutation.id} (${mutation.method} ${mutation.url})`);
+          await db.syncQueue.update(mutation.id!, {
+            status: 'FAILED',
+            retryCount: newRetryCount,
+            error: err.message,
+          });
+          continue; // Allow subsequent mutations to be processed
+        } else {
+          // Increment retry count
+          await db.syncQueue.update(mutation.id!, {
+            retryCount: newRetryCount,
+            error: err.message,
+          });
+          // Stop syncing this batch if we hit a network error to preserve order
+          break; 
+        }
       }
     }
   } finally {
@@ -197,6 +219,56 @@ export async function downloadLatestData() {
     
     if (poRes.ok || psRes.ok) {
       if (serverOrders.length > 0) {
+        // Protect optimistic local status updates that are currently pending in syncQueue
+        const pendingStatusUpdates = await db.syncQueue
+          .where('status')
+          .equals('PENDING')
+          .filter(m => m.url.includes('/api/v1/pos/order-items/') && m.url.endsWith('/status'))
+          .toArray();
+
+        if (pendingStatusUpdates.length > 0) {
+          const pendingItemStatusMap = new Map<string, string>();
+          for (const m of pendingStatusUpdates) {
+            const match = m.url.match(/\/order-items\/([^/]+)\/status/);
+            if (match && match[1] && m.payload?.status) {
+              pendingItemStatusMap.set(match[1], m.payload.status);
+            }
+          }
+          for (const order of serverOrders) {
+            if (Array.isArray(order.items)) {
+              for (const it of order.items) {
+                if (pendingItemStatusMap.has(it.id)) {
+                  it.status = pendingItemStatusMap.get(it.id);
+                }
+              }
+            }
+          }
+        }
+
+        const pendingDeliverAlls = await db.syncQueue
+          .where('status')
+          .equals('PENDING')
+          .filter(m => m.url.includes('/deliver-all'))
+          .toArray();
+
+        if (pendingDeliverAlls.length > 0) {
+          const pendingDeliveredItemIds = new Set<string>();
+          for (const m of pendingDeliverAlls) {
+            if (Array.isArray(m.payload?.itemIds)) {
+              m.payload.itemIds.forEach((id: string) => pendingDeliveredItemIds.add(id));
+            }
+          }
+          for (const order of serverOrders) {
+            if (Array.isArray(order.items)) {
+              for (const it of order.items) {
+                if (pendingDeliveredItemIds.has(it.id)) {
+                  it.status = 'SERVED';
+                }
+              }
+            }
+          }
+        }
+
         await db.posOrders.bulkPut(serverOrders);
       }
       // Reconcile: If local order is marked SERVED/OPEN but server no longer considers it active

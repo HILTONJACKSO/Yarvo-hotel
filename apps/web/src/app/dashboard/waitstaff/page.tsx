@@ -41,7 +41,11 @@ export default function WaitstaffPage() {
   const [isSubmittingReturn, setIsSubmittingReturn] = useState(false);
 
   const fetchItems = async () => {
-    const pendingCount = await db.syncQueue.count();
+    const pendingCount = await db.syncQueue
+      .where('status')
+      .equals('PENDING')
+      .filter(m => (Date.now() - m.createdAt) < 15000)
+      .count();
     if (navigator.onLine && pendingCount === 0) {
       await downloadLatestData();
       try {

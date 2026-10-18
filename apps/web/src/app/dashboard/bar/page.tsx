@@ -29,14 +29,18 @@ type Order = {
 export default function BarPage() {
   const { format } = useCurrency();
   const { showToast } = useToast();
-  const [orders, setOrders] = useState<Order[]>([]);
+  const orders = useLiveQuery(() => db.posOrders.toArray()) || [];
   const [confirmingReturnId, setConfirmingReturnId] = useState<string | null>(null);
   const [kitchenNote, setKitchenNote] = useState('');
   const [stats, setStats] = useState({ totalOrders: 0, totalRevenue: 0 });
 
   const fetchOrders = async () => {
     try {
-      const pendingCount = await db.syncQueue.count();
+      const pendingCount = await db.syncQueue
+        .where('status')
+        .equals('PENDING')
+        .filter(m => (Date.now() - m.createdAt) < 15000)
+        .count();
       if (navigator.onLine && pendingCount === 0) {
         await downloadLatestData();
         try {
@@ -51,7 +55,6 @@ export default function BarPage() {
         }
       }
       const allOrders = await db.posOrders.toArray();
-      setOrders(allOrders);
 
       // Local fallback calculation if offline
       if (!navigator.onLine) {
@@ -80,19 +83,13 @@ export default function BarPage() {
 
   useEffect(() => {
     fetchOrders();
-    const interval = setInterval(fetchOrders, 5000);
+    const interval = setInterval(fetchOrders, 10000);
     return () => clearInterval(interval);
   }, []);
 
   const updateStatus = async (itemId: string, newStatus: string) => {
     try {
-      // 1. Immediately update React state for instant UI reaction (0ms)
-      setOrders(prev => prev.map(o => ({
-        ...o,
-        items: (o.items || []).map(i => i.id === itemId ? { ...i, status: newStatus } : i)
-      })));
-
-      // 2. Update Dexie
+      // 1. Optimistically update local Dexie database
       const allOrders = await db.posOrders.toArray();
       let foundOrder = null;
       for (const order of allOrders) {
@@ -107,7 +104,7 @@ export default function BarPage() {
           await db.posOrders.put(foundOrder);
       }
 
-      // 3. Send to API if online, or add to offline queue
+      // 2. Send to API if online, or add to offline queue
       if (navigator.onLine) {
         try {
           const res = await fetch(`/api/v1/pos/order-items/${itemId}/status`, {
@@ -268,13 +265,21 @@ export default function BarPage() {
                   
                   <div className="t-actions">
                     {item.status === 'PENDING' && (
-                      <button onClick={() => updateStatus(item.id, 'COOKING')}>Start Preparing</button>
+                      <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+                        <button onClick={() => updateStatus(item.id, 'COOKING')} style={{ flex: 1 }}>Start Preparing</button>
+                        <button onClick={() => updateStatus(item.id, 'READY')} className="ready-btn" style={{ flex: 1 }}>Mark Ready</button>
+                      </div>
                     )}
                     {item.status === 'COOKING' && (
                       <button onClick={() => updateStatus(item.id, 'READY')} className="ready-btn">Mark Ready</button>
                     )}
                     {item.status === 'READY' && (
-                      <button onClick={() => updateStatus(item.id, 'SERVED')} style={{ background: 'hsl(142, 76%, 36%)', color: 'white' }}>Serve Drink</button>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', background: 'rgba(34, 197, 94, 0.15)', borderRadius: '4px', border: '1px solid rgba(34, 197, 94, 0.3)' }}>
+                          <span style={{ color: 'hsl(142, 76%, 60%)', fontSize: '0.85rem', fontWeight: 600 }}>Ready for Delivery</span>
+                        </div>
+                        <button onClick={() => updateStatus(item.id, 'SERVED')} style={{ background: 'hsl(142, 76%, 36%)', color: 'white' }}>Serve Direct</button>
+                      </div>
                     )}
                     {item.status === 'RETURN_REQUESTED' && item.returnRequest && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', marginTop: '8px' }}>

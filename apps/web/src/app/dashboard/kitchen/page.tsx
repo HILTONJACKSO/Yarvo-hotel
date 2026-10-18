@@ -36,7 +36,11 @@ export default function KitchenPage() {
 
 
   const fetchOrders = async () => {
-    const pendingCount = await db.syncQueue.count();
+    const pendingCount = await db.syncQueue
+      .where('status')
+      .equals('PENDING')
+      .filter(m => (Date.now() - m.createdAt) < 15000)
+      .count();
     if (navigator.onLine && pendingCount === 0) {
       await downloadLatestData();
       try {
@@ -236,10 +240,18 @@ export default function KitchenPage() {
                   
                   <div className="t-actions">
                     {item.status === 'PENDING' && (
-                      <button onClick={() => updateStatus(item.id, 'COOKING')}>Start Cooking</button>
+                      <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+                        <button onClick={() => updateStatus(item.id, 'COOKING')} style={{ flex: 1 }}>Start Cooking</button>
+                        <button onClick={() => updateStatus(item.id, 'READY')} className="ready-btn" style={{ flex: 1 }}>Mark Ready</button>
+                      </div>
                     )}
                     {item.status === 'COOKING' && (
                       <button onClick={() => updateStatus(item.id, 'READY')} className="ready-btn">Mark Ready</button>
+                    )}
+                    {item.status === 'READY' && (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px', background: 'rgba(34, 197, 94, 0.15)', borderRadius: '4px', border: '1px solid rgba(34, 197, 94, 0.3)' }}>
+                        <span style={{ color: 'hsl(142, 76%, 60%)', fontSize: '0.85rem', fontWeight: 600 }}>Ready for Delivery</span>
+                      </div>
                     )}
                     {item.status === 'RETURN_REQUESTED' && item.returnRequest && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', marginTop: '8px' }}>

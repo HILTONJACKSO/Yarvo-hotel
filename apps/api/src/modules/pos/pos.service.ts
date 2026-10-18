@@ -689,6 +689,13 @@ export class PosService {
   }
 
   async updateOrderItemStatus(itemId: string, status: string) {
+    const existing = await this.prisma.posOrderItem.findUnique({
+      where: { id: itemId }
+    });
+    if (!existing) {
+      throw new NotFoundException(`Order item with ID ${itemId} not found`);
+    }
+
     const item = await this.prisma.posOrderItem.update({
       where: { id: itemId },
       data: { status },

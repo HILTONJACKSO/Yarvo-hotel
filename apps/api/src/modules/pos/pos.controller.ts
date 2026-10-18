@@ -128,12 +128,14 @@ export class PosController {
   }
 
   @Patch('order-items/:itemId/status')
-  updateOrderItemStatus(@Param('itemId') itemId: string, @Body('status') status: string) {
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'SUPERVISOR', 'KITCHEN', 'KITCHEN_CHEF', 'BAR', 'WAITSTAFF', 'STAFF_WAITER', 'CASHIER', 'POS_CASHIER', 'FRONT_DESK')
+  updateOrderItemStatus(@Param('itemId') itemId: string, @Body() body: any) {
+    const status = typeof body === 'object' && body?.status ? body.status : (body || 'READY');
     return this.posService.updateOrderItemStatus(itemId, status);
   }
 
   @Post('orders/:id/deliver-all')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'SUPERVISOR', 'WAITSTAFF', 'CASHIER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'SUPERVISOR', 'WAITSTAFF', 'STAFF_WAITER', 'CASHIER', 'POS_CASHIER')
   deliverAllOrderItems(@Param('id') id: string) {
     return this.posService.deliverAllOrderItems(id);
   }
@@ -191,20 +193,20 @@ export class PosController {
   }
 
   @Get('returns')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'SUPERVISOR', 'KITCHEN', 'BAR', 'WAITSTAFF', 'CASHIER', 'FRONT_DESK')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'SUPERVISOR', 'KITCHEN', 'KITCHEN_CHEF', 'BAR', 'WAITSTAFF', 'STAFF_WAITER', 'CASHIER', 'POS_CASHIER', 'FRONT_DESK')
   getReturnRequests(@Query('start') start?: string, @Query('end') end?: string) {
     return this.posService.getReturnRequests(start, end);
   }
 
 
   @Post('order-items/:itemId/confirm-return')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'SUPERVISOR', 'KITCHEN', 'BAR', 'CASHIER', 'FRONT_DESK')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'SUPERVISOR', 'KITCHEN', 'KITCHEN_CHEF', 'BAR', 'CASHIER', 'POS_CASHIER', 'FRONT_DESK')
   confirmReturnByItemId(@Param('itemId') itemId: string, @Body('kitchenNote') kitchenNote: string, @Req() req: any) {
     return this.posService.confirmReturnByItemId(itemId, req.user.id, kitchenNote);
   }
 
   @Post('returns/:returnId/confirm')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'SUPERVISOR', 'KITCHEN', 'BAR', 'CASHIER', 'FRONT_DESK')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'SUPERVISOR', 'KITCHEN', 'KITCHEN_CHEF', 'BAR', 'CASHIER', 'POS_CASHIER', 'FRONT_DESK')
   confirmReturn(@Param('returnId') returnId: string, @Body('kitchenNote') kitchenNote: string, @Req() req: any) {
     return this.posService.confirmReturn(returnId, req.user.id, kitchenNote);
   }
