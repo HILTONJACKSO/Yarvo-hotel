@@ -45,14 +45,10 @@ export default function LoginPage() {
       const roles: string[] = Array.isArray(user?.roles)
         ? user.roles.map((r: any) => typeof r === 'string' ? r.toUpperCase() : (r?.name?.toUpperCase() || ''))
         : [];
-      const isSuperAdmin = roles.includes('SUPER_ADMIN');
-
       const searchParams = new URLSearchParams(window.location.search);
       const nextUrl = searchParams.get('next');
 
-      if (isSuperAdmin) {
-        window.location.href = '/super-admin';
-      } else if (nextUrl && !nextUrl.startsWith('/login') && !nextUrl.startsWith('/super-admin')) {
+      if (nextUrl && !nextUrl.startsWith('/login') && !nextUrl.startsWith('/super-admin')) {
         window.location.href = nextUrl;
       } else {
         window.location.href = '/dashboard';

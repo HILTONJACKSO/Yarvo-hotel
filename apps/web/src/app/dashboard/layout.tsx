@@ -41,39 +41,39 @@ type NavItem =
   | { type: 'divider' };
 
 const NAV_ITEMS: NavItem[] = [
-  { icon: Home, label: 'Dashboard', href: '/dashboard', id: 'nav-dashboard', allowedRoles: ['admin', 'ceo', 'manager', 'cashier', 'pos_cashier', 'supervisor', 'front_desk'] },
-  { icon: CalendarCheck, label: 'Reservations', href: '/dashboard/reservations', id: 'nav-reservations', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'front_desk'], requiredFeature: 'FRONT_DESK' },
-  { icon: Users, label: 'Guests', href: '/dashboard/guests', id: 'nav-guests', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'front_desk'], requiredFeature: 'FRONT_DESK' },
-  { icon: Building2, label: 'Companies', href: '/dashboard/companies', id: 'nav-companies', allowedRoles: ['admin', 'ceo', 'manager', 'front_desk'], requiredFeature: 'STAFF_MANAGEMENT' },
-  { icon: Users, label: 'Staff', href: '/dashboard/staff', id: 'nav-staff', allowedRoles: ['admin', 'ceo', 'manager', 'staff_waiter'], requiredFeature: 'STAFF_MANAGEMENT' },
+  { icon: Home, label: 'Dashboard', href: '/dashboard', id: 'nav-dashboard', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'cashier', 'pos_cashier', 'supervisor', 'front_desk'] },
+  { icon: CalendarCheck, label: 'Reservations', href: '/dashboard/reservations', id: 'nav-reservations', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'front_desk'], requiredFeature: 'FRONT_DESK' },
+  { icon: Users, label: 'Guests', href: '/dashboard/guests', id: 'nav-guests', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'front_desk'], requiredFeature: 'FRONT_DESK' },
+  { icon: Building2, label: 'Companies', href: '/dashboard/companies', id: 'nav-companies', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'front_desk'], requiredFeature: 'STAFF_MANAGEMENT' },
+  { icon: Users, label: 'Staff', href: '/dashboard/staff', id: 'nav-staff', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'staff_waiter'], requiredFeature: 'STAFF_MANAGEMENT' },
   { type: 'divider' },
-  { icon: BedDouble, label: 'Rooms', href: '/dashboard/rooms', id: 'nav-rooms', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'front_desk'], requiredFeature: 'FRONT_DESK' },
-  { icon: Tags, label: 'Room Types', href: '/dashboard/room-types', id: 'nav-room-types', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor'], requiredFeature: 'FRONT_DESK' },
-  { icon: ConciergeBell, label: 'Front Desk', href: '/dashboard/front-desk', id: 'nav-frontdesk', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'front_desk', 'housekeeping'], requiredFeature: 'FRONT_DESK' },
-  { icon: Sparkles, label: 'Housekeeping', href: '/dashboard/housekeeping', id: 'nav-housekeeping', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'front_desk', 'housekeeping'], requiredFeature: 'OPERATIONS' },
-  { icon: Wrench, label: 'Maintenance', href: '/dashboard/maintenance', id: 'nav-maintenance', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'front_desk'], requiredFeature: 'OPERATIONS' },
+  { icon: BedDouble, label: 'Rooms', href: '/dashboard/rooms', id: 'nav-rooms', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'front_desk'], requiredFeature: 'FRONT_DESK' },
+  { icon: Tags, label: 'Room Types', href: '/dashboard/room-types', id: 'nav-room-types', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor'], requiredFeature: 'FRONT_DESK' },
+  { icon: ConciergeBell, label: 'Front Desk', href: '/dashboard/front-desk', id: 'nav-frontdesk', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'front_desk', 'housekeeping'], requiredFeature: 'FRONT_DESK' },
+  { icon: Sparkles, label: 'Housekeeping', href: '/dashboard/housekeeping', id: 'nav-housekeeping', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'front_desk', 'housekeeping'], requiredFeature: 'OPERATIONS' },
+  { icon: Wrench, label: 'Maintenance', href: '/dashboard/maintenance', id: 'nav-maintenance', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'front_desk'], requiredFeature: 'OPERATIONS' },
   { type: 'divider' },
-  { icon: Compass, label: 'Tours, Events & Packages', href: '/dashboard/tours-events', id: 'nav-tours-events', allowedRoles: ['admin', 'ceo', 'manager', 'front_desk'], requiredFeature: 'EVENTS' },
-  { icon: Ticket, label: 'Tickets', href: '/dashboard/tickets', id: 'nav-tickets', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'cashier', 'pos_cashier', 'front_desk', 'ticketing_staff'], requiredFeature: 'EVENTS' },
-  { icon: CalendarDays, label: 'Events', href: '/dashboard/events', id: 'nav-events', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'cashier', 'pos_cashier', 'front_desk', 'staff_waiter'], requiredFeature: 'EVENTS' },
+  { icon: Compass, label: 'Tours, Events & Packages', href: '/dashboard/tours-events', id: 'nav-tours-events', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'front_desk'], requiredFeature: 'EVENTS' },
+  { icon: Ticket, label: 'Tickets', href: '/dashboard/tickets', id: 'nav-tickets', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'cashier', 'pos_cashier', 'front_desk', 'ticketing_staff'], requiredFeature: 'EVENTS' },
+  { icon: CalendarDays, label: 'Events', href: '/dashboard/events', id: 'nav-events', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'cashier', 'pos_cashier', 'front_desk', 'staff_waiter'], requiredFeature: 'EVENTS' },
   { type: 'divider' },
-  { icon: CreditCard, label: 'Billing', href: '/dashboard/billing', id: 'nav-billing', allowedRoles: ['admin', 'ceo', 'manager', 'accounting', 'cashier', 'pos_cashier', 'front_desk'], requiredFeature: 'FINANCE' },
-  { icon: Receipt, label: 'Expenses', href: '/dashboard/expenses', id: 'nav-expenses', allowedRoles: ['admin', 'ceo', 'manager', 'accounting', 'cashier', 'pos_cashier'], requiredFeature: 'FINANCE' },
-  { icon: Clock, label: 'Night Audit', href: '/dashboard/night-audit', id: 'nav-night-audit', allowedRoles: ['admin', 'ceo', 'manager', 'accounting', 'cashier', 'pos_cashier', 'front_desk'], requiredFeature: 'FINANCE' },
-  { icon: Landmark, label: 'Financials', href: '/dashboard/financials', id: 'nav-financials', allowedRoles: ['admin', 'ceo', 'manager', 'accounting'], requiredFeature: 'FINANCE' },
-  { icon: BarChart3, label: 'Reports', href: '/dashboard/reports', id: 'nav-reports', allowedRoles: ['admin', 'ceo', 'manager', 'accounting'], requiredFeature: 'FINANCE' },
-  { icon: Activity, label: 'Audit Tracking', href: '/dashboard/audit-logs', id: 'nav-audit-logs', allowedRoles: ['admin', 'ceo', 'manager', 'accounting'], requiredFeature: 'FINANCE' },
+  { icon: CreditCard, label: 'Billing', href: '/dashboard/billing', id: 'nav-billing', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'accounting', 'cashier', 'pos_cashier', 'front_desk'], requiredFeature: 'FINANCE' },
+  { icon: Receipt, label: 'Expenses', href: '/dashboard/expenses', id: 'nav-expenses', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'accounting', 'cashier', 'pos_cashier'], requiredFeature: 'FINANCE' },
+  { icon: Clock, label: 'Night Audit', href: '/dashboard/night-audit', id: 'nav-night-audit', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'accounting', 'cashier', 'pos_cashier', 'front_desk'], requiredFeature: 'FINANCE' },
+  { icon: Landmark, label: 'Financials', href: '/dashboard/financials', id: 'nav-financials', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'accounting'], requiredFeature: 'FINANCE' },
+  { icon: BarChart3, label: 'Reports', href: '/dashboard/reports', id: 'nav-reports', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'accounting'], requiredFeature: 'FINANCE' },
+  { icon: Activity, label: 'Audit Tracking', href: '/dashboard/audit-logs', id: 'nav-audit-logs', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'accounting'], requiredFeature: 'FINANCE' },
   { type: 'divider' },
-  { icon: Utensils, label: 'Point of Sale', href: '/dashboard/pos', id: 'nav-pos', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'cashier', 'pos_cashier', 'pos', 'front_desk', 'staff_waiter', 'waitstaff'], requiredFeature: 'POS' },
-  { icon: ChefHat, label: 'Kitchen KDS', href: '/dashboard/kitchen', id: 'nav-kitchen', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'kitchen_chef', 'chef', 'cashier', 'pos_cashier'], requiredFeature: 'POS' },
-  { icon: Martini, label: 'Bar Drinks', href: '/dashboard/bar', id: 'nav-bar', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'cashier', 'pos_cashier', 'bartender'], requiredFeature: 'POS' },
-  { icon: Coffee, label: 'Waitstaff', href: '/dashboard/waitstaff', id: 'nav-waitstaff', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'cashier', 'pos_cashier', 'staff_waiter', 'waitstaff'], requiredFeature: 'POS' },
-  { icon: RotateCcw, label: 'Returns & Discounts', href: '/dashboard/returns', id: 'nav-returns', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'cashier', 'pos_cashier', 'front_desk'], requiredFeature: 'POS' },
-  { icon: Package, label: 'Inventory', href: '/dashboard/inventory', id: 'nav-inventory', allowedRoles: ['admin', 'ceo', 'manager', 'cashier', 'pos_cashier', 'supervisor'], requiredFeature: 'INVENTORY' },
+  { icon: Utensils, label: 'Point of Sale', href: '/dashboard/pos', id: 'nav-pos', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'cashier', 'pos_cashier', 'pos', 'front_desk', 'staff_waiter', 'waitstaff'], requiredFeature: 'POS' },
+  { icon: ChefHat, label: 'Kitchen KDS', href: '/dashboard/kitchen', id: 'nav-kitchen', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'kitchen_chef', 'chef', 'cashier', 'pos_cashier'], requiredFeature: 'POS' },
+  { icon: Martini, label: 'Bar Drinks', href: '/dashboard/bar', id: 'nav-bar', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'cashier', 'pos_cashier', 'bartender'], requiredFeature: 'POS' },
+  { icon: Coffee, label: 'Waitstaff', href: '/dashboard/waitstaff', id: 'nav-waitstaff', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'cashier', 'pos_cashier', 'staff_waiter', 'waitstaff'], requiredFeature: 'POS' },
+  { icon: RotateCcw, label: 'Returns & Discounts', href: '/dashboard/returns', id: 'nav-returns', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'cashier', 'pos_cashier', 'front_desk'], requiredFeature: 'POS' },
+  { icon: Package, label: 'Inventory', href: '/dashboard/inventory', id: 'nav-inventory', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'cashier', 'pos_cashier', 'supervisor'], requiredFeature: 'INVENTORY' },
   { type: 'divider' },
-  { icon: Wallet, label: 'POS Cashier', href: '/dashboard/cashier', id: 'nav-cashier', allowedRoles: ['admin', 'ceo', 'manager', 'supervisor', 'cashier', 'pos_cashier', 'front_desk'], requiredFeature: 'POS' },
+  { icon: Wallet, label: 'POS Cashier', href: '/dashboard/cashier', id: 'nav-cashier', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'cashier', 'pos_cashier', 'front_desk'], requiredFeature: 'POS' },
   { type: 'divider' },
-  { icon: Settings, label: 'Settings', href: '/dashboard/settings', id: 'nav-settings', allowedRoles: ['admin', 'ceo', 'manager'] },
+  { icon: Settings, label: 'Settings', href: '/dashboard/settings', id: 'nav-settings', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager'] },
 ];
 
 
@@ -100,21 +100,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         (typeof r === 'string' ? r : r?.name || '').toLowerCase()
       );
 
-      // If user is SUPER_ADMIN, redirect directly to /super-admin
-      if (userRoles.includes('super_admin')) {
-        router.replace('/super-admin');
-        return;
-      }
-
       const isOwnerOrAdmin = userRoles.some((role: string) => 
         ['admin', 'ceo', 'super_admin'].includes(role)
       );
 
       const checkAccess = (item: NavItem) => {
         if (item.type === 'divider') return false;
+        if (isOwnerOrAdmin) return true;
         const roleOk = item.allowedRoles.some(r => userRoles.includes(r.toLowerCase()));
         const featOk = !item.requiredFeature || 
-          isOwnerOrAdmin ||
           !user.features || 
           user.features.length === 0 || 
           user.features.includes(item.requiredFeature);
@@ -134,8 +128,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           const firstAllowed = NAV_ITEMS.find(item => checkAccess(item));
           if (firstAllowed && firstAllowed.type !== 'divider' && firstAllowed.href) {
             router.replace(firstAllowed.href);
-          } else if (userRoles.includes('super_admin')) {
-            router.replace('/super-admin');
           } else {
             router.replace('/login');
           }
@@ -158,7 +150,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => clearInterval(interval);
   }, [user, router]);
 
-  if (isLoading || !user || user.roles?.some((r: string) => r.toUpperCase() === 'SUPER_ADMIN')) {
+  if (isLoading || !user) {
     return <DashboardLoading />;
   }
 
@@ -220,7 +212,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             // Filter items by role and feature
             const visibleItems = NAV_ITEMS.filter((item) => {
               if (item.type === 'divider') return true;
-              const hasAccess = item.allowedRoles.some(r => userRoles.includes(r.toLowerCase()));
+              const hasAccess = isOwnerOrAdmin || item.allowedRoles.some(r => userRoles.includes(r.toLowerCase()));
               const hasFeature = !item.requiredFeature || 
                 isOwnerOrAdmin ||
                 !user.features || 

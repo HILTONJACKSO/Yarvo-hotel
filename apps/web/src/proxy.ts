@@ -64,13 +64,8 @@ export function proxy(request: NextRequest) {
   }
 
   if (pathname === '/login' && isAuthenticated) {
-    // Redirect already-authenticated users to their respective home dashboard
-    return NextResponse.redirect(new URL(isSuperAdmin ? '/super-admin' : '/dashboard', request.url));
-  }
-
-  // If a Super Admin visits /dashboard directly, route them directly to /super-admin
-  if (pathname === '/dashboard' && isSuperAdmin) {
-    return NextResponse.redirect(new URL('/super-admin', request.url));
+    // Redirect already-authenticated users to their home dashboard
+    return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
   return NextResponse.next();
