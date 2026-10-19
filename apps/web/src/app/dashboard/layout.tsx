@@ -107,12 +107,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       const checkAccess = (item: NavItem) => {
         if (item.type === 'divider') return false;
         if (isOwnerOrAdmin) return true;
-        const roleOk = item.allowedRoles.some(r => userRoles.includes(r.toLowerCase()));
-        const featOk = !item.requiredFeature || 
-          !user.features || 
-          user.features.length === 0 || 
-          user.features.includes(item.requiredFeature);
-        return roleOk && featOk;
+        return item.allowedRoles.some(r => userRoles.includes(r.toLowerCase()));
       };
 
       // Find the most specific matching route by sorting descending by href length
@@ -209,16 +204,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               ['admin', 'ceo', 'super_admin'].includes(role)
             );
 
-            // Filter items by role and feature
+            // Filter items by role
             const visibleItems = NAV_ITEMS.filter((item) => {
               if (item.type === 'divider') return true;
-              const hasAccess = isOwnerOrAdmin || item.allowedRoles.some(r => userRoles.includes(r.toLowerCase()));
-              const hasFeature = !item.requiredFeature || 
-                isOwnerOrAdmin ||
-                !user.features || 
-                user.features.length === 0 || 
-                user.features.includes(item.requiredFeature);
-              return hasAccess && hasFeature;
+              return isOwnerOrAdmin || item.allowedRoles.some(r => userRoles.includes(r.toLowerCase()));
             });
 
             // Clean up dividers: remove leading, trailing, and consecutive dividers
