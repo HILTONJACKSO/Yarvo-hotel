@@ -271,11 +271,11 @@ export async function downloadLatestData() {
 
         await db.posOrders.bulkPut(serverOrders);
       }
-      // Reconcile: If local order is marked SERVED/OPEN but server no longer considers it active
-      const serverIds = new Set(serverOrders.map((o: any) => o.id));
+      // Reconcile: If local order is in local Dexie but server no longer considers it active (or it was settled/paid on server, or empty)
+      const serverActiveIds = new Set(serverOrders.map((o: any) => o.id));
       const localOrders = await db.posOrders.toArray();
       for (const lo of localOrders) {
-        if ((lo.status === 'SERVED' || lo.status === 'OPEN') && !serverIds.has(lo.id)) {
+        if (!serverActiveIds.has(lo.id) || lo.status === 'PAID' || lo.status === 'CANCELLED' || (!lo.items || lo.items.length === 0)) {
           await db.posOrders.delete(lo.id);
           const pendingCheckout = await db.syncQueue.where('url').equals(`/api/v1/pos/orders/${lo.id}/checkout`).toArray();
           for (const item of pendingCheckout) {

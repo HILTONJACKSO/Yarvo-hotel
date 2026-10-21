@@ -11,9 +11,14 @@ export class PosService {
 
   // ─── TABLES ─────────────────────────────────────────────────────────────
   async getTables(propertyId?: string) {
-    return this.prisma.posTable.findMany({
+    const tables = await this.prisma.posTable.findMany({
       where: propertyId ? { propertyId } : {},
-      orderBy: { number: 'asc' },
+    });
+    return tables.sort((a, b) => {
+      const numA = parseInt(a.number.replace(/\D/g, ''), 10) || 0;
+      const numB = parseInt(b.number.replace(/\D/g, ''), 10) || 0;
+      if (numA !== numB) return numA - numB;
+      return a.number.localeCompare(b.number);
     });
   }
 

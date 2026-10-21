@@ -65,12 +65,25 @@ const TransferModal = ({ isOpen, onClose, onTransferSuccess, API_URL }: any) => 
   const fetchOrders = async () => {
     const combined = await db.posOrders.toArray();
     const unique = Array.from(new Map(combined.map((item: any) => [item.id, item])).values());
-    setActiveOrders(unique);
+    const active = unique.filter((o: any) => 
+      ['OPEN', 'SERVED', 'PREPARING', 'READY'].includes(o.status) &&
+      o.status !== 'PAID' &&
+      o.status !== 'CANCELLED' &&
+      o.status !== 'BILLED_TO_ROOM' &&
+      ((o.items && o.items.length > 0) || Number(o.totalAmount || 0) > 0)
+    );
+    setActiveOrders(active);
   };
 
   const fetchTables = async () => {
     const data = await db.posTables.toArray();
-    setTables(data || []);
+    const sorted = [...(data || [])].sort((a, b) => {
+      const numA = parseInt(String(a.number).replace(/\D/g, ''), 10) || 0;
+      const numB = parseInt(String(b.number).replace(/\D/g, ''), 10) || 0;
+      if (numA !== numB) return numA - numB;
+      return String(a.number).localeCompare(String(b.number));
+    });
+    setTables(sorted);
   };
 
   const sourceOrder = activeOrders.find(o => o.id === sourceOrderId);
@@ -249,10 +262,30 @@ export default function CashierPage() {
   const hotelName = receiptSettings.businessName;
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const { showToast } = useToast();
-  const orders: any[] = useLiveQuery(() => db.posOrders.toArray())?.filter(o => o.status === 'SERVED' || o.status === 'OPEN') || [];
+  const orders: any[] = useLiveQuery(() => db.posOrders.toArray())?.filter((o: any) => 
+    (o.status === 'SERVED' || o.status === 'OPEN') &&
+    ((o.items && o.items.length > 0) || Number(o.totalAmount || 0) > 0)
+  ) || [];
   const isOrderFullyServed = (order: any) => {
     if (!order || !order.items || order.items.length === 0) return false;
     return order.items.every((i: any) => ['SERVED', 'DELIVERED', 'RETURNED', 'CANCELLED'].includes(i.status));
+  };
+  const handleVoidEmptyOrder = async (orderId: string) => {
+    try {
+      await fetch(`/api/v1/pos/orders/${orderId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      await db.posOrders.delete(orderId);
+      setSelectedOrder(null);
+      await fetchOrders();
+      await downloadLatestData();
+      showToast('Empty order removed successfully', 'success', 'Order Removed');
+    } catch {
+      await db.posOrders.delete(orderId);
+      setSelectedOrder(null);
+      await fetchOrders();
+    }
   };
   const [filterTab, setFilterTab] = useState<'READY' | 'PREPARING' | 'ALL'>('READY');
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
@@ -1059,11 +1092,22 @@ export default function CashierPage() {
               <div style={{ background: 'rgba(234, 179, 8, 0.12)', border: '1px solid rgba(234, 179, 8, 0.35)', borderRadius: '6px', padding: '10px 14px', marginBottom: '14px', color: '#facc15', fontSize: '0.85rem' }}>
                 <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <AlertTriangle size={15} />
-                  <span>Order Not Fully Served Yet</span>
+                  <span>{selectedOrder.items?.length === 0 ? 'Empty Order (0 items)' : 'Order Not Fully Served Yet'}</span>
                 </div>
                 <p style={{ margin: '4px 0 0 0', color: '#fef08a', fontSize: '0.8rem', lineHeight: '1.4' }}>
-                  Items must be prepared by the kitchen or bar and delivered by the waitstaff before payment can be accepted.
+                  {selectedOrder.items?.length === 0
+                    ? 'This order contains no items. You can safely discard or void it.'
+                    : 'Items must be prepared by the kitchen or bar and delivered by the waitstaff before payment can be accepted.'}
                 </p>
+                {selectedOrder.items?.length === 0 && (
+                  <button
+                    onClick={() => handleVoidEmptyOrder(selectedOrder.id)}
+                    style={{ marginTop: '10px', padding: '6px 14px', background: '#dc2626', color: '#ffffff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <X size={14} />
+                    <span>Void & Remove Empty Order</span>
+                  </button>
+                )}
               </div>
             ) : (
               <div style={{ background: 'rgba(34, 197, 94, 0.12)', border: '1px solid rgba(34, 197, 94, 0.35)', borderRadius: '6px', padding: '8px 12px', marginBottom: '14px', color: '#4ade80', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px' }}>

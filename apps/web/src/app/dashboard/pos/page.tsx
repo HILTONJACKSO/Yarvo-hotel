@@ -27,7 +27,13 @@ export default function PosPage() {
   const [loading, setLoading] = useState(false);
   const categories = useLiveQuery(() => db.posCategories.toArray()) || [];
   const menuItems = useLiveQuery(() => db.posMenuItems.toArray()) || [];
-  const tables = useLiveQuery(() => db.posTables.toArray()) || [];
+  const rawTables = useLiveQuery(() => db.posTables.toArray()) || [];
+  const tables = [...rawTables].sort((a, b) => {
+    const numA = parseInt(String(a.number).replace(/\D/g, ''), 10) || 0;
+    const numB = parseInt(String(b.number).replace(/\D/g, ''), 10) || 0;
+    if (numA !== numB) return numA - numB;
+    return String(a.number).localeCompare(String(b.number));
+  });
   const inHouseGuests = useLiveQuery(() => db.reservations.toArray()) || [];
   const inventoryItems = useLiveQuery(() => db.inventory.toArray()) || [];
   
