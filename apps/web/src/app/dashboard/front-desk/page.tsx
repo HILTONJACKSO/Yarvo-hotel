@@ -108,7 +108,7 @@ export default function FrontDeskPage() {
         <div className="welcome-text">
           <p className="welcome-greeting">Good day,</p>
           <h2 className="welcome-name">{currentUser?.firstName || 'Front Desk'} {currentUser?.lastName || ''}</h2>
-          <p className="welcome-sub">Here's what's happening at Kwalee today.</p>
+          <p className="welcome-sub">Here&apos;s what&apos;s happening at your property today.</p>
         </div>
         <div className="welcome-badge">
           <span className="role-chip">FRONT DESK</span>

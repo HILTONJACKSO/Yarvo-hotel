@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/lib/auth-provider';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
 import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
@@ -24,6 +25,8 @@ type PosOrderItem = {
 };
 
 export default function WaitstaffPage() {
+  const { user } = useAuth();
+  const property = useLiveQuery(() => db.properties.toCollection().first());
   const { format } = useCurrency();
   const { showToast } = useToast();
   const dbOrders = useLiveQuery(() => db.posOrders.toArray()) || [];
@@ -370,7 +373,7 @@ export default function WaitstaffPage() {
       {printItem && (
         <div className="print-only-receipt">
           <div className="receipt-header">
-            <h2>Kwalee Restaurant</h2>
+            <h2>{user?.propertyName || property?.name || 'Restaurant'}</h2>
             <p>
               {printItem.order?.folio?.reservation?.room 
                 ? `Room ${printItem.order.folio.reservation.room.number}` 

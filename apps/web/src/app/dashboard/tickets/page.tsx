@@ -203,11 +203,11 @@ export default function TicketsPage() {
         </head>
         <body>
           <div class="header-container">
-            <img src="/kwalee-logo.png" alt="Logo" />
-            <div class="header-title">KWALEE BEACH RESORT</div>
-            <div class="header-info">www.kwaleebeachresort.com</div>
-            <div class="header-info">+231 774 340 843 / +231 881 774 350</div>
-            <div class="header-info">Kpakpa Kon, Marshall, Lower Margibi County, Liberia</div>
+            ${receiptSettings.showLogo && receiptSettings.logoUrl ? `<img src="${receiptSettings.logoUrl}" alt="Logo" style="max-width:120px; max-height:60px; object-fit:contain; margin-bottom:10px; display:block; margin:0 auto;" />` : ''}
+            <div class="header-title">${receiptSettings.businessName}</div>
+            ${receiptSettings.website ? `<div class="header-info">${receiptSettings.website}</div>` : ''}
+            ${receiptSettings.phone ? `<div class="header-info">${receiptSettings.phone}</div>` : ''}
+            ${receiptSettings.address ? `<div class="header-info">${receiptSettings.address}</div>` : ''}
           </div>
           
           <div class="divider"></div>
@@ -228,7 +228,7 @@ export default function TicketsPage() {
           <div class="totals"><span>TOTAL</span><span>${currencySymbol}${finalTotal.toFixed(2)}</span></div>
           
           <div class="footer">
-            <p><strong>THANK YOU FOR CHOOSING KWALEE BEACH RESORT!</strong><br/>PLEASE COME AGAIN!</p>
+            <p><strong>THANK YOU FOR CHOOSING ${receiptSettings.businessName.toUpperCase()}!</strong><br/>PLEASE COME AGAIN!</p>
           </div>
           
           <div class="footer-terms">

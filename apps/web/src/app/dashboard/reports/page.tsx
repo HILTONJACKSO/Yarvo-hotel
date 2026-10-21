@@ -23,6 +23,7 @@ import { AlertCircle, TrendingUp, Utensils, Bed, Wallet } from 'lucide-react';
 import ReportExportToolbar from '@/components/ReportExportToolbar';
 import { downloadCSV } from '@/utils/export';
 import { useCurrency } from '@/lib/currency';
+import { useAuth } from '@/lib/auth-provider';
 
 type ChartData = { date: string; revenue: number; };
 type FbMetrics = { todayFbRevenue: number; todayFbIndex: number; weekFbRevenue: number; weekFbIndex: number; monthFbRevenue: number; monthFbIndex: number; customRangeRevenue?: number; };
@@ -43,6 +44,7 @@ type HeatmapData = {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 export default function ReportsPage() {
+  const { user } = useAuth();
   const { format, currencySymbol } = useCurrency();
   const [activeTab, setActiveTab] = useState<'HOTEL' | 'FB' | 'FINANCIAL' | 'TICKETS' | 'EVENTS'>('HOTEL');
   
@@ -162,7 +164,7 @@ export default function ReportsPage() {
           });
           
           pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-          pdf.save(`Kwalee-Report-${activeTab}-${new Date().toISOString().split('T')[0]}.pdf`);
+          pdf.save(`${(user?.propertyName || 'Hotel').replace(/\s+/g, '-')}-Report-${activeTab}-${new Date().toISOString().split('T')[0]}.pdf`);
         } catch (err: any) {
           console.error('PDF generation error:', err);
           alert(`Failed to generate PDF: ${err.message || 'Unknown error'}`);

@@ -11,10 +11,9 @@ export function PayslipPrint({ payslip }: { payslip: any }) {
     <div className="print-payslip" style={{ fontFamily: 'sans-serif', padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-        <h1 style={{ margin: '0', fontSize: '24px' }}>KWALEE BEACH RESORT</h1>
-        <p style={{ margin: '0', fontSize: '12px' }}>www.kwaleebeachresort.com</p>
-        <p style={{ margin: '0', fontSize: '12px' }}>+231 774 340 843 / +231 881 774 350</p>
-        <p style={{ margin: '0', fontSize: '12px', marginBottom: '10px' }}>Kpakpa Kon, Marshall, Lower Margibi County, Liberia</p>
+        <h1 style={{ margin: '0', fontSize: '24px' }}>{payslip.propertyName || payslip.property?.name || 'YARVO HOTEL'}</h1>
+        <p style={{ margin: '0', fontSize: '12px' }}>{payslip.property?.website || 'www.yarvohotel.com'}</p>
+        <p style={{ margin: '0', fontSize: '12px', marginBottom: '10px' }}>{payslip.property?.address || 'Liberia'}</p>
         
         <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid black', borderBottom: '2px solid black', padding: '10px 0', marginTop: '10px' }}>
           <div><strong>Period:</strong> {yearMonth}</div>

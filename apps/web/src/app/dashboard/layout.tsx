@@ -2,6 +2,9 @@
 
 import { useAuth } from '@/lib/auth-provider';
 import { useCurrency } from '@/lib/currency';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/lib/db';
+import { getDefaultReceiptInvoiceSettings } from '@/lib/receipt-invoice-helper';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import DashboardLoading from './loading';
@@ -83,8 +86,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [currentPath, setCurrentPath] = useState('/dashboard');
-
   const [currentTime, setCurrentTime] = useState<string>('');
+
+  const property = useLiveQuery(() => db.properties.toCollection().first());
+  const receiptSettings = getDefaultReceiptInvoiceSettings(property);
+  const propertyName = user?.propertyName || property?.name || receiptSettings.businessName || 'Yarvo Hotel';
+  const logoUrl = receiptSettings.logoUrl || '/yarvo-icon-white-gold.png';
 
   useEffect(() => {
     setCurrentPath(window.location.pathname);
@@ -163,21 +170,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="sidebar-header">
           <div className="sidebar-logo flex items-center min-w-0">
             {sidebarOpen ? (
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2.5 min-w-0">
                 <img 
-                  src="/logo.jpg" 
-                  alt="Kwalee Beach Resort" 
-                  className="w-7 h-7 rounded-full object-cover border border-[#CA9851]/40 shadow-sm flex-shrink-0"
+                  src={logoUrl} 
+                  alt={propertyName} 
+                  className="w-7 h-7 rounded-full object-contain border border-[#CA9851]/40 shadow-sm flex-shrink-0 bg-[#070F1E] p-0.5"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = '/yarvo-icon-white-gold.png';
+                  }}
                 />
-                <span className="font-serif font-bold text-white tracking-widest text-sm truncate">
-                  KWALEE
+                <span className="font-serif font-bold text-white tracking-widest text-sm truncate" title={propertyName}>
+                  {propertyName.toUpperCase()}
                 </span>
               </div>
             ) : (
               <img 
-                src="/logo.jpg" 
-                alt="Kwalee Beach Resort" 
-                className="w-7 h-7 rounded-full object-cover border border-[#CA9851]/40 shadow-sm"
+                src={logoUrl} 
+                alt={propertyName} 
+                title={propertyName}
+                className="w-7 h-7 rounded-full object-contain border border-[#CA9851]/40 shadow-sm bg-[#070F1E] p-0.5"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = '/yarvo-icon-white-gold.png';
+                }}
               />
             )}
           </div>

@@ -23,25 +23,24 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://kwaleebeachresort.com'),
+  metadataBase: new URL('https://yarvohotel.com'),
   title: {
-    default: 'Kwalee Beach Resort | Beach Resort in Liberia',
-    template: '%s | Kwalee Beach Resort',
+    default: 'Yarvo Hotel OS | Hotel Management System',
+    template: '%s | Yarvo Hotel OS',
   },
   description:
-    'Discover Kwalee Beach Resort — a coastal destination in Liberia offering beach relaxation, poolside experiences, dining, drinks and unforgettable events by the ocean.',
+    'Yarvo Hotel OS — Modern cloud and offline-first property management system for hotels, resorts, and hospitality businesses.',
   keywords: [
-    'kwalee beach resort',
-    'liberia beach resort',
-    'marshall liberia',
-    'beach resort liberia',
-    'luxury resort liberia',
-    'oceanfront tents',
-    'beachfront resort liberia',
-    'coastal getaway liberia'
+    'hotel management system',
+    'property management system',
+    'yarvo hotel',
+    'hotel os',
+    'hospitality pms',
+    'hotel pos',
+    'liberia hotel software'
   ],
   alternates: {
-    canonical: 'https://kwaleebeachresort.com',
+    canonical: 'https://yarvohotel.com',
   },
   icons: {
     icon: [
@@ -57,26 +56,26 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://kwaleebeachresort.com',
-    siteName: 'Kwalee Beach Resort',
-    title: 'Kwalee Beach Resort | Beach Resort in Liberia',
+    url: 'https://yarvohotel.com',
+    siteName: 'Yarvo Hotel OS',
+    title: 'Yarvo Hotel OS | Hotel Management System',
     description:
-      'Discover Kwalee Beach Resort — a coastal destination in Liberia offering beach relaxation, poolside experiences, dining, drinks and unforgettable events by the ocean.',
+      'Yarvo Hotel OS — Modern cloud and offline-first property management system for hotels, resorts, and hospitality businesses.',
     images: [
       {
-        url: '/og-image.jpg',
+        url: '/yarvo-logo-new.png',
         width: 1200,
         height: 630,
-        alt: 'Kwalee Beach Resort',
+        alt: 'Yarvo Hotel OS',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Kwalee Beach Resort | Beach Resort in Liberia',
+    title: 'Yarvo Hotel OS | Hotel Management System',
     description:
-      'Discover Kwalee Beach Resort — a coastal destination in Liberia offering beach relaxation, poolside experiences, dining, drinks and unforgettable events by the ocean.',
-    images: ['/og-image.jpg'],
+      'Yarvo Hotel OS — Modern cloud and offline-first property management system for hotels, resorts, and hospitality businesses.',
+    images: ['/yarvo-logo-new.png'],
   },
 };
 
@@ -84,34 +83,29 @@ const jsonLd = {
   '@context': 'https://schema.org',
   '@graph': [
     {
-      '@type': 'Resort',
-      '@id': 'https://kwaleebeachresort.com/#resort',
-      name: 'Kwalee Beach Resort',
-      url: 'https://kwaleebeachresort.com',
+      '@type': 'SoftwareApplication',
+      '@id': 'https://yarvohotel.com/#software',
+      name: 'Yarvo Hotel OS',
+      url: 'https://yarvohotel.com',
       description:
-        'Discover Kwalee Beach Resort — a coastal destination in Liberia offering beach relaxation, poolside experiences, dining, drinks and unforgettable events by the ocean.',
-      address: {
-        '@type': 'PostalAddress',
-        addressLocality: 'Marshall',
-        addressRegion: 'Margibi County',
-        addressCountry: 'LR',
-      },
-      telephone: '+231-00-000-000',
+        'Modern cloud and offline-first property management system for hotels, resorts, and hospitality businesses.',
+      applicationCategory: 'BusinessApplication',
+      operatingSystem: 'All',
     },
     {
       '@type': 'Organization',
-      '@id': 'https://kwaleebeachresort.com/#organization',
-      name: 'Kwalee Beach Resort',
-      url: 'https://kwaleebeachresort.com',
-      logo: 'https://kwaleebeachresort.com/logo.jpg',
+      '@id': 'https://yarvohotel.com/#organization',
+      name: 'Yarvo Hotel OS',
+      url: 'https://yarvohotel.com',
+      logo: 'https://yarvohotel.com/yarvo-logo-new.png',
     },
     {
       '@type': 'WebSite',
-      '@id': 'https://kwaleebeachresort.com/#website',
-      url: 'https://kwaleebeachresort.com',
-      name: 'Kwalee Beach Resort',
+      '@id': 'https://yarvohotel.com/#website',
+      url: 'https://yarvohotel.com',
+      name: 'Yarvo Hotel OS',
       publisher: {
-        '@id': 'https://kwaleebeachresort.com/#organization',
+        '@id': 'https://yarvohotel.com/#organization',
       },
     },
   ],

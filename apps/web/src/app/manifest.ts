@@ -2,9 +2,9 @@ import { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Kwalee Hotel Management System',
-    short_name: 'Kwalee HMS',
-    description: 'Production-grade Property Management System for Kwalee Hotel',
+    name: 'Yarvo Hotel Management System',
+    short_name: 'Yarvo HMS',
+    description: 'Production-grade Property Management System for Yarvo Hotel OS',
     start_url: '/dashboard',
     display: 'standalone',
     background_color: '#060B14',
