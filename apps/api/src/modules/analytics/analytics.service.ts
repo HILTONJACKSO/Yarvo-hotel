@@ -924,7 +924,7 @@ export class AnalyticsService {
     const whereOpenFolios: any = {
       status: 'OPEN',
       ...(gte && lte ? { updatedAt: { gte, lte } } : {}),
-      ...(propertyId ? { folio: propCondition } : {}),
+      ...propCondition,
     };
     const openFolios = await this.prisma.folio.aggregate({
       _sum: { balance: true },
