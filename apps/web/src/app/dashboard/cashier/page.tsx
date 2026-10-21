@@ -456,7 +456,7 @@ export default function CashierPage() {
     if (navigator.onLine) {
       await downloadLatestData();
       try {
-        const res = await fetch('/api/v1/pos/stats/cashier');
+        const res = await fetch('/api/v1/pos/stats/cashier', { credentials: 'include' });
         if (res.ok) {
           const data = await res.json();
           if (data.data) setStats(data.data);

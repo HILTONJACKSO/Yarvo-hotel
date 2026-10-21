@@ -9,6 +9,14 @@ import { downloadCSV } from '@/utils/export';
 import { useCurrency } from '@/lib/currency';
 import { useAuth } from '@/lib/auth-provider';
 
+function formatCategoryName(cat: string) {
+  if (!cat) return 'General';
+  return cat
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export default function FinancialsPage() {
   const { format } = useCurrency();
   const { user } = useAuth();
@@ -36,23 +44,27 @@ export default function FinancialsPage() {
   const fetchReports = useCallback(async (start?: string, end?: string) => {
     setIsLoading(true);
     try {
-      let query = '';
-      if (start && end) query = `?start=${start}&end=${end}`;
+      const params = new URLSearchParams();
+      if (start) params.append('start', start);
+      if (end) params.append('end', end);
+      if (user?.propertyId) params.append('propertyId', user.propertyId);
+      const query = params.toString() ? `?${params.toString()}` : '';
+
       const [pnlRes, bsRes, tbRes] = await Promise.all([
         fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/analytics/reports/pnl${query}`, { credentials: 'include' }),
         fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/analytics/reports/balance-sheet${query}`, { credentials: 'include' }),
         fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/analytics/reports/trial-balance${query}`, { credentials: 'include' })
       ]);
 
-        if (pnlRes.ok) setPnlData((await pnlRes.json()).data);
-        if (bsRes.ok) setBsData((await bsRes.json()).data);
-        if (tbRes.ok) setTbData((await tbRes.json()).data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setIsLoading(false);
-      }
-  }, []);
+      if (pnlRes.ok) setPnlData((await pnlRes.json()).data);
+      if (bsRes.ok) setBsData((await bsRes.json()).data);
+      if (tbRes.ok) setTbData((await tbRes.json()).data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user?.propertyId]);
 
   useEffect(() => {
     fetchReports(dateRange.start, dateRange.end);
@@ -175,7 +187,7 @@ export default function FinancialsPage() {
                   <div className="space-y-3">
                     {pnlData.revenues.map((rev: any) => (
                       <div key={rev.category} className="flex justify-between items-center text-slate-300">
-                        <span>{rev.category.replace('_', ' ')} Revenue</span>
+                        <span>{formatCategoryName(rev.category)} Revenue</span>
                         <span>{format(rev.amount)}</span>
                       </div>
                     ))}
@@ -192,7 +204,7 @@ export default function FinancialsPage() {
                   <div className="space-y-3">
                     {pnlData.expenses.map((exp: any) => (
                       <div key={exp.category} className="flex justify-between items-center text-slate-300">
-                        <span>{exp.category.replace('_', ' ')}</span>
+                        <span>{formatCategoryName(exp.category)}</span>
                         <span>{format(exp.amount)}</span>
                       </div>
                     ))}

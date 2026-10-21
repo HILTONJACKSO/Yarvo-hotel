@@ -23,64 +23,64 @@ export class AnalyticsController {
   @Get('revenue-chart')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT', 'CASHIER', 'FRONT_DESK')
   @ApiOperation({ summary: 'Get revenue charting data for the last 7 days' })
-  async getRevenueChart(@Query('start') start?: string, @Query('end') end?: string) {
-    const data = await this.analyticsService.getRevenueChart(start, end);
+  async getRevenueChart(@CurrentUser() user: any, @Query('start') start?: string, @Query('end') end?: string, @Query('propertyId') propId?: string) {
+    const data = await this.analyticsService.getRevenueChart(start, end, propId || user?.propertyId);
     return { data };
   }
 
   @Get('fb-metrics')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT', 'CASHIER', 'FRONT_DESK')
-  async getFbMetrics(@Query('start') start?: string, @Query('end') end?: string) {
-    const data = await this.analyticsService.getFbMetrics(start, end);
+  async getFbMetrics(@CurrentUser() user: any, @Query('start') start?: string, @Query('end') end?: string, @Query('propertyId') propId?: string) {
+    const data = await this.analyticsService.getFbMetrics(start, end, propId || user?.propertyId);
     return { data };
   }
 
   @Get('fb-chart')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT', 'CASHIER', 'FRONT_DESK')
-  async getFbChart(@Query('start') start?: string, @Query('end') end?: string) {
-    const data = await this.analyticsService.getFbRevenueChart(start, end);
+  async getFbChart(@CurrentUser() user: any, @Query('start') start?: string, @Query('end') end?: string, @Query('propertyId') propId?: string) {
+    const data = await this.analyticsService.getFbRevenueChart(start, end, propId || user?.propertyId);
     return { data };
   }
 
   @Get('fb-top-items')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT', 'CASHIER', 'FRONT_DESK')
-  async getFbTopItems(@Query('start') start?: string, @Query('end') end?: string) {
-    const data = await this.analyticsService.getFbTopItems(start, end);
+  async getFbTopItems(@CurrentUser() user: any, @Query('start') start?: string, @Query('end') end?: string, @Query('propertyId') propId?: string) {
+    const data = await this.analyticsService.getFbTopItems(start, end, propId || user?.propertyId);
     return { data };
   }
 
   @Get('revenue-by-method')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT', 'CASHIER', 'FRONT_DESK')
-  async getRevenueByMethod(@Query('start') start?: string, @Query('end') end?: string) {
-    const data = await this.analyticsService.getRevenueByMethod(start, end);
+  async getRevenueByMethod(@CurrentUser() user: any, @Query('start') start?: string, @Query('end') end?: string, @Query('propertyId') propId?: string) {
+    const data = await this.analyticsService.getRevenueByMethod(start, end, propId || user?.propertyId);
     return { data };
   }
 
   @Get('occupancy-heatmap')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK')
-  async getOccupancyHeatmap(@Query('start') start?: string, @Query('end') end?: string) {
-    const data = await this.analyticsService.getOccupancyHeatmap(start, end);
+  async getOccupancyHeatmap(@CurrentUser() user: any, @Query('start') start?: string, @Query('end') end?: string, @Query('propertyId') propId?: string) {
+    const data = await this.analyticsService.getOccupancyHeatmap(start, end, propId || user?.propertyId);
     return { data };
   }
 
   @Get('recent-activity')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK')
-  async getRecentActivity(@Query('start') start?: string, @Query('end') end?: string) {
-    const data = await this.analyticsService.getRecentActivity(start, end);
+  async getRecentActivity(@CurrentUser() user: any, @Query('start') start?: string, @Query('end') end?: string, @Query('propertyId') propId?: string) {
+    const data = await this.analyticsService.getRecentActivity(start, end, propId || user?.propertyId);
     return { data };
   }
 
   @Get('tickets-metrics')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT', 'FRONT_DESK')
-  async getTicketsMetrics(@Query('start') start?: string, @Query('end') end?: string) {
-    const data = await this.analyticsService.getTicketsMetrics(start, end);
+  async getTicketsMetrics(@CurrentUser() user: any, @Query('start') start?: string, @Query('end') end?: string, @Query('propertyId') propId?: string) {
+    const data = await this.analyticsService.getTicketsMetrics(start, end, propId || user?.propertyId);
     return { data };
   }
 
   @Get('events-metrics')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT')
-  async getEventsMetrics(@Query('start') start?: string, @Query('end') end?: string) {
-    const data = await this.analyticsService.getEventsMetrics(start, end);
+  async getEventsMetrics(@CurrentUser() user: any, @Query('start') start?: string, @Query('end') end?: string, @Query('propertyId') propId?: string) {
+    const data = await this.analyticsService.getEventsMetrics(start, end, propId || user?.propertyId);
     return { data };
   }
 
@@ -89,32 +89,32 @@ export class AnalyticsController {
   @Get('reports/pnl')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT')
   @ApiOperation({ summary: 'Get Profit & Loss statement' })
-  async getProfitAndLoss(@Query('start') start?: string, @Query('end') end?: string) {
-    const data = await this.analyticsService.getProfitAndLoss(start, end);
+  async getProfitAndLoss(@CurrentUser() user: any, @Query('start') start?: string, @Query('end') end?: string, @Query('propertyId') propId?: string) {
+    const data = await this.analyticsService.getProfitAndLoss(start, end, propId || user?.propertyId);
     return { data };
   }
 
   @Get('reports/trial-balance')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT')
   @ApiOperation({ summary: 'Get Trial Balance' })
-  async getTrialBalance(@Query('start') start?: string, @Query('end') end?: string) {
-    const data = await this.analyticsService.getTrialBalance(start, end);
+  async getTrialBalance(@CurrentUser() user: any, @Query('start') start?: string, @Query('end') end?: string, @Query('propertyId') propId?: string) {
+    const data = await this.analyticsService.getTrialBalance(start, end, propId || user?.propertyId);
     return { data };
   }
 
   @Get('reports/balance-sheet')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT')
   @ApiOperation({ summary: 'Get Balance Sheet' })
-  async getBalanceSheet(@Query('start') start?: string, @Query('end') end?: string) {
-    const data = await this.analyticsService.getBalanceSheet(start, end);
+  async getBalanceSheet(@CurrentUser() user: any, @Query('start') start?: string, @Query('end') end?: string, @Query('propertyId') propId?: string) {
+    const data = await this.analyticsService.getBalanceSheet(start, end, propId || user?.propertyId);
     return { data };
   }
 
   @Get('discounts')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT')
   @ApiOperation({ summary: 'Get discounts from folios and POS' })
-  async getDiscounts(@Query('start') start?: string, @Query('end') end?: string) {
-    const data = await this.analyticsService.getDiscounts(start, end);
+  async getDiscounts(@CurrentUser() user: any, @Query('start') start?: string, @Query('end') end?: string, @Query('propertyId') propId?: string) {
+    const data = await this.analyticsService.getDiscounts(start, end, propId || user?.propertyId);
     return { data };
   }
 }
