@@ -55,7 +55,7 @@ export default async function BookingConfirmationPage({ params }: { params: Prom
           </div>
           
           <p className="text-[#6B6F72] mb-8 text-center text-sm leading-relaxed">
-            We have sent a confirmation email to your inbox and a message to your WhatsApp with all the details. We look forward to welcoming you to Kwalee Beach Resort!
+            We have sent a confirmation email to your inbox and a message to your WhatsApp with all the details. We look forward to welcoming you!
           </p>
 
           <div className="flex flex-col md:flex-row gap-4 mt-10">

@@ -8,6 +8,6 @@ export default function robots(): MetadataRoute.Robots {
         allow: '/',
       },
     ],
-    sitemap: 'https://kwaleebeachresort.com/sitemap.xml',
+    sitemap: 'https://yarvohotel.com/sitemap.xml',
   };
 }

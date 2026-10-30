@@ -8,6 +8,40 @@ const withSerwist = withSerwistInit({
 });
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      {
+        source: '/stay',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/dining',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/tours',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/events',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/booking',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/booking/:path*',
+        destination: '/',
+        permanent: true,
+      },
+    ];
+  },
   async rewrites() {
     const apiTarget = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     return [
@@ -40,10 +74,10 @@ const nextConfig: NextConfig = {
     serverActions: {
       allowedOrigins: [
         'localhost:3000',
-        'kwaleebeachresort.com',
-        'www.kwaleebeachresort.com',
-        '82.29.175.72',
-        '82.29.175.72:3000',
+        'yarvohotel.com',
+        'www.yarvohotel.com',
+        '72.61.15.24',
+        '72.61.15.24:3050',
         ...(process.env.DOMAIN ? [
           process.env.DOMAIN,
           `www.${process.env.DOMAIN}`,
@@ -60,7 +94,7 @@ const nextConfig: NextConfig = {
       ...(process.env.DOMAIN ? [
         { protocol: 'https' as const, hostname: `api.${process.env.DOMAIN}` },
       ] : [
-        { protocol: 'https' as const, hostname: '*.kwaleebeachresort.com' },
+        { protocol: 'https' as const, hostname: '*.yarvohotel.com' },
       ]),
     ]
   },

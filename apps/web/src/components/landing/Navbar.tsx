@@ -33,7 +33,7 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-6 md:px-12 flex justify-between items-center">
         {/* LOGO */}
         <Link href="/" className="font-serif text-xl tracking-widest uppercase font-bold">
-          Kwalee
+          Yarvo Hotel
         </Link>
 
         {/* DESKTOP NAV */}

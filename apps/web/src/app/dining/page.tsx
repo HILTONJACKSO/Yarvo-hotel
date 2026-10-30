@@ -96,7 +96,7 @@ export default function DiningPage() {
         <div className="absolute inset-0 z-0">
           <Image 
             src="https://images.unsplash.com/photo-1544148103-0773bf10d330?auto=format&fit=crop&w=1920&q=80" 
-            alt="Dining at Kwalee" 
+            alt="Restaurant & Dining" 
             fill 
             className="object-cover opacity-60"
             priority
@@ -104,7 +104,7 @@ export default function DiningPage() {
         </div>
         <div className="relative z-10 text-center px-6">
           <span className="text-white/80 uppercase tracking-[0.3em] text-sm mb-4 block font-semibold">Exquisite Flavors</span>
-          <h1 className="text-5xl md:text-7xl font-serif text-white mb-6 drop-shadow-lg">Dining at Kwalee</h1>
+          <h1 className="text-5xl md:text-7xl font-serif text-white mb-6 drop-shadow-lg">Restaurant & Dining</h1>
           <p className="text-white/90 max-w-2xl mx-auto text-lg md:text-xl drop-shadow-md">
             Experience our curated digital menu and have culinary excellence delivered straight to your room.
           </p>
